@@ -3,8 +3,9 @@ import { radius, space } from '@kapitwatt/tokens';
 import { Button, Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
 import { LivingMascot } from '@/components/mascot/LivingMascot';
+import { formatKw } from '@/utils/format';
 import type { BrownoutRisk } from '@/utils/brownout';
-import type { NextStep } from '../hooks/useNextStep';
+import type { NextStep } from '@/utils/next-step';
 import { CountdownLine } from './CountdownLine';
 import { StepTrail } from './StepTrail';
 
@@ -22,9 +23,19 @@ const OVERLINE = { event: 'Do this next', practice: 'Before your first alert', q
 /**
  * The top of Home: the one thing to do next, said by Alitaptap in the mood of the moment. During
  * an alert: the step, its countdown, the action that opens the right screen, and the event's trail
- * of steps underneath. The brownout risk (simulated) shows under the step when the alert marks one.
+ * of steps underneath. The brownout risk (simulated) shows under the step when the alert marks one,
+ * and a smart meter's live reduction while the window is open.
  */
-export function NextStepCard({ step, risk }: { step: NextStep; risk: BrownoutRisk | null }) {
+export function NextStepCard({
+  step,
+  risk,
+  live = null,
+}: {
+  step: NextStep;
+  risk: BrownoutRisk | null;
+  /** Smart meter, window open: kW below the household's usual use right now. */
+  live?: number | null;
+}) {
   const tone = TONE[step.kind === 'quiet' ? 'quiet' : step.mood.tone];
   const action = step.card.action;
   return (
@@ -49,6 +60,16 @@ export function NextStepCard({ step, risk }: { step: NextStep; risk: BrownoutRis
       <Text variant="bodyMedium" style={{ color: tone.ink }}>
         {step.card.body}
       </Text>
+      {live !== null ? (
+        <View>
+          <Text variant="headlineMedium" color="relief" style={styles.tabular}>
+            {formatKw(live)}
+          </Text>
+          <Text variant="bodyMedium" style={{ color: tone.ink }}>
+            below your usual use right now
+          </Text>
+        </View>
+      ) : null}
       {risk ? (
         <View style={styles.risk}>
           <Text variant="titleSmall" style={{ color: tone.ink }}>
@@ -82,4 +103,5 @@ const styles = StyleSheet.create({
   words: { flex: 1, gap: 2 },
   overline: { letterSpacing: 0.5 },
   risk: { gap: 2 },
+  tabular: { fontVariant: ['tabular-nums'] },
 });

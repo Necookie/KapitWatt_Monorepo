@@ -53,6 +53,9 @@ export default function RootLayout() {
           <Stack.Screen name="sign-up" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="login" options={{ headerShown: false, animation: 'fade' }} />
           {/* The camera is full screen with its own close button. */}
+          {/* The event and committing a cut draw the tabs' night band, with its own back arrow. */}
+          <Stack.Screen name="alert/[alertId]/index" options={{ headerShown: false }} />
+          <Stack.Screen name="alert/[alertId]/commit" options={{ headerShown: false }} />
           <Stack.Screen name="alert/[alertId]/capture" options={{ headerShown: false }} />
           <Stack.Screen name="forgot-password" options={{ headerTitle: 'Forgot password' }} />
           <Stack.Screen name="privacy" options={{ headerTitle: 'Privacy notice' }} />

@@ -1,32 +1,21 @@
-import { TRUST } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
+import { radius, space } from '@kapitwatt/tokens';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { radius, space } from '@kapitwatt/tokens';
 import { formatKw } from '@/utils/format';
 
 const c = themes.light.color;
 
-/** The household's cap and what a verified cut adds to its score. */
-export function CommitLimits(props: { cap: number }) {
+/** What the chosen cut means for the window, the household's limit, and that any appliance will do. */
+export function CommitLimits(props: { selected: number; cap: number; hours: number }) {
+  const hours = Number.isInteger(props.hours) ? String(props.hours) : props.hours.toFixed(1);
   return (
     <View style={styles.panel}>
-      <View style={styles.panelRow}>
-        <Text variant="bodyMedium" color="onSurfaceVariant">
-          Most you can commit
-        </Text>
-        <Text variant="titleSmall">{formatKw(props.cap)}</Text>
-      </View>
-      <View style={styles.panelRow}>
-        <Text variant="bodyMedium" color="onSurfaceVariant">
-          If your cut is verified
-        </Text>
-        <Text variant="titleSmall" color="tertiary">
-          {`+${TRUST.cleanEvent} Contribution Score`}
-        </Text>
-      </View>
-      <Text variant="bodySmall" color="onSurfaceVariant">
-        Switch off whatever you like. Nobody checks which appliance.
+      <Text variant="titleSmall">
+        {`Keep your use ${formatKw(props.selected)} lower for ${hours} hours.`}
+      </Text>
+      <Text variant="bodyMedium" color="onSurfaceVariant">
+        {`The most you can commit is ${formatKw(props.cap)}. Switch off whatever you like; nobody checks which appliance.`}
       </Text>
     </View>
   );
@@ -37,7 +26,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     backgroundColor: c.surfaceContainerLow,
     padding: space[4],
-    gap: space[2],
+    gap: space[1],
   },
-  panelRow: { flexDirection: 'row', justifyContent: 'space-between' },
 });

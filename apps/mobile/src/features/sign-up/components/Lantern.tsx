@@ -2,13 +2,17 @@ import { themes } from '@kapitwatt/styles';
 import { withAlpha } from '@kapitwatt/tokens';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
+import { Lantern as PaperLantern, LANTERN_ASPECT } from '@/components/night/Lantern';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { LANTERN } from '../utils/lantern-street';
 
 const c = themes.light.color;
 const NATIVE = Platform.OS !== 'web';
 
-/** A round lantern like Alitaptap's tail: Kuryente Orange with warm ribs when lit, dim when not. */
+/**
+ * One step's lantern on sign-up's street (the shared paper lantern): an outline until its step is
+ * done, then lit with a little pop when the spark lands; the step you are on has a breathing ring.
+ */
 export function Lantern(props: {
   k: number;
   at: { x: number; top: number; y: number };
@@ -53,10 +57,12 @@ export function Lantern(props: {
     return () => loop.stop();
   }, [props.waiting]);
 
-  const size = LANTERN * k;
-  const left = at.x * k - size / 2;
-  const top = at.y * k - size / 2;
-  const ringSize = size + 8 * k;
+  // A paper lantern (the shared drawing), its body centred where the circle used to be.
+  const height = LANTERN * k * 1.4;
+  const width = height * LANTERN_ASPECT;
+  const left = at.x * k - width / 2;
+  const top = at.y * k - height / 2;
+  const ringSize = LANTERN * k + 10 * k;
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <View
@@ -65,7 +71,7 @@ export function Lantern(props: {
           left: at.x * k - 0.6,
           top: at.top * k,
           width: 1.2,
-          height: (at.y - at.top) * k - size / 2 + 1,
+          height: Math.max(0, top - at.top * k + 1),
           backgroundColor: withAlpha(c.primaryContainer, 0.4),
         }}
       />
@@ -84,35 +90,8 @@ export function Lantern(props: {
           }}
         />
       ) : null}
-      <View
-        style={[
-          styles.lantern,
-          {
-            left,
-            top,
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: withAlpha(c.primaryContainer, 0.16),
-            borderWidth: 1,
-            borderColor: withAlpha(c.primaryContainer, 0.5),
-          },
-        ]}
-      >
-        <View
-          style={[
-            styles.rib,
-            styles.ribDim,
-            { left: size * 0.3, top: size * 0.14, height: size * 0.72 },
-          ]}
-        />
-        <View
-          style={[
-            styles.rib,
-            styles.ribDim,
-            { left: size * 0.62, top: size * 0.14, height: size * 0.72 },
-          ]}
-        />
+      <View style={[styles.lantern, { left, top }]}>
+        <PaperLantern height={height} state="unlit" ink={c.primaryContainer} />
       </View>
       <Animated.View
         style={[
@@ -120,10 +99,6 @@ export function Lantern(props: {
           {
             left,
             top,
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: c.brandAccent,
             opacity: on,
             transform: [
               {
@@ -136,31 +111,12 @@ export function Lantern(props: {
           },
         ]}
       >
-        <View style={[styles.rib, { left: size * 0.3, top: size * 0.14, height: size * 0.72 }]} />
-        <View style={[styles.rib, { left: size * 0.62, top: size * 0.14, height: size * 0.72 }]} />
+        <PaperLantern height={height} />
       </Animated.View>
-      <View
-        style={{
-          position: 'absolute',
-          left: at.x * k - size * 0.22,
-          top: top - 1.5 * k,
-          width: size * 0.44,
-          height: 3 * k,
-          borderRadius: 1,
-          backgroundColor: c.onPrimaryContainer,
-        }}
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  lantern: { position: 'absolute', overflow: 'hidden' },
-  rib: {
-    position: 'absolute',
-    width: 1.2,
-    borderRadius: 1,
-    backgroundColor: c.tertiaryContainer,
-  },
-  ribDim: { backgroundColor: withAlpha(c.primaryContainer, 0.3) },
+  lantern: { position: 'absolute' },
 });

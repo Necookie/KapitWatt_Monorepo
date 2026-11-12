@@ -16,8 +16,10 @@ const c = themes.light.color;
  * Email and password login for a household that already joined. Welcome's night carries on above
  * the form (the sheet rose there from welcome): Alitaptap sleeps on the moon until you start
  * typing, wakes with a stretch, shuts its eyes for the password, winces at a wrong one and lights
- * up when you are in. Its line under the heading follows along. While the keyboard is open the
- * sheet slides up over the moon, so the form keeps its room and Alitaptap's head peeks over it.
+ * up when you are in. Its line under the heading follows along, one line each time, so the form
+ * never moves as it changes. While the keyboard is open the sheet slides up over the moon,
+ * so the form keeps its room and Alitaptap's head peeks over it; the sheet pads for the keyboard
+ * itself (the Screen's avoider would measure from the moving sheet, not the window).
  */
 export default function LoginPage() {
   const form = useLoginForm();
@@ -37,11 +39,11 @@ export default function LoginPage() {
         onBack={form.back}
       />
 
-      <Animated.View style={[styles.sheet, { top: form.sheetTop }]}>
-        <Screen roomy>
+      <Animated.View style={[styles.sheet, { top: form.sheetTop, paddingBottom: form.keyboard }]}>
+        <Screen roomy avoidKeyboard={false}>
           <View style={styles.heading}>
-            <Text variant="labelLarge" align="center" style={styles.kicker}>
-              {greeting()}
+            <Text variant="labelMedium" align="center" style={styles.kicker}>
+              {greeting().toUpperCase()}
             </Text>
             <Text variant="headlineMedium" align="center" accessibilityRole="header">
               Welcome back
@@ -99,7 +101,6 @@ export default function LoginPage() {
               <Button
                 variant="text"
                 label="Forgot password?"
-
                 align="center"
                 onPress={form.forgotPassword}
               />
@@ -135,7 +136,8 @@ const styles = StyleSheet.create({
   // 24 between the heading, the form and the links (the Screen's gap), 16 between fields and 24
   // above Log in. Text buttons carry their own 48 px touch height, which reads as their spacing.
   heading: { alignItems: 'center', gap: space[1], marginTop: space[4] },
-  kicker: { color: c.tertiary, fontFamily: fontFamily.semibold },
+  // The same overline as sign-up's step name: small, uppercase, primary.
+  kicker: { color: c.primary, fontFamily: fontFamily.semibold, letterSpacing: 0.5 },
   line: { maxWidth: 300, marginTop: space[1] },
   form: { gap: space[4] },
   actions: { marginTop: space[2] },

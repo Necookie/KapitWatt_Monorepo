@@ -2,8 +2,10 @@ import { RegisterHouseholdInput } from '@kapitwatt/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { BackHandler, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { describeError, errorCode } from '@/api/http';
 import { useBarangays, useRegister } from '@/api/queries';
+import { signUpSheetTop } from '@/components/night/geometry';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { startOver } from '@/utils/nav';
 import {
@@ -37,6 +39,7 @@ export function useSignUp() {
   /** Lanterns lit: a step's lantern lights when the spark lands in it. */
   const [lit, setLit] = useState(0);
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
   const spark = useSpark();
   const street = useRef<ComponentRef<typeof View>>(null);
@@ -120,6 +123,8 @@ export function useSignUp() {
   };
 
   return {
+    /** Where the sheet starts on screen, for the Screen's keyboard avoider. */
+    keyboardOffset: signUpSheetTop(insets.top, width),
     barangays,
     joining: registerMutation.isPending,
     step,

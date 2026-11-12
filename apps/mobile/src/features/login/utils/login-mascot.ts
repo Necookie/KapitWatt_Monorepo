@@ -16,7 +16,11 @@ export function loginPose({ inside, failed, awake }: LoginMood): MascotPose {
   return inside ? 'reward' : failed ? 'missed' : awake ? 'neutral' : 'dimmed';
 }
 
-/** Alitaptap's line under the heading, following the form along. */
+/**
+ * Alitaptap's line under the heading, following the form along, in its own voice. Each fits on one
+ * line (270 px at most, inside a 320 px phone's column), so the form under it never moves as
+ * the line changes.
+ */
 export function loginLine(m: LoginMood): string {
   return m.inside
     ? "You're in. Welcome home!"
@@ -29,6 +33,6 @@ export function loginLine(m: LoginMood): string {
           : m.emailOk
             ? 'Hi again! Now your password.'
             : m.poked
-              ? 'Five more minutes… Your email will wake me.'
-              : 'Alitaptap dozed off. Type your email to wake it.';
+              ? 'Five more minutes… Email, please.'
+              : 'Zzz… Type your email to wake me.';
 }
