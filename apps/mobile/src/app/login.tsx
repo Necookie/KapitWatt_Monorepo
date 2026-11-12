@@ -1,12 +1,13 @@
 import { LoginInput } from '@kapitwatt/shared';
+import { Logo, Text } from '@kapitwatt/ui';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
-import { Button, Card, PasswordField, Screen, TextField } from '@/components/ui';
-import { describeError } from '@/lib/api';
-import { startOver } from '@/lib/nav';
+import { StyleSheet, View } from 'react-native';
+import { Button, Screen, TextField } from '@/components/ui';
+import { ApiError, errorCode } from '@/lib/api';
 import { useLogin } from '@/lib/queries';
-import { colors, text } from '@/theme';
+import { space } from '@/theme';
 
 function loginError(e: Error): string {
   return describeError(
@@ -21,7 +22,10 @@ function loginError(e: Error): string {
   );
 }
 
-/** Email and password login for a household that already joined. */
+/**
+ * Email and password login for a household that already joined (mockup page 1, Log in):
+ * light top bar, one filled action, the low-emphasis links as text and outlined buttons.
+ */
 export default function LoginScreen() {
   const login = useLogin();
   const [email, setEmail] = useState('');
@@ -44,45 +48,90 @@ export default function LoginScreen() {
     });
   };
 
+  const submit = () => {
+    if (!parsed.success) return;
+    login.mutate(parsed.data, {
+      onSuccess: (res) => {
+        router.dismissAll();
+        router.replace(res.household.needsRehearsal ? '/rehearsal' : '/');
+      },
+    });
+  };
+
   return (
-    <Screen>
-      <Card>
+    <Screen roomy>
+      <StatusBar style="dark" />
+      <View style={styles.intro}>
+        <Logo height={32} />
+        <View style={styles.heading}>
+          <Text variant="headlineMedium" accessibilityRole="header">
+            Welcome back
+          </Text>
+          <Text color="onSurfaceVariant">Log in to see grid alerts and your rewards.</Text>
+        </View>
+      </View>
+
+      <View style={styles.form}>
         <TextField
           label="Email"
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
           autoComplete="email"
+          textContentType="emailAddress"
           returnKeyType="next"
           value={email}
           onChangeText={setEmail}
         />
-        <PasswordField
-          label="Password"
-          autoComplete="current-password"
-          returnKeyType="go"
-          onSubmitEditing={submit}
-          value={password}
-          onChangeText={setPassword}
+        <View>
+          <TextField
+            label="Password"
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="current-password"
+            textContentType="password"
+            returnKeyType="go"
+            onSubmitEditing={submit}
+            value={password}
+            onChangeText={setPassword}
+          />
+          <Button
+            label="Forgot password?"
+            variant="text"
+            align="end"
+            onPress={() => router.push('/forgot-password')}
+          />
+        </View>
+        {login.isError ? <Text color="error">{loginError(login.error)}</Text> : null}
+        <Button
+          label="Log in"
+          disabled={!parsed.success}
+          loading={login.isPending}
+          onPress={submit}
         />
-        {formError ? <Text style={styles.error}>{formError}</Text> : null}
-        {login.isError ? <Text style={styles.error}>{loginError(login.error)}</Text> : null}
-        <Button label="Log in" disabled={!filled} loading={login.isPending} onPress={submit} />
-      </Card>
-      <Button
-        label="Forgot password?"
-        variant="secondary"
-        onPress={() => router.push('/forgot-password')}
-      />
-      <Button
-        label="Create account"
-        variant="secondary"
-        onPress={() => router.replace('/sign-up')}
-      />
+      </View>
+
+      <View style={styles.bottom}>
+        <Text variant="bodyMedium" color="onSurfaceVariant" align="center">
+          New to KapitWatt?
+        </Text>
+        <Button
+          label="Create account"
+          variant="secondary"
+          onPress={() => router.replace('/sign-up')}
+        />
+        <Text variant="bodySmall" color="onSurfaceVariant" align="center">
+          Laguna pilot. Alerts and reward rates are simulated.
+        </Text>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  error: { ...text.body, color: colors.red },
+  intro: { gap: space.lg },
+  heading: { gap: space.xs },
+  form: { gap: space.lg },
+  bottom: { marginTop: 'auto', gap: space.md },
 });
