@@ -298,6 +298,9 @@ Live API: https://kapitwatt-api.dheyn-main.workers.dev (use as `EXPO_PUBLIC_API_
 
 ## Conventions
 
+- **UI work: read `DESIGN.md` first** (repo root, Google Stitch format): tokens, reserved colours, type,
+  layout, components and do's and don'ts. Build with `@kapitwatt/ui`, `@kapitwatt/icons` and
+  `@kapitwatt/hooks`; `@kapitwatt/tokens` is the source of truth and a test keeps `DESIGN.md` in sync with it.
 - TypeScript strict everywhere. Prettier (single quotes, 100 columns).
 - Never commit `.env`, `.dev.vars` or any key. Secrets live in Doppler; the `*.example` files only list
   names.
