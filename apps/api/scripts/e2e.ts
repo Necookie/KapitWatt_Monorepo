@@ -22,6 +22,7 @@ import {
   RegisterResult,
   SimRunSummary,
   SimStatus,
+  SubmitReadingResult,
 } from '@kapitwatt/shared';
 
 const API = process.env.API_URL ?? 'http://localhost:8787';
@@ -36,6 +37,30 @@ function check(cond: unknown, what: string): asserts cond {
   if (!cond) throw new Error(`FAILED: ${what}`);
   passed++;
   console.log(`  ok  ${what}`);
+}
+
+/** A JPEG-looking file (correct magic bytes) with random content, so every one has a new hash. */
+function fakeJpeg(): Uint8Array {
+  const body = crypto.getRandomValues(new Uint8Array(256));
+  return new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...body]);
+}
+
+/** POST /readings as the app sends it: multipart fields plus the photo. */
+async function upload(
+  token: string,
+  fields: Record<string, string | number>,
+  photo: Uint8Array | null = fakeJpeg(),
+) {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(fields)) form.append(k, String(v));
+  if (photo) form.append('photo', new Blob([photo], { type: 'image/jpeg' }), 'meter.jpg');
+  const res = await fetch(`${API}/readings`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const text = await res.text();
+  return { status: res.status, json: text ? JSON.parse(text) : null };
 }
 
 async function call(
@@ -151,13 +176,16 @@ async function phase1Households() {
   );
   const [first] = await db`select push_token from households where id = ${household.id}`;
   check(first?.push_token === null, 'push token moved to the newest household on that phone');
-  const secondId = RegisterResult.parse(second.json).household.id;
+  const secondReg = RegisterResult.parse(second.json);
+  const secondId = secondReg.household.id;
   return {
     token,
     householdId: household.id,
     barangayId: barangay.id,
     pushHouseholdId: secondId,
     quietIds: [...quiet],
+    amiToken: secondReg.token,
+    signup,
   };
 }
 
@@ -540,10 +568,186 @@ try {
   const p2 = await phase2Alerts(ctx);
   await phase3Commitments(ctx, p2);
   await phase4Simulator(ctx);
+  await phase5Readings(ctx, p2);
   console.log(`\nall ${passed} checks passed`);
 } catch (err) {
   console.error(err instanceof Error ? err.message : err);
   process.exitCode = 1;
 } finally {
   await cleanup();
+}
+
+async function phase5Readings(
+  ctx: Awaited<ReturnType<typeof phase1Households>>,
+  p2: Awaited<ReturnType<typeof phase2Alerts>>,
+) {
+  console.log('phase 5: readings');
+  const home = { lat: ctx.signup.lat, lng: ctx.signup.lng };
+  // Test fixture until Measure (fast-forward) exists: move an alert's demo clock directly.
+  const moveClock = (alertId: string, to: 'start' | 'end', plusSec: number) =>
+    to === 'start'
+      ? db`update alerts set clock_offset_sec = extract(epoch from (window_start - now()))::int + ${plusSec} where id = ${alertId}`
+      : db`update alerts set clock_offset_sec = extract(epoch from (window_end - now()))::int + ${plusSec} where id = ${alertId}`;
+
+  // Rehearsal on a fresh photo household (bill 900 kWh a month: bill cap 2.5 kW).
+  const reg = RegisterResult.parse(
+    (
+      await call('POST', '/auth/register', {
+        ...ctx.signup,
+        meterSerial: `${RUN}-C`,
+        billAvgKwhMonth: 900,
+        pushToken: undefined,
+      })
+    ).json,
+  );
+  const c = reg.token;
+  const r1 = await upload(c, { kind: 'rehearsal', readingKwh: 1000, ...home });
+  check(
+    r1.status === 201 && SubmitReadingResult.parse(r1.json).baselineKw === null,
+    'first rehearsal photo stored',
+  );
+  const tooSoon = await upload(c, { kind: 'rehearsal', readingKwh: 1000.2, ...home });
+  check(
+    tooSoon.status === 409 && errorCode(tooSoon.json) === 'rehearsal_too_short',
+    'second rehearsal photo too soon is 409',
+  );
+
+  // Test fixture: pretend the first rehearsal photo was taken 31 minutes ago.
+  await db`update meter_readings set captured_at = captured_at - interval '31 minutes' where household_id = ${reg.household.id}`;
+  const r2 = await upload(c, { kind: 'rehearsal', readingKwh: 1001, ...home });
+  const done = SubmitReadingResult.parse(r2.json);
+  check(
+    r2.status === 201 && done.baselineKw === 1.9,
+    'rehearsal sets the baseline: 1 kWh over 31 min = 1.9 kW',
+  );
+  const meC = HouseholdMe.parse((await call('GET', '/auth/me', undefined, bearer(c))).json);
+  check(
+    !meC.needsRehearsal && meC.commitCapKw === 1.9,
+    'after the rehearsal the household can commit up to 1.9 kW',
+  );
+  const third = await upload(c, { kind: 'rehearsal', readingKwh: 1002, ...home });
+  check(
+    third.status === 409 && errorCode(third.json) === 'already_rehearsed',
+    'a third rehearsal photo is 409',
+  );
+  const ami = await upload(ctx.amiToken, { kind: 'rehearsal', readingKwh: 5, ...home });
+  check(
+    ami.status === 409 && errorCode(ami.json) === 'no_rehearsal_needed',
+    'smart-meter households do not rehearse',
+  );
+
+  // Before and after photos for household A, committed 1 kW to the phase 2 alert.
+  const a = ctx.token;
+  const event = (
+    kind: string,
+    readingKwh: number,
+    photo: Uint8Array | null = fakeJpeg(),
+    where = home,
+  ) => upload(a, { kind, alertId: p2.alertId, readingKwh, ...where }, photo);
+
+  const early = await event('before', 1204.3);
+  check(
+    early.status === 409 && errorCode(early.json) === 'not_open_yet',
+    'before photo ahead of the window is 409',
+  );
+  await moveClock(p2.alertId, 'start', 60);
+  const beforeBytes = fakeJpeg();
+  const before = await event('before', 1204.3, beforeBytes);
+  const beforeResult = SubmitReadingResult.parse(before.json);
+  check(
+    before.status === 201 && beforeResult.checkStatus === 'pass',
+    'before photo in its window passes',
+  );
+  const again = await event('before', 1204.4);
+  check(
+    again.status === 409 && errorCode(again.json) === 'already_submitted',
+    'no resubmission of a photo kind',
+  );
+  const reused = await event('after', 1206.6, beforeBytes);
+  check(
+    reused.status === 409 && errorCode(reused.json) === 'duplicate_photo',
+    'a reused photo is 409',
+  );
+  const png = await event('after', 1206.6, new TextEncoder().encode('PNG, not a jpeg at all'));
+  check(png.status === 422 && errorCode(png.json) === 'invalid_photo', 'a non-JPEG file is 422');
+  const noPhoto = await event('after', 1206.6, null);
+  check(noPhoto.status === 400, 'an upload without a photo is 400');
+  const notYet = await event('after', 1206.6);
+  check(
+    notYet.status === 409 && errorCode(notYet.json) === 'not_open_yet',
+    'after photo before window end is 409',
+  );
+
+  await moveClock(p2.alertId, 'end', 300);
+  const far = await event('after', 1206.6, fakeJpeg(), { lat: home.lat + 0.02, lng: home.lng });
+  const farResult = SubmitReadingResult.parse(far.json);
+  check(
+    far.status === 201 &&
+      farResult.checkStatus === 'flagged' &&
+      farResult.flags.includes('too_far'),
+    'after photo taken 2 km from home is stored but flagged too_far',
+  );
+
+  const view = CommitmentView.parse(
+    (await call('GET', `/commitments/by-alert/${p2.alertId}`, undefined, bearer(a))).json,
+  );
+  check(
+    view.readings.before?.checkStatus === 'pass' && view.readings.after?.checkStatus === 'flagged',
+    'event view shows both readings',
+  );
+  const totals = AlertTotals.parse((await call('GET', `/alerts/${p2.alertId}/totals`)).json);
+  check(totals.deliveredKw === 0, 'a flagged photo does not count as delivered');
+
+  // Late before photo: household C commits to a new alert, then its window is 16 minutes old.
+  const inMinutes = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
+  const lateAlert = AlertView.parse(
+    (
+      await call(
+        'POST',
+        '/alerts',
+        { ...p2.alertBody, windowStart: inMinutes(2), windowEnd: inMinutes(62) },
+        OPERATOR,
+      )
+    ).json,
+  );
+  const commitC = await call(
+    'POST',
+    '/commitments',
+    { alertId: lateAlert.id, committedKw: 1.5 },
+    bearer(c),
+  );
+  check(commitC.status === 201, 'rehearsed household commits 1.5 kW');
+  await moveClock(lateAlert.id, 'start', 16 * 60);
+  const late = await upload(c, {
+    kind: 'before',
+    alertId: lateAlert.id,
+    readingKwh: 1001.5,
+    ...home,
+  });
+  check(
+    late.status === 409 && errorCode(late.json) === 'deadline_passed',
+    'before photo 16 minutes into the window is 409',
+  );
+
+  // Storage: a private key and a hash, no URL. The operator can view the photo; a household cannot.
+  const [row] =
+    await db`select photo_key, photo_hash from meter_readings where id = ${beforeResult.id}`;
+  check(
+    /^photos\/[0-9a-f-]{36}\.jpg$/.test(String(row?.photo_key)) &&
+      /^[0-9a-f]{64}$/.test(String(row?.photo_hash)),
+    'stored with a private key and a SHA-256 hash',
+  );
+  const photo = await fetch(`${API}/readings/${beforeResult.id}/photo`, { headers: OPERATOR });
+  const bytes = new Uint8Array(await photo.arrayBuffer());
+  check(
+    photo.status === 200 &&
+      photo.headers.get('content-type') === 'image/jpeg' &&
+      bytes.length === beforeBytes.length &&
+      bytes.every((b, i) => b === beforeBytes[i]),
+    'operator can view the exact photo',
+  );
+  const asHousehold = await fetch(`${API}/readings/${beforeResult.id}/photo`, {
+    headers: bearer(a),
+  });
+  check(asHousehold.status === 401, 'a household cannot view photos');
 }
