@@ -163,12 +163,23 @@ export function renderPage(p: PageInput): string {
 (function () {
   var meta = document.querySelector('[data-release]');
   var button = document.querySelector('[data-apk]');
+  // No published release yet: say so, instead of sending people to GitHub's 404 page.
+  function notYet() {
+    button.removeAttribute('href');
+    button.setAttribute('aria-disabled', 'true');
+    button.classList.add('btn-disabled');
+    button.querySelector('span').textContent = 'Download coming soon';
+    meta.textContent = 'The first Android build is on its way. Check back shortly.';
+  }
   fetch(${JSON.stringify(p.releaseApi)}, { headers: { Accept: 'application/vnd.github+json' } })
-    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (r) {
+      if (r.status === 404) return notYet();
+      return r.ok ? r.json() : null;
+    })
     .then(function (release) {
       if (!release) return;
       var apk = (release.assets || []).filter(function (a) { return /\\.apk$/i.test(a.name); })[0];
-      if (!apk) return;
+      if (!apk) return notYet();
       var mb = Math.round(apk.size / 1048576);
       var date = new Date(release.published_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
       meta.textContent = 'Version ' + String(release.tag_name).replace(/^v/, '') + ' · ' + mb + ' MB · ' + date;
