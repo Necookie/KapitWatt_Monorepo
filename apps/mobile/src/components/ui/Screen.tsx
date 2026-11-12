@@ -22,6 +22,7 @@ export function Screen(props: {
   return (
     <ScrollView
       style={styles.root}
+      keyboardShouldPersistTaps="handled"
       contentContainerStyle={[
         styles.content,
         props.roomy && styles.roomy,

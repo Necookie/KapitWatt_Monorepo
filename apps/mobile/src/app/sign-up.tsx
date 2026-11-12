@@ -1,8 +1,8 @@
 import { RegisterHouseholdInput } from '@kapitwatt/shared';
 import { Text } from '@kapitwatt/ui';
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
 import {
   EMPTY_DRAFT,
@@ -24,7 +24,8 @@ import {
   STEP_TITLE,
 } from '@/components/onboarding/Steps';
 import { Button, ErrorState, Loading, Screen } from '@/components/ui';
-import { errorCode } from '@/lib/api';
+import { describeError, errorCode } from '@/lib/api';
+import { startOver } from '@/lib/nav';
 import { useBarangays, useRegister } from '@/lib/queries';
 import { colors, space } from '@/theme';
 
@@ -78,8 +79,9 @@ export default function SignUpScreen() {
 
   const back = () => {
     setProblem(null);
-    if (index === 0) router.back();
-    else setStep(STEPS[index - 1]!);
+    if (index > 0) setStep(STEPS[index - 1]!);
+    else if (router.canGoBack()) router.back();
+    else router.replace('/welcome');
   };
 
   const join = () => {
@@ -101,7 +103,8 @@ export default function SignUpScreen() {
   return (
     <View style={styles.root}>
       <SignUpTopBar step={step} onBack={back} disabled={registerMutation.isPending} />
-      <Screen roomy>
+      {/* Keyed by step so every step opens scrolled to the top. */}
+      <Screen key={step} roomy>
         <MascotHeader
           label={STEP_TITLE[step]}
           line={mascot.line}

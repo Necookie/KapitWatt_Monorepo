@@ -5,8 +5,9 @@ import { AlertCard, BarangayTonight, QuietCard, RewardTiles } from '@/components
 import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { MockControls } from '@/components/MockControls';
 import { Button, ErrorState, Loading, Screen } from '@/components/ui';
-import { ApiError } from '@/lib/api';
-import { useActiveAlert, useMe, useRefreshAll } from '@/lib/queries';
+import { ApiError, describeError } from '@/lib/api';
+import { startOver } from '@/lib/nav';
+import { useActiveAlert, useLogout, useMe, useRefreshAll } from '@/lib/queries';
 import { space } from '@/theme';
 
 /** "Juan Dela Cruz" -> "Juan"; households from before names were collected get a neutral hello. */

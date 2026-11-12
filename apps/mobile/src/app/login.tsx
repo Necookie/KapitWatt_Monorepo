@@ -4,7 +4,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Screen, TextField } from '@/components/ui';
-import { ApiError, errorCode } from '@/lib/api';
+import { describeError } from '@/lib/api';
+import { startOver } from '@/lib/nav';
 import { useLogin } from '@/lib/queries';
 import { space } from '@/theme';
 
@@ -44,16 +45,6 @@ export default function LoginScreen() {
     setFormError(null);
     login.mutate(parsed.data, {
       onSuccess: (res) => startOver(res.household.needsRehearsal ? '/rehearsal' : '/'),
-    });
-  };
-
-  const submit = () => {
-    if (!parsed.success) return;
-    login.mutate(parsed.data, {
-      onSuccess: (res) => {
-        router.dismissAll();
-        router.replace(res.household.needsRehearsal ? '/rehearsal' : '/');
-      },
     });
   };
 
@@ -101,13 +92,9 @@ export default function LoginScreen() {
             onPress={() => router.push('/forgot-password')}
           />
         </View>
+        {formError ? <Text color="error">{formError}</Text> : null}
         {login.isError ? <Text color="error">{loginError(login.error)}</Text> : null}
-        <Button
-          label="Log in"
-          disabled={!parsed.success}
-          loading={login.isPending}
-          onPress={submit}
-        />
+        <Button label="Log in" disabled={!filled} loading={login.isPending} onPress={submit} />
       </View>
 
       <View style={styles.bottom}>

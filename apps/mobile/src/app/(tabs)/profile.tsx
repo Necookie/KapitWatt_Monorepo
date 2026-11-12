@@ -6,8 +6,9 @@ import { Redirect, router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, ErrorState, Loading, TextField } from '@/components/ui';
-import { ApiError, errorCode } from '@/lib/api';
+import { Button, ErrorState, Loading, PasswordField, TextField } from '@/components/ui';
+import { ApiError, describeError } from '@/lib/api';
+import { startOver } from '@/lib/nav';
 import { formatKwh } from '@/lib/format';
 import { useDeleteAccount, useHistory, useLogout, useMe, useUpdateProfile } from '@/lib/queries';
 import { fonts, radius, space } from '@/theme';
@@ -51,10 +52,7 @@ export default function ProfileScreen() {
 
   const savedKwh = (history.data ?? []).reduce((t, i) => t + (i.result?.verifiedKwh ?? 0), 0);
   const edit = UpdateProfileInput.safeParse({ accountName: name, serviceAddress: address });
-  const leave = () => {
-    router.dismissAll();
-    router.replace('/welcome');
-  };
+  const leave = () => startOver('/welcome');
   const startEdit = () => {
     update.reset();
     setName(h.accountName ?? '');
@@ -127,7 +125,9 @@ export default function ProfileScreen() {
                 onChangeText={setAddress}
               />
               {update.isError ? (
-                <Text color="error">Could not save your changes. Try again.</Text>
+                <Text color="error">
+                  {describeError(update.error, {}, 'Could not save your changes. Try again.')}
+                </Text>
               ) : null}
               <Button
                 label="Save"
@@ -203,19 +203,19 @@ export default function ProfileScreen() {
                 readings, and your points and credits. Barangay totals from past events stay, with
                 nothing that identifies you. This cannot be undone.
               </Text>
-              <TextField
+              <PasswordField
                 label="Enter your password to confirm"
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
+                autoComplete="current-password"
                 value={password}
                 onChangeText={setPassword}
               />
               {remove.isError ? (
                 <Text color="error">
-                  {errorCode(remove.error) === 'invalid_credentials'
-                    ? 'Wrong password.'
-                    : 'Could not delete your account. Try again.'}
+                  {describeError(
+                    remove.error,
+                    { invalid_credentials: 'Wrong password.' },
+                    'Could not delete your account. Try again.',
+                  )}
                 </Text>
               ) : null}
               <Button

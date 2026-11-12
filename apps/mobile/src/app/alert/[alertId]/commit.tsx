@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { Button, ErrorState, Loading, Screen } from '@/components/ui';
-import { ApiError, errorCode } from '@/lib/api';
+import { describeError } from '@/lib/api';
 import { formatKw, formatWindow } from '@/lib/format';
 import { useAlert, useCommit, useMe } from '@/lib/queries';
 import { fonts, radius, space } from '@/theme';
@@ -168,6 +168,18 @@ function RoundButton(props: {
     </Pressable>
   );
 }
+
+/** Refusals the household can act on; anything else shows the server's sentence. */
+const COMMIT_REFUSALS: Record<string, string> = {
+  already_committed: 'You already committed to this event.',
+  window_closed: 'Commitments closed when the peak window started.',
+  alert_closed: 'This event is over.',
+  above_cap: 'That is above your maximum cut.',
+  needs_rehearsal: 'Finish your practice run first, so we know your usual usage.',
+  no_baseline: 'We do not have your usual usage yet, so you cannot commit.',
+  opted_out: 'Grid alerts are turned off for you. Turn them on in Profile to join.',
+  not_targeted: 'This alert is not for your barangay.',
+};
 
 function commitError(e: Error): string {
   return describeError(e, COMMIT_REFUSALS, 'Could not save your commitment. Try again.');

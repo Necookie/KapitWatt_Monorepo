@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocationPrompt } from '@/components/LocationPrompt';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { Button } from '@/components/ui';
-import { ApiError, errorCode } from '@/lib/api';
+import { describeError } from '@/lib/api';
 import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
 import { useSubmitReading } from '@/lib/queries';
 import { fonts, radius, space } from '@/theme';
