@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@kapitwatt/hooks": "workspace:*",
+    "@kapitwatt/icons": "workspace:*",
     "@kapitwatt/styles": "workspace:*",
     "@kapitwatt/tokens": "workspace:*"
   },

@@ -31,6 +31,7 @@ packages/
   styles/      Theme (tokens as RN styles), ThemeProvider, font sources     @kapitwatt/styles
   hooks/       useTheme, useStyles, useWindowClass, useCountdown, fonts     @kapitwatt/hooks
   ui/          UI primitives for both apps (React Native + RN web)         @kapitwatt/ui
+  icons/       Phosphor icon subset behind one themed <Icon>                @kapitwatt/icons
   config/      Shared tsconfig base                                         @kapitwatt/config
   assets/      Logo, app icons, mascot, Albert Sans (see its README)        @kapitwatt/assets
 docs/          The full plan (PDF, source of truth), PRD, SRS, MVP
