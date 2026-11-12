@@ -24,3 +24,4 @@ export function createDb(databaseUrl: string): Db {
 
 export * from './queries/health';
 export * from './queries/barangays';
+export * from './queries/households';

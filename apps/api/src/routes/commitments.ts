@@ -1,4 +1,4 @@
-import { zValidator } from '@hono/zod-validator';
+import { validate } from '../lib/validate';
 import { CreateCommitmentInput } from '@kapitwatt/shared';
 import { Hono } from 'hono';
 import type { AppEnv } from '../env';
@@ -10,7 +10,7 @@ export const commitments = new Hono<AppEnv>();
 commitments.use('*', householdAuth);
 
 // Commit a cut in kW. Capped by baseline and trust score; the path comes from the meter type.
-commitments.post('/', zValidator('json', CreateCommitmentInput), (c) =>
+commitments.post('/', validate('json', CreateCommitmentInput), (c) =>
   notImplemented(c, 'create commitment'),
 );
 

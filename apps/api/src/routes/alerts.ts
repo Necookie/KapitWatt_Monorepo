@@ -1,4 +1,4 @@
-import { zValidator } from '@hono/zod-validator';
+import { validate } from '../lib/validate';
 import { CreateAlertInput } from '@kapitwatt/shared';
 import { Hono } from 'hono';
 import type { AppEnv } from '../env';
@@ -9,7 +9,7 @@ export const alerts = new Hono<AppEnv>();
 
 // Operator raises a yellow or red alert: store it, log sender and time, split the
 // target across barangays, then push to opted-in tokens in the targeted barangays.
-alerts.post('/', operatorAuth, zValidator('json', CreateAlertInput), (c) =>
+alerts.post('/', operatorAuth, validate('json', CreateAlertInput), (c) =>
   notImplemented(c, 'create alert + push dispatch'),
 );
 
