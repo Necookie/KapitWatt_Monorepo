@@ -46,3 +46,15 @@ export const MIN_KEY_LENGTH = 32;
 export function isStrongKey(key: string | undefined): key is string {
   return typeof key === 'string' && key.length >= MIN_KEY_LENGTH && key !== 'change-me';
 }
+
+/**
+ * A stable UUID derived from a name (SHA-256, formatted as an RFC 9562 version 8 UUID). Used for
+ * simulated households so the same seed always produces the same ids, and so the same run.
+ */
+export async function uuidFromName(name: string): Promise<string> {
+  const b = (await sha256(name)).slice(0, 16);
+  b[6] = (b[6]! & 0x0f) | 0x80; // version 8 (custom)
+  b[8] = (b[8]! & 0x3f) | 0x80; // RFC variant
+  const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}

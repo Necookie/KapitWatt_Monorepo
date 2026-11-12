@@ -168,3 +168,13 @@ describe('simulator routes', () => {
     await expectError(res, 401, 'unauthorized');
   });
 });
+
+describe('uuidFromName', () => {
+  it('is stable, distinct per name, and a valid UUID', async () => {
+    const { uuidFromName } = await import('../lib/crypto');
+    const a = await uuidFromName('kapitwatt-sim:2026:SIM-SAN-0001');
+    expect(a).toBe(await uuidFromName('kapitwatt-sim:2026:SIM-SAN-0001'));
+    expect(a).not.toBe(await uuidFromName('kapitwatt-sim:2027:SIM-SAN-0001'));
+    expect(a).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  });
+});

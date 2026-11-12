@@ -19,7 +19,7 @@
     "db:migrate": "doppler run -- pnpm --filter @kapitwatt/db migrate",
     "db:smoke": "doppler run -- pnpm --filter @kapitwatt/db smoke",
     "db:seed": "doppler run -- pnpm --filter @kapitwatt/db seed",
-    "deploy:api": "pnpm --filter @kapitwatt/api run deploy && doppler run -- node apps/api/scripts/push-secrets.mjs"
+    "deploy:api": "doppler run -- node apps/api/scripts/deploy.mjs"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

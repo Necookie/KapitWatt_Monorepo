@@ -1,30 +1,54 @@
-import { ApiErrorBody } from '@kapitwatt/shared';
+import {
+  ActiveAlertResponse,
+  AlertLogResponse,
+  AlertView,
+  ApiErrorBody,
+  FlaggedReading,
+} from '@kapitwatt/shared';
 import type {
-  Alert,
   AlertTotals,
   BarangayWithCount,
   CreateAlertInput,
   FastForwardInput,
+  ReviewReadingInput,
   SimParams,
   SimRunSummary,
   SimStatus,
+  UpdateTargetsInput,
 } from '@kapitwatt/shared';
 import { MemoryBackend, MemoryBackendError } from '@kapitwatt/sim';
-import { ApiError, api } from './api';
+import { ApiError, api, apiBlob } from './api';
 
 /**
  * Everything the dashboard asks of the backend, behind one interface with two
  * implementations: the live API, and a fixture that runs the real simulator against
  * an in-memory backend in the browser. Set EXPO_PUBLIC_FIXTURES=1 for the fixture.
  */
+/** What the dashboard reads of an alert: the API's AlertView without its clock. The fixture's Alert fits too. */
+export type DashboardAlert = Omit<AlertView, 'serverNow'>;
+
 export interface DashboardClient {
   listBarangays(): Promise<BarangayWithCount[]>;
   /** The alert the operator is working on, settled ones included. Null when there is none. */
-  getCurrentAlert(): Promise<Alert | null>;
-  createAlert(input: CreateAlertInput): Promise<Alert>;
+  getCurrentAlert(): Promise<DashboardAlert | null>;
+  createAlert(input: CreateAlertInput): Promise<DashboardAlert>;
+  /** End an alert early; the API sends the alert-lifted push (FR-DASH-12). */
+  cancelAlert(alertId: string): Promise<void>;
+  /** The alert log, newest first (FR-DASH-13). */
+  listAlerts(): Promise<DashboardAlert[]>;
   getTotals(alertId: string): Promise<AlertTotals>;
+  /** Operator override of barangay shares of the target, while the alert is open. */
+  updateTargets(alertId: string, targets: UpdateTargetsInput['targets']): Promise<void>;
   fastForward(alertId: string, to: FastForwardInput['to']): Promise<void>;
   settle(alertId: string): Promise<void>;
+  /** Readings that failed a rule check and wait for a person (FR-DASH-11). */
+  listFlagged(): Promise<FlaggedReading[]>;
+  reviewReading(readingId: string, decision: ReviewReadingInput['decision']): Promise<void>;
+  /**
+   * The photo of a reading, from the private bucket. There is no public link: the bytes
+   * are fetched with the operator key and shown from a blob URL the caller must revoke.
+   */
+  readingPhoto(readingId: string): Promise<string>;
   simStatus(): Promise<SimStatus>;
   simSeed(params: Pick<SimParams, 'amiShare' | 'seed'>): Promise<void>;
   simRun(alertId: string, params: SimParams, phase: 'commit' | 'deliver'): Promise<SimRunSummary>;
@@ -57,6 +81,9 @@ function rememberAlertId(id: string | null): void {
 
 const json = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) });
 
+/** The most the API returns in one call (LimitQuery). */
+const ALERT_LOG_LIMIT = 100;
+
 const liveClient: DashboardClient = {
   async listBarangays() {
     return (await api<{ barangays: BarangayWithCount[] }>('/barangays')).barangays;
@@ -67,7 +94,7 @@ const liveClient: DashboardClient = {
     const remembered = recallAlertId();
     if (remembered) {
       try {
-        const { alert } = await api<{ alert: Alert }>(`/alerts/${remembered}`);
+        const alert = AlertView.parse(await api(`/alerts/${remembered}`));
         if (alert.status !== 'cancelled') return alert;
         rememberAlertId(null);
       } catch (error) {
@@ -75,21 +102,54 @@ const liveClient: DashboardClient = {
         rememberAlertId(null);
       }
     }
-    const { alert } = await api<{ alert: Alert | null }>('/alerts/active');
+    const { alert } = ActiveAlertResponse.parse(await api('/alerts/active'));
     if (alert) rememberAlertId(alert.id);
     return alert;
   },
   async createAlert(input) {
-    const { alert } = await api<{ alert: Alert }>('/alerts', json(input));
+    // One key per confirm: a repeated request returns the same alert and sends no second push.
+    const alert = AlertView.parse(
+      await api('/alerts', {
+        ...json(input),
+        headers: { 'idempotency-key': globalThis.crypto.randomUUID() },
+      }),
+    );
     rememberAlertId(alert.id);
     return alert;
   },
+  async cancelAlert(alertId) {
+    await api(`/alerts/${alertId}/cancel`, json({}));
+    if (recallAlertId() === alertId) rememberAlertId(null);
+  },
+  async listAlerts() {
+    return AlertLogResponse.parse(await api(`/alerts?limit=${ALERT_LOG_LIMIT}`)).alerts;
+  },
   getTotals: (alertId) => api<AlertTotals>(`/alerts/${alertId}/totals`),
+  async updateTargets(alertId, targets) {
+    await api(`/alerts/${alertId}/targets`, {
+      ...json({ targets } satisfies UpdateTargetsInput),
+      method: 'PUT',
+    });
+  },
   async fastForward(alertId, to) {
     await api(`/alerts/${alertId}/fast-forward`, json({ to } satisfies FastForwardInput));
   },
   async settle(alertId) {
     await api(`/alerts/${alertId}/settle`, json({}));
+  },
+  async listFlagged() {
+    // The row shape is FlaggedReading in @kapitwatt/shared. The route's envelope is not
+    // fixed yet, so both a bare list and { readings } are read.
+    const body = await api<unknown>('/readings/flagged');
+    const rows = Array.isArray(body) ? body : (body as { readings?: unknown } | null)?.readings;
+    // Any other shape fails here rather than reading as an empty queue.
+    return FlaggedReading.array().parse(rows);
+  },
+  async reviewReading(readingId, decision) {
+    await api(`/readings/${readingId}/review`, json({ decision } satisfies ReviewReadingInput));
+  },
+  async readingPhoto(readingId) {
+    return URL.createObjectURL(await apiBlob(`/readings/${readingId}/photo`));
   },
   simStatus: () => api<SimStatus>('/sim/status'),
   async simSeed(params) {
@@ -106,11 +166,15 @@ const liveClient: DashboardClient = {
 
 // --- fixture -------------------------------------------------------------------
 
+/** Fixture only: the share of simulated photo readings held for review. */
+export const FIXTURE_FLAGGED_SHARE = 0.03;
+
 let backend: MemoryBackend | null = null;
 
 function fixtureBackend(): MemoryBackend {
   if (!backend) {
-    backend = new MemoryBackend();
+    // The fixture runs no photo checks, so it flags a few readings to give the review list rows.
+    backend = new MemoryBackend({ flaggedShare: FIXTURE_FLAGGED_SHARE });
     // Start seeded so a page refresh during development lands on a usable state.
     backend.seed({ amiShare: 0.15, seed: 2026 });
   }
@@ -133,7 +197,16 @@ const fixtureClient: DashboardClient = {
   listBarangays: () => viaFixture((b) => b.listBarangays()),
   getCurrentAlert: () => viaFixture((b) => b.currentAlert()),
   createAlert: (input) => viaFixture((b) => b.createAlert(input, 'operator (fixture)')),
+  cancelAlert: (alertId) =>
+    viaFixture((b) => {
+      b.cancel(alertId);
+    }),
+  listAlerts: () => viaFixture((b) => b.listAlerts(ALERT_LOG_LIMIT)),
   getTotals: (alertId) => viaFixture((b) => b.totals(alertId)),
+  updateTargets: (alertId, targets) =>
+    viaFixture((b) => {
+      b.updateTargets(alertId, targets);
+    }),
   fastForward: (alertId, to) =>
     viaFixture((b) => {
       b.fastForward(alertId, to);
@@ -141,6 +214,15 @@ const fixtureClient: DashboardClient = {
   settle: (alertId) =>
     viaFixture((b) => {
       b.settle(alertId);
+    }),
+  listFlagged: () => viaFixture((b) => b.listFlagged()),
+  reviewReading: (readingId, decision) =>
+    viaFixture((b) => {
+      b.review(readingId, decision);
+    }),
+  readingPhoto: () =>
+    viaFixture(() => {
+      throw new MemoryBackendError(404, 'the fixture has no photos');
     }),
   simStatus: () => viaFixture((b) => b.status()),
   simSeed: (params) =>

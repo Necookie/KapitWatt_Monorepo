@@ -6,6 +6,11 @@ import { AlertLevel, AlertStatus, MeterType, ReadingKind } from './enums';
 /** Request and response bodies. The API validates with these; the apps type their calls with them. */
 
 const latitude = z.number().min(-90).max(90);
+/** Expo push tokens, as returned by getExpoPushTokenAsync. */
+const expoPushToken = z
+  .string()
+  .max(255)
+  .regex(/^Expo(nent)?PushToken\[[^\]]+\]$/, 'must be an Expo push token');
 const longitude = z.number().min(-180).max(180);
 
 export const RegisterHouseholdInput = z.object({
@@ -18,12 +23,12 @@ export const RegisterHouseholdInput = z.object({
   lng: longitude,
   /** Consent to alerts and data use (Data Privacy Act 2012). Must be true to register. */
   consent: z.literal(true),
-  pushToken: z.string().min(1).max(255).optional(),
+  pushToken: expoPushToken.optional(),
 });
 export type RegisterHouseholdInput = z.infer<typeof RegisterHouseholdInput>;
 
 export const UpdatePushTokenInput = z.object({
-  pushToken: z.string().min(1).max(255),
+  pushToken: expoPushToken,
 });
 export type UpdatePushTokenInput = z.infer<typeof UpdatePushTokenInput>;
 
@@ -36,10 +41,16 @@ export const CreateAlertInput = z
     /** Empty array = all pilot areas. */
     targetBarangayIds: z.array(z.uuid()).max(100),
     message: z.string().trim().min(1).max(500),
+    /** P1: send later (the push goes out at this time). Omit to send now. */
+    sendAt: z.iso.datetime().optional(),
   })
   .refine((a) => Date.parse(a.windowEnd) > Date.parse(a.windowStart), {
     message: 'windowEnd must be after windowStart',
     path: ['windowEnd'],
+  })
+  .refine((a) => a.sendAt === undefined || Date.parse(a.sendAt) < Date.parse(a.windowStart), {
+    message: 'sendAt must be before windowStart',
+    path: ['sendAt'],
   });
 export type CreateAlertInput = z.infer<typeof CreateAlertInput>;
 
@@ -110,6 +121,11 @@ export const AlertTotals = z.object({
   committedHouseholds: z.number().int().optional(),
   deliveredAmiKw: z.number().optional(),
   deliveredPhotoKw: z.number().optional(),
+  /**
+   * Summed baseline kW of the households with a commitment: what they would draw in the
+   * window without the alert. Lets the dashboard draw baseline against actual (FR-DASH-14).
+   */
+  baselineKw: z.number().optional(),
 });
 export type AlertTotals = z.infer<typeof AlertTotals>;
 

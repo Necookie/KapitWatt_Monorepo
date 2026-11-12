@@ -25,7 +25,15 @@
   //   local:  `pnpm dev:api` runs `doppler run -- wrangler dev`; because `secrets` is declared below,
   //           wrangler reads these names from the process env. Do NOT create apps/api/.dev.vars:
   //           if it exists, wrangler uses it instead of Doppler.
-  //   deploy: `pnpm deploy:api` deploys, then uploads them with `wrangler secret bulk`.
+  //   deploy: `pnpm deploy:api` uploads them together with the version (wrangler deploy --secrets-file).
+  // Meter photos: a PRIVATE bucket (no public access). Create it once on the account before the next
+  // deploy, then add the retention rule:
+  //   npx wrangler r2 bucket create kapitwatt-meter-photos
+  //   npx wrangler r2 bucket lifecycle add kapitwatt-meter-photos expire-photos --expire-days 30
+  // `wrangler dev` emulates the bucket locally.
+  // Settlement runs automatically once an alert's window end + 30 min has passed.
+  "triggers": { "crons": ["* * * * *"] },
+  "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "kapitwatt-meter-photos" }],
   "secrets": {
     "required": ["DATABASE_URL", "SIM_KEY", "OPERATOR_KEY"],
   },

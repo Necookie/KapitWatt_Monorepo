@@ -1,6 +1,8 @@
 import {
   getHouseholdProfile,
   insertHousehold,
+  insertSimulatedHouseholds,
+  type NewSimulatedHousehold,
   updatePushToken,
   type Db,
   type HouseholdProfileRow,
@@ -11,7 +13,7 @@ import type {
   RegisterResult,
   VerificationPath,
 } from '@kapitwatt/shared';
-import { newHouseholdToken, sha256Hex } from '../lib/crypto';
+import { newHouseholdToken, sha256Hex, uuidFromName } from '../lib/crypto';
 import { AppError, notFound } from '../lib/errors';
 import { commitCapKw } from './cap';
 
@@ -33,7 +35,7 @@ export function toHouseholdMe(p: HouseholdProfileRow): HouseholdMe {
     needsRehearsal: p.meterType === 'standard' && p.baselineKw === null,
     rehearsalReadings: p.rehearsalReadings,
     trustScore: p.trustScore,
-    commitCapKw: commitCapKw(p.baselineKw, p.billAvgKwhMonth),
+    commitCapKw: commitCapKw(p.baselineKw, p.billAvgKwhMonth, p.trustScore),
     optedIn: p.optedIn,
     points: p.points,
     creditPhp: Math.round(p.creditPhp * 100) / 100,
@@ -74,4 +76,24 @@ export async function me(db: Db, householdId: string): Promise<HouseholdMe> {
 /** FR-API-03. */
 export async function setPushToken(db: Db, householdId: string, pushToken: string): Promise<void> {
   await updatePushToken(db, householdId, pushToken);
+}
+
+/**
+ * The simulator's registration path (via the sim port only, never over HTTP): simulated, opted-in
+ * households with a seeded baseline standing in for the rehearsal or AMI history. They get no token,
+ * so they can never call the API as a household. Ids derive from the seed and meter serial, so a
+ * given seed always yields the same households in the same order: runs are repeatable.
+ */
+export async function registerSimulated(
+  db: Db,
+  seed: number,
+  rows: Omit<NewSimulatedHousehold, 'id'>[],
+): Promise<number> {
+  const withIds = await Promise.all(
+    rows.map(async (r) => ({
+      ...r,
+      id: await uuidFromName(`kapitwatt-sim:${seed}:${r.meterSerial}`),
+    })),
+  );
+  return insertSimulatedHouseholds(db, withIds);
 }

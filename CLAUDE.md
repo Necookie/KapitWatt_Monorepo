@@ -27,7 +27,13 @@ packages/
   shared/      Zod schemas, types, constants, baseline + payout + check math   @kapitwatt/shared
   db/          Postgres schema, migrations, query helpers                   @kapitwatt/db
   sim/         Laguna seed data + event runner (demo only)                  @kapitwatt/sim
+  tokens/      Design tokens: colour roles, type scale, spacing, shape      @kapitwatt/tokens
+  styles/      Theme (tokens as RN styles), ThemeProvider, font sources     @kapitwatt/styles
+  hooks/       useTheme, useStyles, useWindowClass, useCountdown, fonts     @kapitwatt/hooks
+  ui/          UI primitives for both apps (React Native + RN web)         @kapitwatt/ui
+  icons/       Phosphor icon subset behind one themed <Icon>                @kapitwatt/icons
   config/      Shared tsconfig base                                         @kapitwatt/config
+  assets/      Logo, app icons, mascot, Albert Sans (see its README)        @kapitwatt/assets
 docs/          The full plan (PDF, source of truth), PRD, SRS, MVP
 ```
 
@@ -40,8 +46,11 @@ Inside each app:
 - `packages/shared/src/schemas/` (enums, entities, requests, sim) and `src/math/` (payout, baseline,
   barangay, checks).
 
-Screens and API routes are currently placeholders that return a `Placeholder` component or HTTP 501.
-Replace them in place; keep the route paths.
+Built so far in the API: sign-up, profile, push token, barangays, alerts (create, log, active, view,
+totals, targets) and commitments. Readings, rewards, settlement, fast-forward, leaderboard and the
+simulator routes still return HTTP 501. The mobile app still runs on its mock (`USE_MOCKS` in
+`apps/mobile/src/lib/config.ts`) and the dashboard on its fixture (`EXPO_PUBLIC_FIXTURES=1`) until those
+land. Replace placeholders in place; keep the route paths.
 
 ## Commands
 
@@ -59,7 +68,8 @@ pnpm db:migrate              # apply packages/db/migrations/*.sql (direct connec
 pnpm db:seed                 # load the 21 pilot barangays (reference data, safe to re-run)
 pnpm db:smoke                # insert, read back, delete one row through the app's driver
 pnpm --filter @kapitwatt/dashboard build   # expo export -> apps/dashboard/dist
-pnpm deploy:api              # wrangler deploy, then upload DATABASE_URL, SIM_KEY, OPERATOR_KEY
+pnpm deploy:api              # preflight, then wrangler deploy with its secrets (from main)
+pnpm --filter @kapitwatt/api smoke:live   # read-only checks of the deployed API
 ```
 
 Run `pnpm typecheck` and `pnpm test` before calling a task done.
@@ -258,8 +268,11 @@ Simulated households are flagged `is_simulated`; reset deletes those rows only.
 
 Live API: https://kapitwatt-api.dheyn-main.workers.dev (use as `EXPO_PUBLIC_API_URL` on phones).
 
-- API: `pnpm deploy:api` runs `wrangler deploy` to Cloudflare Workers, then uploads `DATABASE_URL`,
-  `SIM_KEY`, `OPERATOR_KEY` (and `EXPO_ACCESS_TOKEN` if set) from Doppler with `wrangler secret bulk`.
+- API: `pnpm deploy:api` (from `main`, clean tree) checks the Doppler secrets, the Cloudflare login and the
+  R2 photo bucket, then runs `wrangler deploy --secrets-file`: the version and its secrets (`DATABASE_URL`,
+  `SIM_KEY`, `OPERATOR_KEY`, `EXPO_ACCESS_TOKEN` if set) go up together. Then run
+  `doppler run -- pnpm --filter @kapitwatt/api smoke:live`. Cloudflare access: `npx wrangler login`, or a
+  `CLOUDFLARE_API_TOKEN` in Doppler.
 - Dashboard: `expo export --platform web`, then Cloudflare Pages serving `apps/dashboard/dist`.
 - Mobile: EAS build, Android APK. Expo Go during development. Push needs real phones; test it by hour 8 to 12.
 

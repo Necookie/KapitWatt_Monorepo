@@ -168,7 +168,8 @@ export async function runCommits(
 
 /**
  * Phase 2, after the window has ended: the fake meter feed. Each committed household
- * delivers `followThrough` of its cut against a baseline that is off by up to
+ * delivers `followThrough` of its cut (photo households `photoFollowThrough`, when that
+ * is set) against a baseline that is off by up to
  * `baselineNoise`.
  *  - Smart-meter households: the AMI register at window start and window end.
  *  - Photo households: a before reading a few minutes into the window and an after
@@ -192,7 +193,7 @@ export async function runDelivery(
     const noise = (2 * rng() - 1) * params.baselineNoise;
     const actualKw = Math.max(
       0.1,
-      h.baselineKw * (1 + noise) - h.committedKw * params.followThrough,
+      h.baselineKw * (1 + noise) - h.committedKw * followThroughFor(h.meterType, params),
     );
 
     if (h.meterType === 'ami') {
@@ -237,6 +238,16 @@ export async function runDelivery(
     await port.submitReadingsBatch(alertId, items.slice(i, i + READINGS_BATCH));
   }
   return summarise('deliver', households, items.length);
+}
+
+/** The share of its cut a household on this path delivers. */
+export function followThroughFor(
+  meterType: SimHousehold['meterType'],
+  params: Pick<SimParams, 'followThrough' | 'photoFollowThrough'>,
+): number {
+  return meterType === 'ami'
+    ? params.followThrough
+    : (params.photoFollowThrough ?? params.followThrough);
 }
 
 /** Both phases back to back. For tests and scripts; the demo runs them as two calls. */

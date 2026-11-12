@@ -1,10 +1,26 @@
 import type { SimParams } from '@kapitwatt/shared';
+import { followThroughFor } from './runner';
 
-export interface ExpectedOutcome {
-  committedKw: number;
+export interface ReliefForecast {
   deliveredAmiKw: number;
   deliveredPhotoKw: number;
   deliveredKw: number;
+}
+
+export interface ExpectedOutcome extends ReliefForecast {
+  committedKw: number;
+}
+
+/**
+ * The relief to expect from a committed load: committed kW times follow-through, per
+ * path, less the photo households that miss a photo. The path split is the assumed one
+ * (`amiShare`), since committed totals are not reported per path.
+ */
+export function reliefForecast(committedKw: number, p: SimParams): ReliefForecast {
+  const deliveredAmiKw = committedKw * p.amiShare * followThroughFor('ami', p);
+  const deliveredPhotoKw =
+    committedKw * (1 - p.amiShare) * followThroughFor('standard', p) * p.photoCompletion;
+  return { deliveredAmiKw, deliveredPhotoKw, deliveredKw: deliveredAmiKw + deliveredPhotoKw };
 }
 
 /**
@@ -14,12 +30,5 @@ export interface ExpectedOutcome {
  */
 export function expectedOutcome(households: number, p: SimParams): ExpectedOutcome {
   const committedKw = households * p.participation * p.cutKw;
-  const deliveredAmiKw = committedKw * p.amiShare * p.followThrough;
-  const deliveredPhotoKw = committedKw * (1 - p.amiShare) * p.followThrough * p.photoCompletion;
-  return {
-    committedKw,
-    deliveredAmiKw,
-    deliveredPhotoKw,
-    deliveredKw: deliveredAmiKw + deliveredPhotoKw,
-  };
+  return { committedKw, ...reliefForecast(committedKw, p) };
 }

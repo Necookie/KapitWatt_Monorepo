@@ -49,6 +49,8 @@ describe('a full simulated event (FR-SIM-10)', () => {
     expect(Math.abs(totals.committedKw - 720)).toBeLessThan(10);
     expect(summary.committedKw).toBe(totals.committedKw);
     expect(totals.deliveredKw).toBe(0);
+    // Baseline of the committed households: what they would draw without the alert.
+    expect(totals.baselineKw).toBeGreaterThan(totals.committedKw);
   });
 
   it('delivers about 527 kW, about 86 kW of it from smart meters', async () => {
@@ -77,9 +79,167 @@ describe('a full simulated event (FR-SIM-10)', () => {
     );
   });
 
+  it('applies follow-through per path when the photo one is set', async () => {
+    const same = await fullRun();
+    const lowPhoto = await fullRun({ ...DEFAULT_PARAMS, photoFollowThrough: 0.4 });
+    expect(lowPhoto.deliveredAmiKw).toBe(same.deliveredAmiKw);
+    // 720 x 85% x 40% x 90% is about 220 kW, half of the default 441.
+    expect(Math.abs((lowPhoto.deliveredPhotoKw ?? 0) - 220)).toBeLessThan(25);
+  });
+
   it('follows the participation preset', async () => {
     const poor = await fullRun(PRESETS.poor);
     expect(Math.abs(poor.committedKw - 360)).toBeLessThan(10);
+  });
+});
+
+describe('alert log', () => {
+  it('lists every alert newest first, cancelled ones included', () => {
+    const { backend, alertId } = setup();
+    backend.reset();
+    const next = backend.createAlert({
+      level: 'yellow',
+      ...WINDOW,
+      targetKw: 300,
+      targetBarangayIds: [],
+      message: 'second',
+    });
+    const log = backend.listAlerts();
+    expect(log.map((a) => a.id)).toEqual([next.id, alertId]);
+    expect(log.map((a) => a.status)).toEqual(['active', 'cancelled']);
+    expect(log[0]!.createdBy).toBe('operator');
+    expect(backend.listAlerts(1)).toHaveLength(1);
+  });
+});
+
+describe('flagged readings (fixture only)', () => {
+  async function measured(flaggedShare: number) {
+    const backend = new MemoryBackend({ sleep: async () => {}, flaggedShare });
+    backend.seed(DEFAULT_PARAMS);
+    const alert = backend.createAlert({
+      level: 'red',
+      ...WINDOW,
+      targetKw: 600,
+      targetBarangayIds: [],
+      message: 'test',
+    });
+    await backend.run(alert.id, DEFAULT_PARAMS, 'commit');
+    backend.fastForward(alert.id, 'window_end');
+    await backend.run(alert.id, DEFAULT_PARAMS, 'deliver');
+    return { backend, alertId: alert.id };
+  }
+
+  it('flags nothing unless asked to', async () => {
+    const { backend } = await measured(0);
+    expect(backend.listFlagged()).toHaveLength(0);
+  });
+
+  it('holds a flagged cut until it is approved, and drops it when rejected', async () => {
+    const { backend, alertId } = await measured(0.05);
+    const all = await measured(0);
+    const full = all.backend.totals(all.alertId).deliveredKw;
+    const flagged = backend.listFlagged();
+    expect(flagged.length).toBeGreaterThan(5);
+    expect(flagged.every((r) => r.flags.length === 1 && r.meterSerial.startsWith('SIM-'))).toBe(
+      true,
+    );
+    const held = backend.totals(alertId).deliveredKw;
+    expect(held).toBeLessThan(full);
+
+    // Sending the readings again neither releases nor re-rolls the held ones.
+    await backend.run(alertId, DEFAULT_PARAMS, 'deliver');
+    expect(backend.listFlagged()).toEqual(flagged);
+    expect(backend.totals(alertId).deliveredKw).toBe(held);
+
+    backend.review(flagged[0]!.id, 'reject');
+    expect(backend.totals(alertId).deliveredKw).toBe(held);
+    expect(() => backend.review(flagged[0]!.id, 'approve')).toThrow();
+
+    for (const r of flagged.slice(1)) backend.review(r.id, 'approve');
+    expect(backend.listFlagged()).toHaveLength(0);
+    const after = backend.totals(alertId).deliveredKw;
+    expect(after).toBeGreaterThan(held);
+    expect(after).toBeLessThanOrEqual(full);
+  });
+
+  it('reset removes the flagged readings of simulated households', async () => {
+    const { backend } = await measured(0.05);
+    backend.reset();
+    expect(backend.listFlagged()).toHaveLength(0);
+  });
+});
+
+describe('cancelling an alert', () => {
+  it('takes the alert out of force, keeps it in the log and refuses later commits', async () => {
+    const { backend, alertId } = setup();
+    expect(backend.cancel(alertId).status).toBe('cancelled');
+    expect(backend.currentAlert()).toBeNull();
+    expect(backend.listAlerts()[0]!.cancelledAt).not.toBeNull();
+    const summary = await backend.run(alertId, DEFAULT_PARAMS, 'commit');
+    expect(summary.committed).toBe(0);
+    // A second cancel changes nothing.
+    expect(backend.cancel(alertId).status).toBe('cancelled');
+  });
+
+  it('is refused once the window has ended', () => {
+    const { backend, alertId } = setup();
+    backend.fastForward(alertId, 'window_end');
+    expect(() => backend.cancel(alertId)).toThrow();
+    backend.settle(alertId);
+    expect(() => backend.cancel(alertId)).toThrow();
+  });
+});
+
+describe('operator override of barangay targets', () => {
+  it('changes only the named barangay and marks it as an override', () => {
+    const { backend, alertId } = setup();
+    const before = backend.totals(alertId).barangays;
+    const picked = before[0]!;
+    const targets = backend.updateTargets(alertId, [
+      { barangayId: picked.barangayId, targetKw: 12.5 },
+    ]);
+    const after = backend.totals(alertId);
+    expect(after.barangays[0]!.targetKw).toBe(12.5);
+    expect(after.barangays.slice(1)).toEqual(before.slice(1));
+    expect(after.targetKw).toBe(600);
+    expect(targets.filter((t) => t.isOverride).map((t) => t.barangayId)).toEqual([
+      picked.barangayId,
+    ]);
+  });
+
+  it('decides the target-hit marker against the overridden share', async () => {
+    const { backend, alertId } = setup();
+    const ids = backend.totals(alertId).barangays.map((b) => b.barangayId);
+    backend.updateTargets(alertId, [
+      { barangayId: ids[0]!, targetKw: 1 },
+      { barangayId: ids[1]!, targetKw: 10_000 },
+    ]);
+    await backend.run(alertId, DEFAULT_PARAMS, 'commit');
+    backend.fastForward(alertId, 'window_end');
+    await backend.run(alertId, DEFAULT_PARAMS, 'deliver');
+    const rows = backend.totals(alertId).barangays;
+    expect(rows[0]!.targetHit).toBe(true);
+    expect(rows[1]!.targetHit).toBe(false);
+  });
+
+  it('refuses a barangay the alert does not target, and any change once the window has ended', () => {
+    const backend = new MemoryBackend({ sleep: async () => {} });
+    backend.seed(DEFAULT_PARAMS);
+    const all = backend.listBarangays();
+    const alert = backend.createAlert({
+      level: 'yellow',
+      ...WINDOW,
+      targetKw: 100,
+      targetBarangayIds: [all[0]!.id],
+      message: 'test',
+    });
+    expect(() =>
+      backend.updateTargets(alert.id, [{ barangayId: all[1]!.id, targetKw: 5 }]),
+    ).toThrow();
+    backend.fastForward(alert.id, 'window_end');
+    expect(() =>
+      backend.updateTargets(alert.id, [{ barangayId: all[0]!.id, targetKw: 5 }]),
+    ).toThrow();
   });
 });
 

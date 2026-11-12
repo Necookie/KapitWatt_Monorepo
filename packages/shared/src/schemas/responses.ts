@@ -7,6 +7,7 @@ import {
   MeterType,
   ReadingFlag,
   ReadingKind,
+  ResultReason,
   VerificationPath,
 } from './enums';
 import { SimParams } from './sim';
@@ -72,10 +73,34 @@ export const AlertView = z.object({
   createdBy: z.string(),
   createdAt: z.iso.datetime(),
   pushSentAt: z.iso.datetime().nullable(),
+  /** P1: when a scheduled alert goes out; null when it was sent on creation. Always sent by the API;
+   *  optional so fixtures that predate it still type-check. */
+  sendAt: z.iso.datetime().nullable().optional(),
   /** Server time for this alert (includes the demo fast-forward offset). */
   serverNow: z.iso.datetime(),
 });
 export type AlertView = z.infer<typeof AlertView>;
+
+/** GET /alerts/active: the alert a household should be looking at, or null. */
+export const ActiveAlertResponse = z.object({ alert: AlertView.nullable() });
+export type ActiveAlertResponse = z.infer<typeof ActiveAlertResponse>;
+
+/** GET /alerts (operator): the alert log, newest first. */
+export const AlertLogResponse = z.object({ alerts: z.array(AlertView) });
+export type AlertLogResponse = z.infer<typeof AlertLogResponse>;
+
+export const AlertTarget = z.object({
+  barangayId: z.uuid(),
+  name: z.string(),
+  municipality: z.string(),
+  targetKw: z.number(),
+  isOverride: z.boolean(),
+});
+export type AlertTarget = z.infer<typeof AlertTarget>;
+
+/** PUT /alerts/:id/targets (operator): every target of the alert after the override. */
+export const AlertTargetsResponse = z.object({ targets: z.array(AlertTarget) });
+export type AlertTargetsResponse = z.infer<typeof AlertTargetsResponse>;
 
 export const ReadingSummary = z.object({
   id: z.uuid(),
@@ -116,7 +141,7 @@ export const CommitmentView = z.object({
   actualKw: z.number().nullable(),
   verifiedKwh: z.number().nullable(),
   /** Why a commitment earned nothing (late photo, missing data, ...). */
-  resultReason: z.string().nullable(),
+  resultReason: ResultReason.nullable(),
   /** Photo path only. */
   deadlines: PhotoDeadlines.nullable(),
   readings: z.object({ before: ReadingSummary.nullable(), after: ReadingSummary.nullable() }),
@@ -147,7 +172,11 @@ export const ResultCard = z.object({
   bonusPhp: z.number(),
   points: z.number().int(),
   barangay: BarangayProgress,
-  resultReason: z.string().nullable(),
+  /** Why it earned nothing; null when it was paid. */
+  resultReason: ResultReason.nullable(),
+  /** Measured cut and the part that was paid (capped by commitment and bill). */
+  cutKw: z.number().nullable(),
+  paidCutKw: z.number().nullable(),
 });
 export type ResultCard = z.infer<typeof ResultCard>;
 
@@ -173,6 +202,10 @@ export const HistoryItem = z.object({
 });
 export type HistoryItem = z.infer<typeof HistoryItem>;
 
+/** GET /commitments/history: this household's events, newest first. */
+export const HistoryResponse = z.object({ history: z.array(HistoryItem) });
+export type HistoryResponse = z.infer<typeof HistoryResponse>;
+
 /** Barangay ranking: aggregates only, never household rows. */
 export const LeaderboardRow = z.object({
   barangayId: z.uuid(),
@@ -183,6 +216,20 @@ export const LeaderboardRow = z.object({
   households: z.number().int(),
 });
 export type LeaderboardRow = z.infer<typeof LeaderboardRow>;
+
+/** GET /barangays/leaderboard: ranked by verified kWh, highest first. */
+export const LeaderboardResponse = z.object({ leaderboard: z.array(LeaderboardRow) });
+export type LeaderboardResponse = z.infer<typeof LeaderboardResponse>;
+
+/** POST /alerts/:id/settle: what settlement recorded. Repeating it returns the same result. */
+export const SettlementResult = z.object({
+  alertId: z.uuid(),
+  settledAt: z.iso.datetime(),
+  commitments: z.number().int(),
+  verifiedCount: z.number().int(),
+  deliveredKw: z.number(),
+});
+export type SettlementResult = z.infer<typeof SettlementResult>;
 
 /** Operator-only. */
 export const FlaggedReading = z.object({
@@ -199,6 +246,29 @@ export const FlaggedReading = z.object({
   hasPhoto: z.boolean(),
 });
 export type FlaggedReading = z.infer<typeof FlaggedReading>;
+
+/** GET /readings/flagged (operator): readings waiting for a person, newest first. */
+export const FlaggedReadingsResponse = z.object({ readings: z.array(FlaggedReading) });
+export type FlaggedReadingsResponse = z.infer<typeof FlaggedReadingsResponse>;
+
+/**
+ * POST /readings/:id/review (operator). When the alert had already settled, the commitment is
+ * settled again and its new result is included.
+ */
+export const ReviewResult = z.object({
+  readingId: z.uuid(),
+  checkStatus: CheckStatus,
+  commitment: z
+    .object({
+      status: CommitmentStatus,
+      resultReason: ResultReason.nullable(),
+      creditPhp: z.number(),
+      bonusPhp: z.number(),
+      points: z.number().int(),
+    })
+    .nullable(),
+});
+export type ReviewResult = z.infer<typeof ReviewResult>;
 
 export const SimStatus = z.object({
   enabled: z.boolean(),

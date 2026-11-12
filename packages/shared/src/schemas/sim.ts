@@ -8,6 +8,11 @@ export const SimParams = z.object({
   participation: fraction.default(0.6),
   /** Share of committed kW actually delivered. */
   followThrough: fraction.default(0.8),
+  /**
+   * Follow-through of photo households, when it differs from smart-meter ones (the plan
+   * makes it adjustable per path). Left out, both paths use `followThrough`.
+   */
+  photoFollowThrough: fraction.optional(),
   /** Share of households on the smart-meter path; the rest are on the photo path. */
   amiShare: fraction.default(0.15),
   /** Share of photo households that submit both photos on time and pass the checks. */

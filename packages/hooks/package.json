@@ -1,0 +1,32 @@
+{
+  "name": "@kapitwatt/hooks",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared React hooks: theme, themed styles, window size class, countdown, brand fonts.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "expo-font": "~58.0.12",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "@kapitwatt/styles": "workspace:*",
+    "@kapitwatt/tokens": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "expo-font": "*"
+  }
+}
