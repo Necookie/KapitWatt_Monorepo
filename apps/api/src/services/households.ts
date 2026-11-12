@@ -12,13 +12,15 @@ import {
   type Db,
   type HouseholdProfileRow,
 } from '@kapitwatt/db';
-import type {
-  HouseholdMe,
-  LoginInput,
-  RegisterHouseholdInput,
-  RegisterResult,
-  UpdateProfileInput,
-  VerificationPath,
+import {
+  capKw,
+  roundKw,
+  type HouseholdMe,
+  type LoginInput,
+  type RegisterHouseholdInput,
+  type RegisterResult,
+  type UpdateProfileInput,
+  type VerificationPath,
 } from '@kapitwatt/shared';
 import {
   hashPassword,
@@ -66,12 +68,27 @@ export function toHouseholdMe(p: HouseholdProfileRow): HouseholdMe {
 }
 
 /**
+ * Starting baseline for a smart-meter household in the simulated pilot. The plan's AMI baseline is
+ * the average kW over the event hours on comparable past days, from Meralco interval data; the pilot
+ * has no real feed, so the evening peak is estimated from the bill instead: the same peak-factor
+ * figure as the bill cap (peak factor x monthly kWh / hours per month), to 0.1 kW.
+ */
+export const simulatedAmiBaselineKw = (billAvgKwhMonth: number): number =>
+  roundKw(capKw(billAvgKwhMonth));
+
+/**
  * Sign-up and opt-in (FR-API-01). Both consents are required by the schema (`consent` and
  * `alertsConsent` must be true); the consent time is the server's. The bearer token is returned
  * once and only its hash is stored; the password is stored only as a PBKDF2 hash. One login per
- * email and one household per Meralco account number.
+ * email and one household per Meralco account number. In the demo, a smart-meter household starts
+ * with a simulated baseline (it has no rehearsal, and there is no real interval history to read), so
+ * it can commit right away; outside the demo it waits for real AMI history.
  */
-export async function register(db: Db, input: RegisterHouseholdInput): Promise<RegisterResult> {
+export async function register(
+  db: Db,
+  input: RegisterHouseholdInput,
+  isDemo: boolean,
+): Promise<RegisterResult> {
   const token = newHouseholdToken();
   const id = crypto.randomUUID();
   let created: boolean;
@@ -82,6 +99,8 @@ export async function register(db: Db, input: RegisterHouseholdInput): Promise<R
       meterType: input.meterType,
       meterSerial: input.meterSerial,
       billAvgKwhMonth: input.billAvgKwhMonth,
+      baselineKw:
+        isDemo && input.meterType === 'ami' ? simulatedAmiBaselineKw(input.billAvgKwhMonth) : null,
       lat: input.lat,
       lng: input.lng,
       pushToken: input.pushToken ?? null,

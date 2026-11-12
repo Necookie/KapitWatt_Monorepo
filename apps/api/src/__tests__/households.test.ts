@@ -10,7 +10,12 @@ import {
 import { describe, expect, it } from 'vitest';
 import { commitCapKw } from '../services/cap';
 import { hashPassword, verifyPassword } from '../lib/crypto';
-import { maskAccountNumber, pathFor, toHouseholdMe } from '../services/households';
+import {
+  maskAccountNumber,
+  pathFor,
+  simulatedAmiBaselineKw,
+  toHouseholdMe,
+} from '../services/households';
 import { call, json } from './helpers';
 
 describe('commitCapKw', () => {
@@ -192,6 +197,12 @@ describe('sign-up, login and profile input', () => {
     }
   });
 
+  it('needs a monthly use of at least 1 kWh (a tiny value would round to 0 in the database)', () => {
+    expect(issues({ ...signup, billAvgKwhMonth: 0.004 })).toEqual(['billAvgKwhMonth']);
+    expect(issues({ ...signup, billAvgKwhMonth: 0 })).toEqual(['billAvgKwhMonth']);
+    expect(issues({ ...signup, billAvgKwhMonth: 1 })).toEqual([]);
+  });
+
   it('needs an email, a password of 8 or more, a name and an address', () => {
     expect(issues({ ...signup, email: 'not-an-email' })).toEqual(['email']);
     expect(issues({ ...signup, password: 'short' })).toEqual(['password']);
@@ -225,5 +236,17 @@ describe('account routes before the database', () => {
     expect((await call('/auth/me', { ...json({ password: 'x' }), method: 'DELETE' })).status).toBe(
       401,
     );
+  });
+});
+
+describe('smart-meter sign-up in the demo', () => {
+  it('starts with a baseline from the bill, so the household can commit at once', () => {
+    // 450 kWh/month: 2 x 450 / 720 = 1.25 kW peak estimate
+    expect(simulatedAmiBaselineKw(450)).toBeCloseTo(1.3, 5);
+    for (const bill of [100, 300, 450, 1200]) {
+      const cap = commitCapKw(simulatedAmiBaselineKw(bill), bill);
+      expect(cap).not.toBeNull();
+      expect(cap!).toBeGreaterThan(0);
+    }
   });
 });

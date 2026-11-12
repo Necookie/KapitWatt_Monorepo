@@ -34,6 +34,7 @@ const alert: AlertRow = {
   windowEnd: at('2026-11-12T12:00:00Z'),
   targetKw: 600,
   targetBarangayIds: [B1],
+  atRiskBarangayIds: [],
   message: 'test',
   storedStatus: 'active',
   createdBy: 'operator',

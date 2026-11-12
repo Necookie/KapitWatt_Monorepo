@@ -1,3 +1,5 @@
+import { Icon } from '@kapitwatt/icons';
+import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
@@ -9,12 +11,15 @@ import { MascotHeader } from '@/components/mascot/MascotHeader';
 import type { MascotPose } from '@/components/mascot/poses';
 import { MockControls } from '@/components/MockControls';
 import { Button, ErrorState, Loading, Screen } from '@/components/ui';
+import { useBrownoutRisk } from '@/lib/brownout';
 import { countdownTarget, eventPhase, type EventPhase } from '@/lib/eventPhase';
 import { eventSteps, type NowAction } from '@/lib/eventSteps';
 import { formatKw, formatWindow } from '@/lib/format';
 import { useAlert, useAlertTotals, useMe, useMyEventStatus, useRefreshAll } from '@/lib/queries';
 import { useServerNow } from '@/lib/serverTime';
-import { fonts, space } from '@/theme';
+import { fonts, radius, space } from '@/theme';
+
+const c = themes.light.color;
 
 /** The mascot's mood follows the event: calm, cutting power, then celebrating. */
 const MOOD: Record<EventPhase, { pose: MascotPose; tone: 'primary' | 'reward' }> = {
@@ -38,6 +43,7 @@ export default function EventScreen() {
   const me = useMe();
   const refreshAll = useRefreshAll();
   const now = useServerNow();
+  const risk = useBrownoutRisk(alert.data?.alert, me.data?.barangayId);
 
   if (alert.isPending || status.isPending || totals.isPending || me.isPending) return <Loading />;
   if (alert.isError || status.isError || totals.isError || me.isError) {
@@ -77,6 +83,24 @@ export default function EventScreen() {
           {formatWindow(view.alert.windowStart, view.alert.windowEnd)}
         </Text>
       </View>
+
+      {risk ? (
+        <View style={[styles.risk, risk.kind === 'help' && styles.riskHelp]}>
+          <Icon
+            name="alert"
+            size="sm"
+            weight="fill"
+            color={risk.kind === 'own' ? 'error' : 'onSurfaceVariant'}
+          />
+          <Text
+            variant="bodyMedium"
+            color={risk.kind === 'own' ? 'onErrorContainer' : 'onSurface'}
+            style={styles.flex}
+          >
+            {risk.line}
+          </Text>
+        </View>
+      ) : null}
 
       {countdown || commitment ? (
         <View style={styles.countdown}>
@@ -130,5 +154,15 @@ const styles = StyleSheet.create({
   countdown: { gap: 2 },
   now: { gap: space.md },
   strong: { fontFamily: fonts.semibold },
+  flex: { flex: 1 },
+  risk: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    padding: space.md,
+    borderRadius: radius.md,
+    backgroundColor: c.errorContainer,
+  },
+  riskHelp: { backgroundColor: c.surfaceContainerHigh },
   tabular: { fontVariant: ['tabular-nums'] },
 });

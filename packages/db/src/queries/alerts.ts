@@ -22,6 +22,8 @@ export interface AlertRow {
   windowEnd: Date;
   targetKw: number;
   targetBarangayIds: string[];
+  /** Targets the operator marked as at risk of a brownout (simulated). A subset of the targets. */
+  atRiskBarangayIds: string[];
   message: string;
   storedStatus: StoredAlertStatus;
   createdBy: string;
@@ -44,6 +46,7 @@ const toAlertRow = (r: Row): AlertRow => ({
   windowEnd: r.window_end as Date,
   targetKw: Number(r.target_kw),
   targetBarangayIds: r.target_barangay_ids as string[],
+  atRiskBarangayIds: (r.at_risk_barangay_ids as string[] | null) ?? [],
   message: r.message as string,
   storedStatus: r.status as StoredAlertStatus,
   createdBy: r.created_by as string,
@@ -87,20 +90,22 @@ export async function listAlerts(db: Db, limit: number, isDemo: boolean): Promis
 
 /**
  * The newest alert that is not settled or cancelled. With a barangay, only alerts that target it
- * (what a household should see); without one, any open alert (the dashboard).
+ * (what a household should see); without one, any open alert. Scheduled (not yet sent) alerts are
+ * included only when asked for: the operator sees them, a phone never does.
  */
 export async function findOpenAlert(
   db: Db,
   barangayId: string | null,
   isDemo: boolean,
+  includeScheduled = false,
 ): Promise<AlertRow | null> {
   const [r] = await db`
     select a.*, now() + make_interval(secs => case when ${isDemo} then a.clock_offset_sec else 0 end)
              as effective_now
     from alerts a
     where a.status not in ('settled', 'cancelled')
-      -- Households never see an alert before it is sent; the dashboard does.
-      and (${barangayId}::uuid is null or a.status <> 'scheduled')
+      -- Phones never see an alert before it is sent; the dashboard does.
+      and (${includeScheduled} or a.status <> 'scheduled')
       and (${barangayId}::uuid is null or ${barangayId}::uuid = any(a.target_barangay_ids))
     order by a.created_at desc
     limit 1`;
@@ -138,6 +143,7 @@ export interface NewAlert {
   windowEnd: string;
   targetKw: number;
   targetBarangayIds: string[];
+  atRiskBarangayIds: string[];
   message: string;
   createdBy: string;
   idempotencyKey: string | null;
@@ -152,10 +158,10 @@ export async function insertAlertWithTargets(
   targets: { barangayId: string; targetKw: number }[],
 ): Promise<void> {
   await db.transaction([
-    db`insert into alerts (id, level, window_start, window_end, target_kw, target_barangay_ids, message,
-                           status, created_by, idempotency_key, send_at)
+    db`insert into alerts (id, level, window_start, window_end, target_kw, target_barangay_ids,
+                           at_risk_barangay_ids, message, status, created_by, idempotency_key, send_at)
        values (${a.id}, ${a.level}, ${a.windowStart}, ${a.windowEnd}, ${a.targetKw},
-               ${a.targetBarangayIds}::uuid[], ${a.message},
+               ${a.targetBarangayIds}::uuid[], ${a.atRiskBarangayIds}::uuid[], ${a.message},
                case when ${a.sendAt}::timestamptz is null then 'active' else 'scheduled' end,
                ${a.createdBy}, ${a.idempotencyKey}, ${a.sendAt}::timestamptz)`,
     db`insert into alert_barangay_targets (alert_id, barangay_id, target_kw, is_override)

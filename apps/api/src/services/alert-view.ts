@@ -28,6 +28,7 @@ export function toAlertView(a: AlertRow): AlertView {
     windowEnd: a.windowEnd.toISOString(),
     targetKw: a.targetKw,
     targetBarangayIds: a.targetBarangayIds,
+    atRiskBarangayIds: a.atRiskBarangayIds,
     message: a.message,
     status: deriveAlertStatus(a.storedStatus, a.windowStart, a.windowEnd, a.effectiveNow),
     createdBy: a.createdBy,

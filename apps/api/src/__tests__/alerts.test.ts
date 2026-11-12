@@ -181,6 +181,14 @@ describe('alert routes (before the database)', () => {
     message: 'test',
   };
 
+  it('rejects at-risk barangays that are not targeted', async () => {
+    const res = await call(
+      '/alerts',
+      json({ ...alertBody, targetBarangayIds: [B1], atRiskBarangayIds: [B2] }, op),
+    );
+    expect(res.status).toBe(400);
+  });
+
   it('rejects non-UUID ids', async () => {
     expect((await call('/alerts/not-a-uuid')).status).toBe(400);
     expect((await call('/alerts/not-a-uuid/totals')).status).toBe(400);
@@ -194,6 +202,12 @@ describe('alert routes (before the database)', () => {
   it('rejects a malformed token on /alerts/active instead of ignoring it', async () => {
     const res = await call('/alerts/active', { headers: { authorization: 'Bearer nope' } });
     expect(res.status).toBe(401);
+  });
+
+  it('shows no alert to a phone that is not signed in (no barangay, no consent yet)', async () => {
+    const res = await call('/alerts/active');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ alert: null });
   });
 
   it('keeps the alert log operator-only', async () => {

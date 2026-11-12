@@ -75,19 +75,34 @@ function fakeJpeg(): Uint8Array {
   return new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...body]);
 }
 
+/**
+ * A request that ran into a rate limit (one household's writes, 20 a minute) waits for the window and
+ * goes again, as a real client would. The test makes more requests per household in a minute than a
+ * phone ever does; checks that expect a 429 call `fetch` themselves.
+ */
+async function withRateLimitRetry(send: () => Promise<Response>): Promise<Response> {
+  const res = await send();
+  if (res.status !== 429) return res;
+  console.log('  ..  rate limited; waiting for the next minute');
+  await new Promise((r) => setTimeout(r, 61_000));
+  return send();
+}
+
 /** POST /readings as the app sends it: multipart fields plus the photo. */
 async function upload(
   token: string,
   fields: Record<string, string | number>,
   photo: Uint8Array | null = fakeJpeg(),
 ) {
-  const form = new FormData();
-  for (const [k, v] of Object.entries(fields)) form.append(k, String(v));
-  if (photo) form.append('photo', new Blob([photo], { type: 'image/jpeg' }), 'meter.jpg');
-  const res = await fetch(`${API}/readings`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${token}` },
-    body: form,
+  const res = await withRateLimitRetry(() => {
+    const form = new FormData();
+    for (const [k, v] of Object.entries(fields)) form.append(k, String(v));
+    if (photo) form.append('photo', new Blob([photo], { type: 'image/jpeg' }), 'meter.jpg');
+    return fetch(`${API}/readings`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}` },
+      body: form,
+    });
   });
   const text = await res.text();
   return { status: res.status, json: text ? JSON.parse(text) : null };
@@ -99,11 +114,16 @@ async function call(
   body?: unknown,
   headers: Record<string, string> = {},
 ) {
-  const res = await fetch(`${API}${path}`, {
-    method,
-    headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...headers },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  const res = await withRateLimitRetry(() =>
+    fetch(`${API}${path}`, {
+      method,
+      headers: {
+        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...headers,
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }),
+  );
   const text = await res.text();
   return { status: res.status, headers: res.headers, json: text ? JSON.parse(text) : null };
 }
@@ -208,6 +228,10 @@ async function phase1Households() {
     RegisterResult.parse(second.json).household.needsRehearsal === false,
     'smart meter skips rehearsal',
   );
+  check(
+    (RegisterResult.parse(second.json).household.commitCapKw ?? 0) > 0,
+    'a smart-meter sign-up can commit at once (simulated baseline in the demo)',
+  );
   const [first] = await db`select push_token from households where id = ${household.id}`;
   check(first?.push_token === null, 'push token moved to the newest household on that phone');
   const secondReg = RegisterResult.parse(second.json);
@@ -298,6 +322,8 @@ async function phase2Alerts(ctx: Awaited<ReturnType<typeof phase1Households>>) {
     (await call('GET', '/alerts/active', undefined, bearer(ctx.token))).json,
   );
   check(active.alert?.id === alert.id, 'GET /alerts/active shows the household its barangay alert');
+  const anonymous = ActiveAlertResponse.parse((await call('GET', '/alerts/active')).json);
+  check(anonymous.alert === null, 'a phone that is not signed in sees no alert');
 
   const log = AlertLogResponse.parse(
     (await call('GET', '/alerts?limit=5', undefined, OPERATOR)).json,
@@ -854,6 +880,11 @@ async function phase5Readings(
   check(
     before.status === 201 && beforeResult.checkStatus === 'pass',
     'before photo in its window passes',
+  );
+  const resent = await event('before', 1204.3, beforeBytes);
+  check(
+    resent.status === 201 && SubmitReadingResult.parse(resent.json).id === beforeResult.id,
+    'resending the same upload returns the stored reading',
   );
   const again = await event('before', 1204.4);
   check(

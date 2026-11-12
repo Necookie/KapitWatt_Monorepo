@@ -95,8 +95,10 @@ export async function wipeDemoWorld(db: Db): Promise<DemoWipeResult> {
        returning id`,
     db`delete from meter_readings m using households h
        where m.household_id = h.id and h.is_demo`,
+    // Every interval the fake feed wrote (is_simulated), including those of real smart-meter
+    // households, plus anything left on a demo account.
     db`delete from ami_intervals i using households h
-       where i.household_id = h.id and h.is_demo`,
+       where i.household_id = h.id and (h.is_demo or i.is_simulated)`,
   ]);
   return {
     alerts: alerts?.length ?? 0,
@@ -163,8 +165,10 @@ export interface DemoAmiCommitmentRow {
 }
 
 /**
- * Demo accounts on the smart-meter path that committed to this alert. In a live event a tester commits
- * on the phone; the fake smart-meter feed then stands in for the meter, as it does for simulated rows.
+ * Real households (demo accounts and anyone who signed up on a phone) on the smart-meter path that
+ * committed to this alert. There is no real Meralco AMI feed in the pilot, so in a live event the
+ * fake smart-meter feed stands in for the meter, as it does for simulated rows. The commitment is
+ * still the tester's own.
  */
 export async function listDemoAmiCommitments(
   db: Db,
@@ -173,7 +177,7 @@ export async function listDemoAmiCommitments(
   const rows = await db`
     select c.household_id, c.committed_kw, c.baseline_kw
     from commitments c join households h on h.id = c.household_id
-    where c.alert_id = ${alertId} and c.path = 'ami' and h.is_demo`;
+    where c.alert_id = ${alertId} and c.path = 'ami' and not h.is_simulated`;
   return rows.map((r) => ({
     householdId: r.household_id as string,
     committedKw: Number(r.committed_kw),

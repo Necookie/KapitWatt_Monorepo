@@ -12,6 +12,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { MASCOT_POSES } from '@/components/mascot/poses';
 import { ProgressBar } from '@/components/ui';
+import type { BrownoutRisk } from '@/lib/brownout';
 import { formatKw, formatWindow } from '@/lib/format';
 import { perkLines } from '@/lib/perks';
 import { useAlertTotals } from '@/lib/queries';
@@ -29,6 +30,8 @@ export function AlertCard(props: {
   level: AlertLevel;
   windowStart: string;
   windowEnd: string;
+  /** Demo: brownout risk wording for this household (simulated), if the alert marks any. */
+  risk?: BrownoutRisk | null;
   onOpen: () => void;
 }) {
   const red = props.level === 'red';
@@ -45,11 +48,16 @@ export function AlertCard(props: {
             </Text>
           </View>
           <Text variant="titleLarge" style={{ color: ink }}>
-            The grid needs help tonight
+            {props.risk?.headline ?? 'The grid needs help tonight'}
           </Text>
           <Text style={[styles.tabular, { color: ink }]}>
             {formatWindow(props.windowStart, props.windowEnd)}
           </Text>
+          {props.risk ? (
+            <Text variant="bodySmall" style={{ color: ink }}>
+              {props.risk.line}
+            </Text>
+          ) : null}
         </View>
         <View
           style={[

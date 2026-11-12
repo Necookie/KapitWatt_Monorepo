@@ -16,7 +16,7 @@
   // Workers Rate Limiting (period must be 10 or 60 seconds). Placeholders, sized for a demo where every
   // phone shares one hotspot IP. Not inherited by named environments: repeat them in each env.
   "ratelimits": [
-    { "name": "RL_REGISTER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    { "name": "RL_REGISTER", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },
     { "name": "RL_HOUSEHOLD", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } },
     { "name": "RL_OPERATOR", "namespace_id": "1003", "simple": { "limit": 120, "period": 60 } },
     { "name": "RL_PUBLIC", "namespace_id": "1004", "simple": { "limit": 600, "period": 60 } },

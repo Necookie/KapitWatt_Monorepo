@@ -30,6 +30,8 @@ export interface NewHousehold {
   accountNumber: string;
   accountName: string;
   serviceAddress: string;
+  /** Null for photo households until the rehearsal; a smart-meter household may start with one. */
+  baselineKw: number | null;
 }
 
 /**
@@ -45,10 +47,10 @@ export async function insertHousehold(db: Db, h: NewHousehold): Promise<boolean>
        where ${h.pushToken}::text is not null and push_token = ${h.pushToken}`,
     db`insert into households
          (id, barangay_id, auth_token_hash, token_created_at, push_token, meter_type, meter_serial,
-          bill_avg_kwh_month, opted_in, consent_at, lat, lng, is_simulated,
+          bill_avg_kwh_month, baseline_kw, opted_in, consent_at, lat, lng, is_simulated,
           email, password_hash, account_number, account_name, service_address)
        select ${h.id}, b.id, ${h.tokenHash}, now(), ${h.pushToken}, ${h.meterType}, ${h.meterSerial},
-              ${h.billAvgKwhMonth}, true, now(), ${h.lat}, ${h.lng}, false,
+              ${h.billAvgKwhMonth}, ${h.baselineKw}, true, now(), ${h.lat}, ${h.lng}, false,
               ${h.email}, ${h.passwordHash}, ${h.accountNumber}, ${h.accountName}, ${h.serviceAddress}
        from barangays b where b.id = ${h.barangayId}
        returning id`,
@@ -151,7 +153,9 @@ export async function getPasswordHash(db: Db, householdId: string): Promise<stri
 
 /**
  * Replaces the household's bearer token (login) or clears it (logout, tokenHash null). One token
- * per household: logging in on a new phone signs the old one out.
+ * per household: logging in on a new phone signs the old one out. The push token goes with the
+ * session: a signed-out phone must stop getting the household's alerts, and the phone that logs in
+ * registers its own token right after.
  */
 export async function setTokenHash(
   db: Db,
@@ -161,7 +165,8 @@ export async function setTokenHash(
   await db`
     update households
     set auth_token_hash = ${tokenHash},
-        token_created_at = case when ${tokenHash}::text is null then null else now() end
+        token_created_at = case when ${tokenHash}::text is null then null else now() end,
+        push_token = null
     where id = ${householdId}`;
 }
 

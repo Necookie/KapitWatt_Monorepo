@@ -44,7 +44,8 @@ export const RegisterHouseholdInput = z.object({
   barangayId: z.uuid(),
   meterType: MeterType,
   meterSerial: z.string().trim().min(1).max(64),
-  billAvgKwhMonth: z.number().positive().max(10_000),
+  /** At least 1 kWh: the column keeps 2 decimals, so a tiny value would round to 0 and fail. */
+  billAvgKwhMonth: z.number().min(1).max(10_000),
   /** Registered address, used for the GPS distance check on photos. */
   lat: latitude,
   lng: longitude,
@@ -87,6 +88,10 @@ export const CreateAlertInput = z
     targetKw: z.number().positive().max(1_000_000),
     /** Empty array = all pilot areas. */
     targetBarangayIds: z.array(z.uuid()).max(100),
+    /** Demo: targets on the rotational brownout schedule (simulated). Must be among the targets;
+     *  with "all pilot areas" (empty targets) any pilot barangay. The app names their towns so every
+     *  targeted household can help (see brownoutCopy). */
+    atRiskBarangayIds: z.array(z.uuid()).max(100).optional(),
     message: z.string().trim().min(1).max(500),
     /** P1: send later (the push goes out at this time). Omit to send now. */
     sendAt: z.iso.datetime().optional(),
@@ -95,6 +100,12 @@ export const CreateAlertInput = z
     message: 'windowEnd must be after windowStart',
     path: ['windowEnd'],
   })
+  .refine(
+    (a) =>
+      a.targetBarangayIds.length === 0 ||
+      (a.atRiskBarangayIds ?? []).every((id) => a.targetBarangayIds.includes(id)),
+    { message: 'At-risk barangays must be among the targets', path: ['atRiskBarangayIds'] },
+  )
   .refine((a) => a.sendAt === undefined || Date.parse(a.sendAt) < Date.parse(a.windowStart), {
     message: 'sendAt must be before windowStart',
     path: ['sendAt'],

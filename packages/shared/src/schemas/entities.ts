@@ -55,6 +55,8 @@ export const Alert = z.object({
   windowEnd: z.iso.datetime(),
   targetKw: z.number().positive(),
   targetBarangayIds: z.array(z.uuid()),
+  /** Targets marked as at risk of a brownout (simulated in the pilot). */
+  atRiskBarangayIds: z.array(z.uuid()).optional(),
   message: z.string(),
   status: AlertStatus,
   createdBy: z.string(),

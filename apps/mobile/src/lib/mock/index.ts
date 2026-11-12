@@ -335,6 +335,9 @@ function alertView(): MockAlertView {
       windowEnd: iso(event.windowEnd),
       targetKw: 600,
       targetBarangayIds: barangays.map((b) => b.id),
+      // Santa Cruz is on the (simulated) rotational brownout schedule: a household there sees its own
+      // risk, a household anywhere else is asked to help Santa Cruz.
+      atRiskBarangayIds: barangays.filter((b) => b.municipality === 'Santa Cruz').map((b) => b.id),
       message: 'Red alert on the Luzon grid (simulated). Please cut load during the peak window.',
       status,
       createdBy: 'operator (mock)',

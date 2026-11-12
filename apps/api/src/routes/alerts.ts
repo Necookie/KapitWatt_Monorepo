@@ -12,7 +12,7 @@ import { defer } from '../lib/defer';
 import { AppError } from '../lib/errors';
 import { IDEMPOTENCY_KEY, IdParam, LimitQuery } from '../lib/params';
 import { validate } from '../lib/validate';
-import { demoOnly, operatorAuth, optionalHouseholdAuth } from '../middleware/auth';
+import { demoOnly, hasOperatorKey, operatorAuth, optionalHouseholdAuth } from '../middleware/auth';
 import { rateLimit } from '../middleware/rate-limit';
 import * as alertsService from '../services/alerts';
 import { toAlertView } from '../services/alert-view';
@@ -67,11 +67,17 @@ alerts.post('/', operatorAuth, operatorLimit, validate('json', CreateAlertInput)
 });
 
 // The alert a household should be looking at (pull-to-refresh fallback if push is slow). With a
-// household token: the newest open alert for its barangay. Without: the newest open alert.
+// household token: the newest open alert for its barangay (none if it opted out). With the operator
+// key: the newest open alert, scheduled ones included. Otherwise none: no barangay, no consent yet.
 alerts.get('/active', optionalHouseholdAuth, async (c) => {
-  const householdId = c.get('actor') === 'household' ? c.var.householdId : null;
+  const viewer: alertsService.ActiveAlertViewer =
+    c.get('actor') === 'household'
+      ? { householdId: c.var.householdId }
+      : (await hasOperatorKey(c))
+        ? 'operator'
+        : 'public';
   const body: ActiveAlertResponse = {
-    alert: await alertsService.activeAlert(c.var.db, householdId, isDemo(c)),
+    alert: await alertsService.activeAlert(c.var.db, viewer, isDemo(c)),
   };
   return c.json(body);
 });
