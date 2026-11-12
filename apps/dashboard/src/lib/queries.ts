@@ -1,5 +1,6 @@
 import { POLL_INTERVAL_MS, type AlertStatus } from '@kapitwatt/shared';
 import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from './api';
 import { client } from './client';
 
 /** Live figures refresh by short polling (FR-DASH-10). */
@@ -31,6 +32,17 @@ export function useTotals(alertId: string | undefined) {
 
 export function useSimStatus() {
   return useQuery({ queryKey: keys.simStatus, queryFn: client.simStatus, ...live });
+}
+
+/**
+ * FR-DASH-07: the stage controls and the simulator exist in the demo environment only.
+ * The API answers 404 on /sim/status outside it, so that is what switches them off here.
+ * Any other failure (a missing key, a dropped connection) leaves them on and shows its own error.
+ */
+export function useDemoControls(): boolean {
+  const sim = useSimStatus();
+  if (sim.error instanceof ApiError && sim.error.status === 404) return false;
+  return sim.data?.enabled !== false;
 }
 
 /** Refetch everything on screen straight after an action instead of waiting for the next poll. */
