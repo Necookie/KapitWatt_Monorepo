@@ -11,15 +11,17 @@ import {
   Button,
   Card,
   Checkbox,
-  ChoiceChips,
   ErrorState,
   Loading,
   Row,
   Screen,
+  Select,
   SimulatedNote,
   TextField,
 } from '@/components/ui';
-import { currentPosition } from '@/lib/location';
+import { USE_MOCKS } from '@/lib/config';
+import { LocationPrompt } from '@/components/LocationPrompt';
+import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
 import { useBarangays, useRegister } from '@/lib/queries';
 import { colors, text } from '@/theme';
 
@@ -28,6 +30,9 @@ const CONSENT_TEXT =
   'meter readings and home location to verify my energy cuts. This data is personal data under ' +
   'the Data Privacy Act of 2012 (RA 10173). It is stored privately, kept only for a limited time, ' +
   'and results are shown per barangay, never per household.';
+
+/** Santa Cruz town proper, used for an empty location in demo mode only. */
+const DEMO_LOCATION = { lat: 14.2788, lng: 121.4161 };
 
 const METER_OPTIONS = [
   { value: 'standard', label: 'Regular meter (photos)' },
@@ -47,14 +52,14 @@ export default function SignUpScreen() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationProblem, setLocationProblem] = useState<LocationProblem | null>(null);
   const [consent, setConsent] = useState(false);
 
   if (barangays.isPending) return <Loading />;
   if (barangays.isError) return <ErrorState onRetry={() => void barangays.refetch()} />;
 
   const townBarangays = barangays.data.filter((b) => b.municipality === town);
-  // Validate with the same Zod schema the API uses.
-  const parsed = RegisterHouseholdInput.safeParse({
+  const form = {
     barangayId,
     meterType,
     meterSerial: meterSerial.trim(),
@@ -62,7 +67,20 @@ export default function SignUpScreen() {
     lat: location?.lat,
     lng: location?.lng,
     consent,
-  });
+  };
+  // Demo only: while on mock data the button always works, and empty fields get sample values.
+  // Remove with the mock once the API is live; real sign-up must never skip consent.
+  const demoFilled = {
+    barangayId: form.barangayId ?? barangays.data[0]?.id,
+    meterType: form.meterType ?? 'standard',
+    meterSerial: form.meterSerial || 'DEMO-123456',
+    billAvgKwhMonth: form.billAvgKwhMonth > 0 ? form.billAvgKwhMonth : 720,
+    lat: form.lat ?? DEMO_LOCATION.lat,
+    lng: form.lng ?? DEMO_LOCATION.lng,
+    consent: true,
+  };
+  // Validate with the same Zod schema the API uses.
+  const parsed = RegisterHouseholdInput.safeParse(USE_MOCKS ? demoFilled : form);
   // Plain-language list of what still blocks the button.
   const missing = [
     !barangayId && 'town and barangay',
@@ -78,8 +96,10 @@ export default function SignUpScreen() {
     setLocating(true);
     try {
       setLocation(await currentPosition());
-    } catch {
-      setLocationError('Allow location for KapitWatt, then try again.');
+      setLocationProblem(null);
+    } catch (e) {
+      if (e instanceof LocationError) setLocationProblem(e.problem);
+      else setLocationError('Could not get your location. Try again outside or near a window.');
     } finally {
       setLocating(false);
     }
@@ -93,8 +113,9 @@ export default function SignUpScreen() {
       </Text>
 
       <Card title="Where you live">
-        <ChoiceChips
+        <Select
           label="Town"
+          placeholder="Choose your town"
           options={PILOT_TOWNS.map((t) => ({ value: t, label: t }))}
           value={town}
           onChange={(t) => {
@@ -102,14 +123,14 @@ export default function SignUpScreen() {
             setBarangayId(null);
           }}
         />
-        {town ? (
-          <ChoiceChips
-            label="Barangay"
-            options={townBarangays.map((b) => ({ value: b.id, label: b.name }))}
-            value={barangayId}
-            onChange={setBarangayId}
-          />
-        ) : null}
+        <Select
+          label="Barangay"
+          placeholder={town ? 'Choose your barangay' : 'Choose a town first'}
+          disabled={!town}
+          options={townBarangays.map((b) => ({ value: b.id, label: b.name }))}
+          value={barangayId}
+          onChange={setBarangayId}
+        />
         {location ? (
           <Row label="Home location" value="Saved" strong />
         ) : (
@@ -117,20 +138,25 @@ export default function SignUpScreen() {
             <Text style={styles.body}>
               Do this at home: meter photos are checked against this location.
             </Text>
-            <Button
-              label="Use my current location"
-              variant="secondary"
-              loading={locating}
-              onPress={() => void locate()}
-            />
+            {locationProblem ? (
+              <LocationPrompt problem={locationProblem} onRetry={locate} />
+            ) : (
+              <Button
+                label="Use my current location"
+                variant="secondary"
+                loading={locating}
+                onPress={() => void locate()}
+              />
+            )}
           </>
         )}
         {locationError ? <Text style={styles.error}>{locationError}</Text> : null}
       </Card>
 
       <Card title="Your meter">
-        <ChoiceChips
+        <Select
           label="Meter type"
+          placeholder="Choose your meter type"
           options={METER_OPTIONS}
           value={meterType}
           onChange={setMeterType}
@@ -164,7 +190,11 @@ export default function SignUpScreen() {
       ) : null}
 
       {missing.length > 0 ? (
-        <Text style={styles.body}>Still needed: {missing.join(', ')}.</Text>
+        <Text style={styles.body}>
+          {USE_MOCKS
+            ? `Demo: you can join now. Empty fields (${missing.join(', ')}) use sample values.`
+            : `Still needed: ${missing.join(', ')}.`}
+        </Text>
       ) : null}
       <Button
         label="Join the pilot"

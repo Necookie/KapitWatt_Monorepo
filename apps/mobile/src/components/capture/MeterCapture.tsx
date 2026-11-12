@@ -4,7 +4,8 @@ import { useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, TextField } from '@/components/ui';
 import { ApiError } from '@/lib/api';
-import { currentPosition } from '@/lib/location';
+import { LocationPrompt } from '@/components/LocationPrompt';
+import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
 import { useSubmitReading } from '@/lib/queries';
 import { colors, radius, space, text } from '@/theme';
 
@@ -35,6 +36,7 @@ export function MeterCapture(props: {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [readingText, setReadingText] = useState('');
   const [gpsError, setGpsError] = useState<string | null>(null);
+  const [gpsProblem, setGpsProblem] = useState<LocationProblem | null>(null);
   const [locating, setLocating] = useState(false);
   const submit = useSubmitReading();
 
@@ -89,10 +91,10 @@ export function MeterCapture(props: {
     let pos: { lat: number; lng: number };
     try {
       pos = await currentPosition();
-    } catch {
-      setGpsError(
-        'Turn on location and allow it for KapitWatt. It checks the photo was taken at home.',
-      );
+      setGpsProblem(null);
+    } catch (e) {
+      if (e instanceof LocationError) setGpsProblem(e.problem);
+      else setGpsError('Could not get your location. Try again near a window.');
       return;
     } finally {
       setLocating(false);
@@ -114,6 +116,7 @@ export function MeterCapture(props: {
         value={readingText}
         onChangeText={setReadingText}
       />
+      {gpsProblem ? <LocationPrompt problem={gpsProblem} onRetry={send} /> : null}
       {gpsError ? <Text style={styles.error}>{gpsError}</Text> : null}
       {submit.isError ? <Text style={styles.error}>{submitError(submit.error)}</Text> : null}
       <Button

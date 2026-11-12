@@ -18,36 +18,6 @@ export function TextField(props: TextInputProps & { label: string; hint?: string
   );
 }
 
-/** Pick one of a few options, shown as chips. */
-export function ChoiceChips<T extends string>(props: {
-  label: string;
-  options: readonly { value: T; label: string }[];
-  value: T | null;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{props.label}</Text>
-      <View style={styles.chips}>
-        {props.options.map((o) => {
-          const active = o.value === props.value;
-          return (
-            <Pressable
-              key={o.value}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: active }}
-              onPress={() => props.onChange(o.value)}
-              style={[styles.chip, active && styles.chipActive]}
-            >
-              <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{o.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 /** A checkbox with a long label (used for consent). */
 export function Checkbox(props: {
   checked: boolean;
@@ -83,18 +53,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: space.md,
   },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: {
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  chipActive: { backgroundColor: colors.teal, borderColor: colors.teal },
-  chipLabel: { ...text.body, color: colors.ink },
-  chipLabelActive: { color: colors.onDark, fontWeight: '700' },
   checkRow: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
   box: {
     width: 24,
