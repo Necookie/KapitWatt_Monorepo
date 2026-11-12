@@ -19,7 +19,7 @@ import {
   SimulatedNote,
   TextField,
 } from '@/components/ui';
-import { USE_MOCKS } from '@/lib/config';
+import { MOCK } from '@/lib/config';
 import { LocationPrompt } from '@/components/LocationPrompt';
 import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
 import { useBarangays, useRegister } from '@/lib/queries';
@@ -80,7 +80,7 @@ export default function SignUpScreen() {
     consent: true,
   };
   // Validate with the same Zod schema the API uses.
-  const parsed = RegisterHouseholdInput.safeParse(USE_MOCKS ? demoFilled : form);
+  const parsed = RegisterHouseholdInput.safeParse(MOCK.account ? demoFilled : form);
   // Plain-language list of what still blocks the button.
   const missing = [
     !barangayId && 'town and barangay',
@@ -191,7 +191,7 @@ export default function SignUpScreen() {
 
       {missing.length > 0 ? (
         <Text style={styles.body}>
-          {USE_MOCKS
+          {MOCK.account
             ? `Demo: you can join now. Empty fields (${missing.join(', ')}) use sample values.`
             : `Still needed: ${missing.join(', ')}.`}
         </Text>
