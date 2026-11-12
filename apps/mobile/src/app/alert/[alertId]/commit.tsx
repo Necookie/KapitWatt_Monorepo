@@ -6,7 +6,7 @@ import { Button, Card, ErrorState, Loading, Screen, SimulatedNote } from '@/comp
 import { describeError } from '@/lib/api';
 import { formatKw } from '@/lib/format';
 import { useCommit, useMe } from '@/lib/queries';
-import { colors, radius, space, text } from '@/theme';
+import { colors, fonts, radius, space, text } from '@/theme';
 
 const STEP_KW = 0.1;
 
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   presetActive: { borderColor: colors.teal, backgroundColor: colors.teal },
   presetDisabled: { opacity: 0.35 },
-  presetLabel: { ...text.body, fontWeight: '700', color: colors.ink },
+  presetLabel: { ...text.body, fontFamily: fonts.semibold, color: colors.ink },
   presetLabelActive: { color: colors.onDark },
   stepper: {
     flexDirection: 'row',

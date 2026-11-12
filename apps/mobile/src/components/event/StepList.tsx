@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/components/ui';
 import type { Step, StepState } from '@/lib/eventSteps';
-import { colors, radius, space, text } from '@/theme';
+import { colors, fonts, radius, space, text } from '@/theme';
 
 const MARK: Record<StepState, { symbol: string; color: string; note?: string }> = {
   done: { symbol: '✓', color: colors.green, note: 'Done' },
@@ -47,8 +47,8 @@ const styles = StyleSheet.create({
   rowNow: { backgroundColor: colors.background },
   symbol: { ...text.title, width: 24, textAlign: 'center' },
   main: { flex: 1 },
-  title: { ...text.body, fontWeight: '700', color: colors.ink },
-  muted: { color: colors.muted, fontWeight: '400' },
+  title: { ...text.body, fontFamily: fonts.semibold, color: colors.ink },
+  muted: { color: colors.muted, fontFamily: fonts.regular },
   when: { ...text.caption, color: colors.muted },
-  note: { ...text.caption, fontWeight: '700' },
+  note: { ...text.caption, fontFamily: fonts.semibold },
 });

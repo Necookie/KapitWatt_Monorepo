@@ -42,18 +42,8 @@
         {
           "locationWhenInUsePermission": "KapitWatt checks that meter photos are taken at your registered home address."
         }
-      ]
-    ],
-    "extra": {
-      "router": {
-        "asyncRoutes": {
-          "web": true
-        }
-      },
-      "eas": {
-        "projectId": "f8ba0025-2fb3-4fa2-bcb4-a4f74b1e35dd"
-      }
-    },
-    "owner": "necookie"
+      ],
+      "expo-font"
+    ]
   }
 }

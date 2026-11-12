@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, space, text } from '@/theme';
+import { colors, fonts, space, text } from '@/theme';
 
 /**
  * The privacy notice, shown before any personal data is asked for at sign-up and again from the
@@ -69,6 +69,6 @@ const styles = StyleSheet.create({
   gap: { gap: space.md },
   section: { gap: space.xs },
   lead: { ...text.body, color: colors.ink },
-  heading: { ...text.body, fontWeight: '700', color: colors.ink },
+  heading: { ...text.body, fontFamily: fonts.semibold, color: colors.ink },
   body: { ...text.body, color: colors.muted },
 });

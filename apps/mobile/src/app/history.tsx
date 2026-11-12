@@ -3,7 +3,7 @@ import { AlertBadge } from '@/components/event/AlertBadge';
 import { Card, ErrorState, Loading, Row, Screen } from '@/components/ui';
 import { formatClock, formatKw, formatKwh, formatPhp } from '@/lib/format';
 import { useHistory, useRefreshAll } from '@/lib/queries';
-import { colors, text } from '@/theme';
+import { colors, fonts, text } from '@/theme';
 
 const dateLabel = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -53,7 +53,7 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { ...text.body, fontWeight: '700', color: colors.ink },
+  title: { ...text.body, fontFamily: fonts.semibold, color: colors.ink },
   body: { ...text.body, color: colors.muted },
   zero: { ...text.caption, color: colors.red },
 });

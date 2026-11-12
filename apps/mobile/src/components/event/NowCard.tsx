@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui';
 import type { NowCard as NowCardData } from '@/lib/eventSteps';
 import { formatKw } from '@/lib/format';
-import { colors, radius, space, text } from '@/theme';
+import { colors, fonts, radius, space, text } from '@/theme';
 
 /** The single "do this now" card at the top of the event screen. */
 export function NowCard(props: {
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     gap: space.sm,
     backgroundColor: colors.background,
   },
-  eyebrow: { ...text.caption, fontWeight: '700', color: colors.teal, letterSpacing: 1 },
+  eyebrow: { ...text.caption, fontFamily: fonts.semibold, color: colors.teal, letterSpacing: 1 },
   title: { ...text.headline, color: colors.ink },
   body: { ...text.body, color: colors.muted },
   figure: { ...text.figure, color: colors.teal },

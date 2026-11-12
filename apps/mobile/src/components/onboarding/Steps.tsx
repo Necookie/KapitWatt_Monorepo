@@ -24,7 +24,7 @@ import {
   TextField,
 } from '@/components/ui';
 import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
-import { colors, space, text } from '@/theme';
+import { colors, fonts, space, text } from '@/theme';
 import { fieldOk, STEP_TITLE, STEPS, type StepId, type StepProps } from './draft';
 
 /** One card per onboarding step. The sign-up screen decides which one shows and when to move on. */
@@ -329,5 +329,5 @@ const styles = StyleSheet.create({
   error: { ...text.caption, color: colors.red },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionTitle: { ...text.title, color: colors.ink },
-  link: { ...text.body, fontWeight: '700', color: colors.teal },
+  link: { ...text.body, fontFamily: fonts.semibold, color: colors.teal },
 });

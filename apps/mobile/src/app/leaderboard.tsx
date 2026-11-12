@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ErrorState, Loading, Screen, SimulatedNote } from '@/components/ui';
 import { formatKwh } from '@/lib/format';
 import { useLeaderboard, useMe, useRefreshAll } from '@/lib/queries';
-import { colors, radius, space, text } from '@/theme';
+import { colors, fonts, radius, space, text } from '@/theme';
 
 /** Barangay ranking (FR-APP-16). Per barangay only, never per household (NFR-S4). */
 export default function LeaderboardScreen() {
@@ -57,8 +57,13 @@ const styles = StyleSheet.create({
   rowMine: { backgroundColor: colors.teal },
   rank: { ...text.title, color: colors.ink, width: 32, textAlign: 'center' },
   name: { flex: 1 },
-  title: { ...text.body, fontWeight: '700', color: colors.ink },
+  title: { ...text.body, fontFamily: fonts.semibold, color: colors.ink },
   sub: { ...text.caption, color: colors.muted },
-  points: { ...text.body, fontWeight: '700', color: colors.ink, fontVariant: ['tabular-nums'] },
+  points: {
+    ...text.body,
+    fontFamily: fonts.semibold,
+    color: colors.ink,
+    fontVariant: ['tabular-nums'],
+  },
   onDark: { color: colors.onDark },
 });

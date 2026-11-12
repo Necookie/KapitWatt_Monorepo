@@ -1,24 +1,22 @@
+import { Icon } from '@kapitwatt/icons';
 import type { AlertLevel } from '@kapitwatt/shared';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, space, text } from '@/theme';
+import { Chip } from '@kapitwatt/ui';
 
+/** NGCP alert level as a chip: the level in words plus the alert icon, never colour alone. */
 export function AlertBadge(props: { level: AlertLevel }) {
   const red = props.level === 'red';
   return (
-    <View style={[styles.badge, { backgroundColor: red ? colors.red : colors.yellow }]}>
-      <Text style={[styles.label, { color: red ? colors.onDark : colors.navy }]}>
-        {red ? 'RED ALERT' : 'YELLOW ALERT'}
-      </Text>
-    </View>
+    <Chip
+      label={red ? 'Red alert' : 'Yellow alert'}
+      tone={red ? 'alertRed' : 'alertYellow'}
+      icon={
+        <Icon
+          name="alert"
+          size="sm"
+          weight="fill"
+          color={red ? 'onAlertRedContainer' : 'onAlertYellowContainer'}
+        />
+      }
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  badge: {
-    alignSelf: 'flex-start',
-    borderRadius: radius.pill,
-    paddingHorizontal: space.md,
-    paddingVertical: space.xs,
-  },
-  label: { ...text.caption, fontWeight: '700', letterSpacing: 1 },
-});
