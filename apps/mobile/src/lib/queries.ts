@@ -1,4 +1,9 @@
-import { POLL_INTERVAL_MS, type CreateCommitmentInput } from '@kapitwatt/shared';
+import {
+  POLL_INTERVAL_MS,
+  type CreateCommitmentInput,
+  type RegisterHouseholdInput,
+  type SubmitReadingInput,
+} from '@kapitwatt/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as endpoints from './endpoints';
 
@@ -10,6 +15,9 @@ export const queryKeys = {
   totals: (id: string) => ['alerts', id, 'totals'] as const,
   myStatus: (id: string) => ['alerts', id, 'my-status'] as const,
   result: (id: string) => ['alerts', id, 'result'] as const,
+  barangays: ['barangays'] as const,
+  leaderboard: ['barangays', 'leaderboard'] as const,
+  history: ['history'] as const,
 };
 
 export const useMe = () => useQuery({ queryKey: queryKeys.me, queryFn: endpoints.getMe });
@@ -50,6 +58,33 @@ export function useCommit() {
       void qc.invalidateQueries({ queryKey: queryKeys.myStatus(input.alertId) });
       void qc.invalidateQueries({ queryKey: queryKeys.totals(input.alertId) });
     },
+  });
+}
+
+export const useBarangays = () =>
+  useQuery({ queryKey: queryKeys.barangays, queryFn: endpoints.getBarangays });
+
+export const useLeaderboard = () =>
+  useQuery({ queryKey: queryKeys.leaderboard, queryFn: endpoints.getLeaderboard });
+
+export const useHistory = () =>
+  useQuery({ queryKey: queryKeys.history, queryFn: endpoints.getHistory });
+
+export function useRegister() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RegisterHouseholdInput) => endpoints.register(input),
+    // Reset, not just invalidate: cached 401s would otherwise send Home straight back to sign-up.
+    onSuccess: () => qc.resetQueries(),
+  });
+}
+
+export function useSubmitReading() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { input: SubmitReadingInput; photoUri: string }) =>
+      endpoints.submitReading(args.input, args.photoUri),
+    onSuccess: () => qc.invalidateQueries(),
   });
 }
 

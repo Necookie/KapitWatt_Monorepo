@@ -1,6 +1,7 @@
 import { Button, SimulatedNote } from '@/components/ui';
 import { USE_MOCKS } from '@/lib/config';
-import { mockFastForward } from '@/lib/mock';
+import { router } from 'expo-router';
+import { mockFastForward, mockResetAll } from '@/lib/mock';
 import { useRefreshAll } from '@/lib/queries';
 
 /**
@@ -18,6 +19,15 @@ export function MockControls() {
         onPress={() => {
           mockFastForward();
           void refreshAll();
+        }}
+      />
+      <Button
+        label="Mock: reset (back to sign-up)"
+        variant="secondary"
+        onPress={() => {
+          mockResetAll();
+          void refreshAll();
+          router.replace('/');
         }}
       />
       <SimulatedNote>

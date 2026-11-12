@@ -52,6 +52,13 @@ export default function EventScreen() {
       <Card title="Your commitment">
         {commitment ? (
           <Row label="You committed to cut" value={formatKw(commitment.committedKw)} strong />
+        ) : canCommit && me.data.commitCapKw <= 0 ? (
+          <>
+            <Text style={styles.body}>
+              Finish your practice run first, so we know your usual usage.
+            </Text>
+            <Button label="Start practice" onPress={() => router.push('/rehearsal')} />
+          </>
         ) : canCommit ? (
           <>
             <Text style={styles.body}>

@@ -1,13 +1,20 @@
 import {
   AlertTotals,
   AlertView,
+  Barangay,
   Commitment,
+  HistoryItem,
+  LeaderboardEntry,
   MeResponse,
   MyEventStatus,
+  RegisterHouseholdResponse,
   ResultCard,
+  SubmitReadingResponse,
   type CreateCommitmentInput,
+  type RegisterHouseholdInput,
+  type SubmitReadingInput,
 } from '@kapitwatt/shared';
-import { api, ApiError } from './api';
+import { api, ApiError, setAuthToken } from './api';
 import { USE_MOCKS } from './config';
 import * as mock from './mock';
 import { syncServerTime } from './serverTime';
@@ -69,4 +76,44 @@ export async function getResult(alertId: string): Promise<ResultCard | null> {
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;
   }
+}
+
+export async function getBarangays(): Promise<Barangay[]> {
+  return USE_MOCKS ? mock.getBarangays() : get(Barangay.array(), '/barangays');
+}
+
+/** Sign up and opt in. Keeps the token for later calls (in memory only for now; see config). */
+export async function register(input: RegisterHouseholdInput): Promise<RegisterHouseholdResponse> {
+  const res = USE_MOCKS
+    ? await mock.register(input)
+    : RegisterHouseholdResponse.parse(
+        await api('/auth/register', { method: 'POST', body: JSON.stringify(input) }),
+      );
+  setAuthToken(res.token);
+  return res;
+}
+
+/** Meter photo plus typed reading, sent as multipart form data (FR-APP-12). */
+export async function submitReading(
+  input: SubmitReadingInput,
+  photoUri: string,
+): Promise<SubmitReadingResponse> {
+  if (USE_MOCKS) return mock.submitReading(input, photoUri);
+  const form = new FormData();
+  for (const [key, value] of Object.entries(input)) {
+    if (value !== undefined) form.append(key, String(value));
+  }
+  // React Native's FormData takes a file descriptor object instead of a Blob.
+  form.append('photo', { uri: photoUri, name: 'meter.jpg', type: 'image/jpeg' } as unknown as Blob);
+  return SubmitReadingResponse.parse(await api('/readings', { method: 'POST', body: form }));
+}
+
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+  return USE_MOCKS
+    ? mock.getLeaderboard()
+    : get(LeaderboardEntry.array(), '/barangays/leaderboard');
+}
+
+export async function getHistory(): Promise<HistoryItem[]> {
+  return USE_MOCKS ? mock.getHistory() : get(HistoryItem.array(), '/commitments/history');
 }
