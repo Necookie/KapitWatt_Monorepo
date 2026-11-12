@@ -16,6 +16,28 @@ export async function listBarangays(db: Db): Promise<Barangay[]> {
 }
 
 /**
+ * Barangays with their opted-in household count (real and simulated), for the sign-up picker and the
+ * alert form's confirm step ("about 1,200 households"). One query.
+ */
+export async function listBarangaysWithCounts(
+  db: Db,
+): Promise<(Barangay & { optedInHouseholds: number })[]> {
+  const rows = await db`
+    select b.id, b.name, b.municipality, b.feeder_id,
+           count(h.id) filter (where h.opted_in)::int as opted_in
+    from barangays b left join households h on h.barangay_id = b.id
+    group by b.id
+    order by b.municipality, b.name`;
+  return rows.map((r) => ({
+    id: r.id as string,
+    name: r.name as string,
+    municipality: r.municipality as string,
+    feederId: (r.feeder_id as string | null) ?? null,
+    optedInHouseholds: Number(r.opted_in),
+  }));
+}
+
+/**
  * Loads the pilot barangays (reference data, not simulated rows). One request,
  * idempotent: existing (municipality, name) pairs are left alone.
  * Returns how many rows were newly inserted.

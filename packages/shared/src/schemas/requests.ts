@@ -6,6 +6,11 @@ import { AlertLevel, AlertStatus, MeterType, ReadingKind } from './enums';
 /** Request and response bodies. The API validates with these; the apps type their calls with them. */
 
 const latitude = z.number().min(-90).max(90);
+/** Expo push tokens, as returned by getExpoPushTokenAsync. */
+const expoPushToken = z
+  .string()
+  .max(255)
+  .regex(/^Expo(nent)?PushToken\[[^\]]+\]$/, 'must be an Expo push token');
 const longitude = z.number().min(-180).max(180);
 
 export const RegisterHouseholdInput = z.object({
@@ -18,12 +23,12 @@ export const RegisterHouseholdInput = z.object({
   lng: longitude,
   /** Consent to alerts and data use (Data Privacy Act 2012). Must be true to register. */
   consent: z.literal(true),
-  pushToken: z.string().min(1).max(255).optional(),
+  pushToken: expoPushToken.optional(),
 });
 export type RegisterHouseholdInput = z.infer<typeof RegisterHouseholdInput>;
 
 export const UpdatePushTokenInput = z.object({
-  pushToken: z.string().min(1).max(255),
+  pushToken: expoPushToken,
 });
 export type UpdatePushTokenInput = z.infer<typeof UpdatePushTokenInput>;
 
