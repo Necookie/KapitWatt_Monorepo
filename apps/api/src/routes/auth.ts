@@ -22,7 +22,8 @@ auth.post(
   '/register',
   rateLimit('RL_REGISTER', (c) => `register:${clientIp(c)}`),
   validate('json', RegisterHouseholdInput),
-  async (c) => c.json(await households.register(c.var.db, c.req.valid('json')), 201),
+  async (c) =>
+    c.json(await households.register(c.var.db, c.req.valid('json'), c.env.APP_ENV === 'demo'), 201),
 );
 
 // Log in with email and password. Rate-limited per IP, which also slows password guessing.

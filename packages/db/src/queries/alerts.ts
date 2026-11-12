@@ -87,20 +87,22 @@ export async function listAlerts(db: Db, limit: number, isDemo: boolean): Promis
 
 /**
  * The newest alert that is not settled or cancelled. With a barangay, only alerts that target it
- * (what a household should see); without one, any open alert (the dashboard).
+ * (what a household should see); without one, any open alert. Scheduled (not yet sent) alerts are
+ * included only when asked for: the operator sees them, a phone never does.
  */
 export async function findOpenAlert(
   db: Db,
   barangayId: string | null,
   isDemo: boolean,
+  includeScheduled = false,
 ): Promise<AlertRow | null> {
   const [r] = await db`
     select a.*, now() + make_interval(secs => case when ${isDemo} then a.clock_offset_sec else 0 end)
              as effective_now
     from alerts a
     where a.status not in ('settled', 'cancelled')
-      -- Households never see an alert before it is sent; the dashboard does.
-      and (${barangayId}::uuid is null or a.status <> 'scheduled')
+      -- Phones never see an alert before it is sent; the dashboard does.
+      and (${includeScheduled} or a.status <> 'scheduled')
       and (${barangayId}::uuid is null or ${barangayId}::uuid = any(a.target_barangay_ids))
     order by a.created_at desc
     limit 1`;

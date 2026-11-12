@@ -1,8 +1,9 @@
-import { MAX_PHOTO_BYTES } from '@kapitwatt/shared';
+import type { ReadingHousehold } from '@kapitwatt/db';
+import { COMMIT_STEP_KW, MAX_PHOTO_BYTES } from '@kapitwatt/shared';
 import { describe, expect, it } from 'vitest';
 import { AppError } from '../lib/errors';
 import { assertValidPhoto, isJpeg } from '../services/photos';
-import { photoWindowState } from '../services/readings';
+import { isSameUpload, photoWindowState, prepareRehearsal } from '../services/readings';
 import { call, OPERATOR_KEY } from './helpers';
 
 const start = new Date('2026-11-12T10:00:00Z');
@@ -62,5 +63,73 @@ describe('reading routes (before the database)', () => {
     expect((await call(`/readings/${id}/photo`)).status).toBe(401);
     const bad = await call('/readings/nope/photo', { headers: { 'x-operator-key': OPERATOR_KEY } });
     expect(bad.status).toBe(400);
+  });
+});
+
+describe('rehearsal baseline', () => {
+  const first = new Date('2026-11-12T08:00:00Z');
+  const household = (kwh: number): ReadingHousehold => ({
+    meterType: 'standard',
+    baselineKw: null,
+    billAvgKwhMonth: 450,
+    lat: null,
+    lng: null,
+    previous: { kwh, at: first },
+    rehearsal: [{ kwh, at: first }],
+  });
+  const second = (readingKwh: number) =>
+    ({ kind: 'rehearsal', readingKwh, lat: 14.27, lng: 121.41 }) as const;
+
+  it('refuses a second reading that has not moved, so the household can take it again', () => {
+    expect(() => prepareRehearsal(household(1204), second(1204), minutesFrom(first, 30))).toThrow(
+      expect.objectContaining({ status: 422, code: 'rehearsal_too_low' }),
+    );
+  });
+
+  it('sets a baseline the household can commit against', () => {
+    const prepared = prepareRehearsal(household(1204), second(1205), minutesFrom(first, 60));
+    expect(prepared.baselineKw).toBeGreaterThanOrEqual(COMMIT_STEP_KW);
+  });
+});
+
+describe('resending a photo', () => {
+  const alertId = '3f1c2b9e-1d2a-4c3b-9e8f-0a1b2c3d4e5f';
+  const stored = { householdId: 'h1', kind: 'before' as const, alertId };
+
+  it('treats the same household, kind and alert as a resend', () => {
+    expect(isSameUpload(stored, 'h1', { kind: 'before', alertId })).toBe(true);
+    expect(
+      isSameUpload({ householdId: 'h1', kind: 'rehearsal', alertId: null }, 'h1', {
+        kind: 'rehearsal',
+      }),
+    ).toBe(true);
+  });
+
+  it('treats anything else as a reused photo', () => {
+    expect(isSameUpload(stored, 'h2', { kind: 'before', alertId })).toBe(false);
+    expect(isSameUpload(stored, 'h1', { kind: 'after', alertId })).toBe(false);
+    expect(isSameUpload(stored, 'h1', { kind: 'before', alertId: crypto.randomUUID() })).toBe(
+      false,
+    );
+  });
+});
+
+describe('rehearsal baseline for a very small household', () => {
+  it('accepts a real reading even when the bill cap keeps the baseline under one step', () => {
+    const first = new Date('2026-11-12T08:00:00Z');
+    const prepared = prepareRehearsal(
+      {
+        meterType: 'standard',
+        baselineKw: null,
+        billAvgKwhMonth: 30,
+        lat: null,
+        lng: null,
+        previous: { kwh: 100, at: first },
+        rehearsal: [{ kwh: 100, at: first }],
+      },
+      { kind: 'rehearsal', readingKwh: 101, lat: 14.27, lng: 121.41 },
+      minutesFrom(first, 240),
+    );
+    expect(prepared.baselineKw).toBeLessThan(COMMIT_STEP_KW);
   });
 });

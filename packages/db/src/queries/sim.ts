@@ -140,7 +140,7 @@ export async function insertSimPhotoReadings(
                   ${part.map((r) => r.readingKwh)}::numeric[], ${part.map((r) => r.capturedAt)}::timestamptz[],
                   ${part.map((r) => r.checkStatus)}::text[], ${part.map((r) => r.flags.join(','))}::text[])
              as t(household_id, kind, kwh, captured_at, status, flags)
-      join households h on h.id = t.household_id and (h.is_simulated or h.is_demo)
+      join households h on h.id = t.household_id
       join commitments c on c.household_id = h.id and c.alert_id = ${alertId} and c.path = 'photo'
       join alerts a on a.id = c.alert_id and a.status not in ('settling', 'settled', 'cancelled')
       on conflict (commitment_id, kind) do nothing
@@ -151,8 +151,9 @@ export async function insertSimPhotoReadings(
 }
 
 /**
- * Smart-meter interval energy for simulated households with an AMI commitment to this alert
- * (the fake AMI feed). Repeated intervals are skipped.
+ * Smart-meter interval energy for households with an AMI commitment to this alert (the fake AMI
+ * feed): simulated rows, and real smart-meter households, which have no real Meralco feed in the
+ * pilot. Rows are marked is_simulated, so the demo reset removes them. Repeated intervals are skipped.
  */
 export async function insertSimAmiIntervals(
   db: Db,

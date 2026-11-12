@@ -196,6 +196,12 @@ describe('alert routes (before the database)', () => {
     expect(res.status).toBe(401);
   });
 
+  it('shows no alert to a phone that is not signed in (no barangay, no consent yet)', async () => {
+    const res = await call('/alerts/active');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ alert: null });
+  });
+
   it('keeps the alert log operator-only', async () => {
     expect((await call('/alerts')).status).toBe(401);
   });
