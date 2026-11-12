@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { loginSheetTop, signUpSheetTop } from '@/components/night/geometry';
 import { useSheetRise } from './useSheetRise';
 import { useStoryPager } from './useStoryPager';
 
@@ -12,9 +11,8 @@ export function useWelcome() {
   const sheetRise = useSheetRise(height);
   const story = useStoryPager(width);
 
-  const join = () =>
-    sheetRise.rise(signUpSheetTop(width, insets.top), () => router.push('/sign-up'));
-  const logIn = () => sheetRise.rise(loginSheetTop(insets.top), () => router.push('/login'));
+  const join = () => sheetRise.rise(() => router.push('/sign-up'));
+  const logIn = () => sheetRise.rise(() => router.push('/login'));
 
   return { insets, width, sheetRise, story, join, logIn };
 }

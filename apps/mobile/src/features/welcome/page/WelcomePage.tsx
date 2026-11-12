@@ -11,6 +11,7 @@ import { Skyline } from '@/components/night/Skyline';
 import { greeting } from '@/utils/greeting';
 import { space } from '@/styles/theme';
 import { Body } from '../components/Body';
+import { FitPicture } from '../components/FitPicture';
 import { HoldLantern } from '../components/HoldLantern';
 import { PageDots } from '../components/PageDots';
 import { Panel } from '../components/Panel';
@@ -55,39 +56,50 @@ export default function WelcomePage() {
             height={story.pagerHeight}
             kicker={greeting()}
             title="We'll tell you when the grid runs short."
-          >
-            <MoonMascot pose="alert" />
-            <Body>
-              NGCP raises a yellow or red alert and Meralco asks homes in your barangay to cut a
-              little during the peak.
-            </Body>
-          </Panel>
+            picture={
+              <FitPicture>
+                <MoonMascot pose="alert" />
+              </FitPicture>
+            }
+            caption={
+              <Body>
+                NGCP raises a yellow or red alert and Meralco asks homes in your barangay to cut a
+                little during the peak.
+              </Body>
+            }
+          />
 
           <Panel
             width={width}
             height={story.pagerHeight}
             kicker="Try it"
             title="Cut a little, together."
-          >
-            <HoldLantern cut={story.cut} onDone={story.onCut} />
-            {story.cutDone ? (
-              <RewardChip />
-            ) : (
-              <Body>Switch a few things off for the peak window.</Body>
-            )}
-          </Panel>
+            picture={<HoldLantern cut={story.cut} onDone={story.onCut} />}
+            caption={
+              story.cutDone ? (
+                <RewardChip />
+              ) : (
+                <Body>Switch a few things off for the peak window.</Body>
+              )
+            }
+          />
 
           <Panel
             width={width}
             height={story.pagerHeight}
             kicker="Your reward"
             title="Verified cuts raise your score."
-          >
-            <MoonMascot pose="reward" />
-            <Body>
-              {`We check each cut by smart meter or two meter photos. Every verified cut adds ${TRUST.cleanEvent} to your Contribution Score, and higher levels unlock perks.`}
-            </Body>
-          </Panel>
+            picture={
+              <FitPicture>
+                <MoonMascot pose="reward" />
+              </FitPicture>
+            }
+            caption={
+              <Body>
+                {`We check each cut by smart meter or two meter photos. Every verified cut adds ${TRUST.cleanEvent} to your Contribution Score, and higher levels unlock perks.`}
+              </Body>
+            }
+          />
         </ScrollView>
         <View style={styles.street} pointerEvents="none">
           <PageDots count={PAGES} index={story.page} />

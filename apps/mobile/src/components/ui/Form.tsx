@@ -1,9 +1,10 @@
 import { Icon } from '@kapitwatt/icons';
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
-import { useState, type ComponentRef, type Ref } from 'react';
+import { useRef, useState, type ComponentRef, type Ref } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { colors, radius, space } from '@/styles/theme';
+import { useReveal, type RevealTarget } from './reveal';
 
 const t = themes.light;
 const c = t.color;
@@ -12,7 +13,8 @@ const c = t.color;
  * A labelled text input with the same frame as a button: 56 px tall, 12 px corners (mockup page 1,
  * Log in). White fill so it reads as tappable; 2 px primary border while focused, error border and
  * message when `error` is set. Password fields (`secureTextEntry`) get a show/hide eye. `ref` reaches
- * the input (to move focus to it from the field before).
+ * the input (to move focus to it from the field before). On focus the screen scrolls the whole
+ * field into view above the keyboard (Screen).
  */
 export function TextField(
   props: Omit<TextInputProps, 'style'> & {
@@ -38,10 +40,12 @@ export function TextField(
   } = props;
   const [focused, setFocused] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const box = useRef<RevealTarget>(null);
+  const reveal = useReveal();
   const strong = focused || !!error;
 
   return (
-    <View style={styles.field}>
+    <View ref={box} style={styles.field}>
       <Text variant="labelLarge" color={error ? 'error' : 'onSurfaceVariant'}>
         {label}
       </Text>
@@ -66,6 +70,7 @@ export function TextField(
           placeholderTextColor={c.onSurfaceVariant}
           onFocus={(e) => {
             setFocused(true);
+            reveal(box.current);
             onFocus?.(e);
           }}
           onBlur={(e) => {

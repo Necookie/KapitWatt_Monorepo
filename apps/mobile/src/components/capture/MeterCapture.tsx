@@ -4,7 +4,7 @@ import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRef, useState } from 'react';
-import { Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocationPrompt } from '@/components/LocationPrompt';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
@@ -166,7 +166,9 @@ export function MeterCapture(props: {
   };
 
   return (
-    <View style={[styles.light, pad]}>
+    // The reading field opens the keyboard at once: keep "Send reading" above it (edge-to-edge
+    // Android no longer shrinks the window for the keyboard).
+    <KeyboardAvoidingView behavior="padding" style={[styles.light, pad]}>
       <TopBar title={props.title} onBack={() => setPhotoUri(null)} icon="back" disabled={busy} />
       <View style={styles.body}>
         <View style={styles.photoCard}>
@@ -229,7 +231,7 @@ export function MeterCapture(props: {
           />
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
