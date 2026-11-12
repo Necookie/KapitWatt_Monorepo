@@ -1,7 +1,7 @@
 import type { Alert, AlertStatus } from '@kapitwatt/shared';
 import { StyleSheet, View } from 'react-native';
 import { client, errorMessage } from '@/lib/client';
-import { STAGES, stageIndex, useAction, useSimStatus } from '@/lib/queries';
+import { STAGES, stageIndex, useAction, useCommitRunInProgress, useSimStatus } from '@/lib/queries';
 import { useSimParams } from '@/lib/sim-params';
 import { colors, space } from '@/theme';
 import { Button, Notice, Txt } from './ui';
@@ -18,15 +18,17 @@ export function StageControl({ alert, status }: { alert: Alert; status: AlertSta
   const hasSimulated = (sim.data?.households ?? 0) > 0;
 
   const open = useAction(() => client.fastForward(alert.id, 'window_start'));
+  // The fake meter feed reports once the window has ended. Real phones send their own photos.
+  const deliver = useAction(() => client.simRun(alert.id, params, 'deliver'));
   const end = useAction(async () => {
     await client.fastForward(alert.id, 'window_end');
-    // The fake meter feed reports once the window has ended. Real phones send their own photos.
-    if (hasSimulated) await client.simRun(alert.id, params, 'deliver');
+    if (hasSimulated) await deliver.mutateAsync(undefined);
   });
   const settle = useAction(() => client.settle(alert.id));
+  const committing = useCommitRunInProgress();
 
   const current = stageIndex(status);
-  const failed = open.error ?? end.error ?? settle.error;
+  const failed = open.error ?? end.error ?? deliver.error ?? settle.error;
 
   return (
     <View style={{ gap: space.md }}>
@@ -65,6 +67,8 @@ export function StageControl({ alert, status }: { alert: Alert; status: AlertSta
               kind="primary"
               label="Open window"
               busy={open.isPending}
+              // Opening the window closes commits, which would cut a paced run short.
+              disabled={committing}
               onPress={() => open.mutate(undefined)}
             />
           ) : null}
@@ -76,11 +80,21 @@ export function StageControl({ alert, status }: { alert: Alert; status: AlertSta
               onPress={() => end.mutate(undefined)}
             />
           ) : null}
+          {status === 'settling' && hasSimulated && deliver.isError ? (
+            // The window ended but the simulated readings did not arrive. Sending them
+            // again is safe: a household keeps one reading per kind.
+            <Button
+              label="Resend simulated readings"
+              busy={deliver.isPending}
+              onPress={() => deliver.mutate(undefined)}
+            />
+          ) : null}
           {status === 'settling' ? (
             <Button
               kind="primary"
               label="Settle results"
               busy={settle.isPending}
+              disabled={deliver.isPending}
               onPress={() => settle.mutate(undefined)}
             />
           ) : null}
@@ -88,7 +102,10 @@ export function StageControl({ alert, status }: { alert: Alert; status: AlertSta
       </View>
 
       <Txt size="xs" tone="muted">
-        {hint(status)} Demo control: the window is moved to now, its scheduled length is kept.
+        {committing && current === 0
+          ? 'Simulated households are still committing; the window can open when they finish.'
+          : hint(status)}{' '}
+        Demo control: the window is moved to now, its scheduled length is kept.
       </Txt>
       {failed ? <Notice tone="critical">{errorMessage(failed)}</Notice> : null}
     </View>

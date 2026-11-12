@@ -141,8 +141,11 @@ export async function runCommits(
   for (const barangayId of [...groups.keys()].sort()) {
     const group = groups.get(barangayId)!;
     const count = Math.round(group.length * (rates.get(barangayId) ?? 0));
-    for (const h of shuffle(group, rng).slice(0, count)) {
-      if (h.committedKw !== null) continue;
+    // Households already committed count toward the barangay's share, so a second
+    // run (even with another seed) tops up to the rate instead of adding a new subset.
+    const open = group.filter((h) => h.committedKw === null);
+    const missing = Math.max(0, count - (group.length - open.length));
+    for (const h of shuffle(open, rng).slice(0, missing)) {
       // Never ask for more than the bill cap allows, the same limit a phone is held to.
       const committedKw = Math.min(params.cutKw, Math.floor(capKw(h.billAvgKwhMonth) * 10) / 10);
       if (committedKw > 0) picked.push({ householdId: h.id, committedKw });
@@ -158,15 +161,9 @@ export async function runCommits(
     await port.commitBatch(alertId, queue.slice(i, i + perTick));
   }
 
-  const newlyCommitted = new Map(queue.map((c) => [c.householdId, c.committedKw]));
-  return summarise(
-    'commit',
-    households.map((h) => ({
-      ...h,
-      committedKw: h.committedKw ?? newlyCommitted.get(h.id) ?? null,
-    })),
-    0,
-  );
+  // Read the commitments back: a commit can be refused (window opened mid-run, cap),
+  // and the summary must report what was accepted, not what was attempted.
+  return summarise('commit', await port.listSimulatedHouseholds(alertId), 0);
 }
 
 /**

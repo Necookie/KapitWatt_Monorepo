@@ -136,9 +136,13 @@ export default function TownScreen() {
                 label="Committed"
                 value={kw(town.committedKw)}
                 unit="kW"
-                note={`${percent(town.committedKw, town.targetKw)} of target · ${count(
-                  town.committedHouseholds,
-                )} of ${count(town.households)} households`}
+                note={
+                  town.householdsKnown
+                    ? `${percent(town.committedKw, town.targetKw)} of target · ${count(
+                        town.committedHouseholds,
+                      )} of ${count(town.households)} households`
+                    : `${percent(town.committedKw, town.targetKw)} of target`
+                }
               />
               <Stat
                 label="Delivered, verified"

@@ -194,11 +194,16 @@ export class MemoryBackend {
     phase: 'commit' | 'deliver',
   ): Promise<SimRunSummary> {
     const found = this.find(alertId);
+    if (phase === 'deliver' && found.alert.status !== 'settling') {
+      throw new MemoryBackendError(409, 'end the window before sending readings');
+    }
+    const startedAt = this.currentFrom;
     const summary =
       phase === 'commit'
         ? await runCommits(alertId, params, this.port)
         : await runDelivery(alertId, params, this.port, found.windowMinutes);
-    this.lastRun = summary;
+    // A reset during a paced run wins: do not report a run whose data is gone.
+    if (this.currentFrom === startedAt) this.lastRun = summary;
     return summary;
   }
 
@@ -401,7 +406,8 @@ export class MemoryBackend {
     const found = this.find(alertId);
     const commitment = found.commitments.get(item.householdId);
     const h = this.households.get(item.householdId);
-    if (!commitment || !h || found.alert.status === 'settled') return;
+    // Readings only count once the window has ended and before results are final.
+    if (!commitment || !h || found.alert.status !== 'settling') return;
     for (const reading of item.readings) {
       if (!commitment.readings[reading.kind]) commitment.readings[reading.kind] = reading;
     }

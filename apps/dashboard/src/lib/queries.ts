@@ -1,5 +1,5 @@
 import { POLL_INTERVAL_MS, type AlertStatus } from '@kapitwatt/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { client } from './client';
 
 /** Live figures refresh by short polling (FR-DASH-10). */
@@ -39,9 +39,19 @@ export function useRefreshAll() {
   return () => queryClient.invalidateQueries();
 }
 
-export function useAction<TInput, TOutput>(action: (input: TInput) => Promise<TOutput>) {
+export function useAction<TInput, TOutput>(
+  action: (input: TInput) => Promise<TOutput>,
+  mutationKey?: readonly string[],
+) {
   const refresh = useRefreshAll();
-  return useMutation({ mutationFn: action, onSettled: refresh });
+  return useMutation({ mutationFn: action, onSettled: refresh, mutationKey });
+}
+
+/** The paced commit run, keyed so other screens can tell it is still going. */
+export const SIM_COMMIT_RUN = ['sim', 'run', 'commit'] as const;
+
+export function useCommitRunInProgress(): boolean {
+  return useIsMutating({ mutationKey: SIM_COMMIT_RUN }) > 0;
 }
 
 /** The four stages the operator walks an event through. */

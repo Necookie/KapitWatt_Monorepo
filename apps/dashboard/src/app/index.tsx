@@ -36,7 +36,7 @@ export default function OverviewScreen() {
       header: 'Households',
       width: 100,
       align: 'right',
-      render: (t) => <Txt numeric>{count(t.households)}</Txt>,
+      render: (t) => <Txt numeric>{t.householdsKnown ? count(t.households) : '—'}</Txt>,
     },
     {
       key: 'target',
@@ -100,6 +100,8 @@ export default function OverviewScreen() {
     },
   ];
 
+  // The count is optional in the API response: unknown is not the same as zero.
+  const householdsKnown = (barangays.data ?? []).some((b) => b.optedInHouseholds !== undefined);
   const pilotHouseholds = (barangays.data ?? []).reduce(
     (sum, b) => sum + (b.optedInHouseholds ?? 0),
     0,
@@ -145,8 +147,8 @@ export default function OverviewScreen() {
             <Stat label="Committed" value="0" unit="kW" note="No alert in force" />
             <Stat
               label="Opted-in households"
-              value={barangays.data ? about(pilotHouseholds).replace('about ', '≈ ') : '—'}
-              note="Simulated, plus team phones"
+              value={householdsKnown ? about(pilotHouseholds).replace('about ', '≈ ') : '—'}
+              note={householdsKnown ? 'Simulated, plus team phones' : 'Not reported by the API yet'}
             />
             <Stat
               label="Coverage"

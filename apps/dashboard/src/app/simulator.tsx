@@ -6,7 +6,7 @@ import { Field, Segmented, Slider, TextField } from '@/components/form';
 import { Button, Card, Label, Notice, PageHeader, Tag, Txt } from '@/components/ui';
 import { client, errorMessage } from '@/lib/client';
 import { count, fraction, kw, percent } from '@/lib/format';
-import { useAction, useCurrentAlert, useSimStatus, useTotals } from '@/lib/queries';
+import { SIM_COMMIT_RUN, useAction, useCurrentAlert, useSimStatus, useTotals } from '@/lib/queries';
 import { useSimParams } from '@/lib/sim-params';
 import { colors, space } from '@/theme';
 
@@ -26,7 +26,10 @@ export default function SimulatorScreen() {
   const [confirmReset, setConfirmReset] = useState(false);
 
   const seed = useAction(() => client.simSeed({ amiShare: params.amiShare, seed: params.seed }));
-  const run = useAction((alertId: string) => client.simRun(alertId, params, 'commit'));
+  const run = useAction(
+    (alertId: string) => client.simRun(alertId, params, 'commit'),
+    SIM_COMMIT_RUN,
+  );
   const reset = useAction(() => client.simReset());
 
   const set = (patch: Partial<SimParams>) => setParams({ ...params, ...patch });

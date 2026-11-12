@@ -102,11 +102,36 @@ describe('pacing and safety', () => {
     expect(backend.totals(alertId).committedKw).toBe(first);
   });
 
-  it('refuses commits once the window has opened', async () => {
+  it('refuses commits once the window has opened, and reports none', async () => {
     const { backend, alertId } = setup();
     backend.fastForward(alertId, 'window_start');
-    await backend.run(alertId, DEFAULT_PARAMS, 'commit');
+    const summary = await backend.run(alertId, DEFAULT_PARAMS, 'commit');
     expect(backend.totals(alertId).committedKw).toBe(0);
+    expect(summary.committed).toBe(0);
+  });
+
+  it('tops up to the participation rate when run again with another seed', async () => {
+    const { backend, alertId } = setup();
+    await backend.run(alertId, DEFAULT_PARAMS, 'commit');
+    await backend.run(alertId, { ...DEFAULT_PARAMS, seed: 99, barangaySpread: 0 }, 'commit');
+    expect(backend.totals(alertId).committedKw).toBeLessThan(800);
+  });
+
+  it('refuses readings before the window has ended', async () => {
+    const { backend, alertId } = setup();
+    await backend.run(alertId, DEFAULT_PARAMS, 'commit');
+    await expect(backend.run(alertId, DEFAULT_PARAMS, 'deliver')).rejects.toThrow();
+    expect(backend.totals(alertId).deliveredKw).toBe(0);
+  });
+
+  it('sending readings twice does not change the result', async () => {
+    const { backend, alertId } = setup();
+    await backend.run(alertId, DEFAULT_PARAMS, 'commit');
+    backend.fastForward(alertId, 'window_end');
+    await backend.run(alertId, DEFAULT_PARAMS, 'deliver');
+    const first = backend.totals(alertId).deliveredKw;
+    await backend.run(alertId, DEFAULT_PARAMS, 'deliver');
+    expect(backend.totals(alertId).deliveredKw).toBe(first);
   });
 
   it('reset clears simulated households and the open alert', async () => {

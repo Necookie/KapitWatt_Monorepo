@@ -40,6 +40,8 @@ export function about(value: number): string {
 
 export interface TownTotals {
   town: string;
+  /** False when the API left household counts out; `households` is then not a real zero. */
+  householdsKnown: boolean;
   households: number;
   committedHouseholds: number;
   targetKw: number;
@@ -59,6 +61,7 @@ export function byTown(totals: AlertTotals | undefined): TownTotals[] {
     if (!town) {
       town = {
         town: b.municipality,
+        householdsKnown: false,
         households: 0,
         committedHouseholds: 0,
         targetKw: 0,
@@ -71,6 +74,7 @@ export function byTown(totals: AlertTotals | undefined): TownTotals[] {
       };
       towns.set(b.municipality, town);
     }
+    if (b.households !== undefined) town.householdsKnown = true;
     town.households += b.households ?? 0;
     town.committedHouseholds += b.committedHouseholds ?? 0;
     town.targetKw += b.targetKw;
