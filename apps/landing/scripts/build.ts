@@ -90,6 +90,7 @@ ${types}
 .btn-filled{background:var(--primary);color:var(--on-primary)}
 .btn-filled:hover{background:color-mix(in srgb,var(--primary) 92%,var(--on-primary))}
 .btn-filled:active{background:color-mix(in srgb,var(--primary) 90%,var(--on-primary))}
+.btn.btn-disabled,.btn.btn-disabled:hover,.btn.btn-disabled:active{background:color-mix(in srgb,var(--on-surface) 12%,var(--surface));color:color-mix(in srgb,var(--on-surface) 38%,var(--surface));cursor:default;transition:none}
 .btn-lg{height:${px(size.controlLg)};padding:0 var(--space-8);font-size:16px;line-height:24px;letter-spacing:.15px;width:100%}
 
 .card{border-radius:var(--radius-md);padding:var(--space-4)}
