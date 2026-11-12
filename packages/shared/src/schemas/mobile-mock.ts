@@ -1,33 +1,16 @@
 import { z } from 'zod';
 import { Alert, Commitment, MeterReading } from './entities';
-import { MeterType } from './enums';
 
 /**
  * TEMPORARY. Response shapes the household app was built against on mock data, before the API
  * existed. The API's real shapes are in ./responses.ts and are the contract. Three names clashed
  * with them and carry a `Mock` prefix here (MockAlertView, MockHistoryItem, MockResultCard).
+ * Sign-up and profile already use the real shapes (RegisterResult, HouseholdMe).
  * The mobile app should move to the shapes in ./responses.ts; delete this file once it has.
  */
 
 /** Every household-facing response carries the server's clock so the app can correct countdowns. */
 const ServerTime = z.iso.datetime();
-
-/** GET /auth/me */
-export const MeResponse = z.object({
-  householdId: z.uuid(),
-  barangayId: z.uuid(),
-  barangayName: z.string(),
-  municipality: z.string(),
-  meterType: MeterType,
-  /** null until the rehearsal (photo path) or AMI history sets it. */
-  baselineKw: z.number().nonnegative().nullable(),
-  trustScore: z.number(),
-  /** Largest cut the household may commit, derived by the API from baseline and trust score. */
-  commitCapKw: z.number().nonnegative(),
-  totalPoints: z.number().int().nonnegative(),
-  serverTime: ServerTime,
-});
-export type MeResponse = z.infer<typeof MeResponse>;
 
 /**
  * GET /alerts/active (null body when there is none) and GET /alerts/:id.
@@ -78,15 +61,6 @@ export const MockResultCard = z.object({
   zeroReason: ZeroPayoutReason.nullable(),
 });
 export type MockResultCard = z.infer<typeof MockResultCard>;
-
-/** POST /auth/register. The app sends the token as `Authorization: Bearer <token>` afterwards. */
-export const RegisterHouseholdResponse = z.object({
-  token: z.string(),
-  householdId: z.uuid(),
-  /** Photo households must finish the rehearsal before their first commit. */
-  needsRehearsal: z.boolean(),
-});
-export type RegisterHouseholdResponse = z.infer<typeof RegisterHouseholdResponse>;
 
 /** POST /readings returns the stored MeterReading (with checkStatus and flags). */
 export const SubmitReadingResponse = MeterReading;

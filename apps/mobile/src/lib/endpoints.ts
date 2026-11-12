@@ -3,11 +3,11 @@ import {
   MockAlertView,
   Barangay,
   Commitment,
+  HouseholdMe,
   MockHistoryItem,
   LeaderboardEntry,
-  MeResponse,
   MyEventStatus,
-  RegisterHouseholdResponse,
+  RegisterResult,
   MockResultCard,
   SubmitReadingResponse,
   type CreateCommitmentInput,
@@ -34,8 +34,8 @@ function synced<T extends { serverTime: string } | null>(body: T): T {
   return body;
 }
 
-export async function getMe(): Promise<MeResponse> {
-  return synced(USE_MOCKS ? await mock.getMe() : await get(MeResponse, '/auth/me'));
+export async function getMe(): Promise<HouseholdMe> {
+  return USE_MOCKS ? mock.getMe() : get(HouseholdMe, '/auth/me');
 }
 
 export async function getActiveAlert(): Promise<MockAlertView | null> {
@@ -79,14 +79,17 @@ export async function getResult(alertId: string): Promise<MockResultCard | null>
 }
 
 export async function getBarangays(): Promise<Barangay[]> {
-  return USE_MOCKS ? mock.getBarangays() : get(Barangay.array(), '/barangays');
+  if (USE_MOCKS) return mock.getBarangays();
+  // The API wraps the list: { barangays: [...] }.
+  const body = await api<{ barangays?: unknown } | null>('/barangays');
+  return Barangay.array().parse(body?.barangays);
 }
 
 /** Sign up and opt in. Keeps the token for later calls (in memory only for now; see config). */
-export async function register(input: RegisterHouseholdInput): Promise<RegisterHouseholdResponse> {
+export async function register(input: RegisterHouseholdInput): Promise<RegisterResult> {
   const res = USE_MOCKS
     ? await mock.register(input)
-    : RegisterHouseholdResponse.parse(
+    : RegisterResult.parse(
         await api('/auth/register', { method: 'POST', body: JSON.stringify(input) }),
       );
   setAuthToken(res.token);

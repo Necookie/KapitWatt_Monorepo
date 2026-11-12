@@ -17,16 +17,16 @@ import {
   type MockAlertView,
   type Barangay,
   type Commitment,
+  type HouseholdMe,
   type CreateCommitmentInput,
   type MockHistoryItem,
   type LeaderboardEntry,
-  type MeResponse,
   type MeterReading,
   type MeterType,
   type MyEventStatus,
   type ReadingFlag,
   type RegisterHouseholdInput,
-  type RegisterHouseholdResponse,
+  type RegisterResult,
   type MockResultCard,
   type SubmitReadingInput,
   type SubmitReadingResponse,
@@ -182,9 +182,15 @@ function eventReadings(): MeterReading[] {
   }));
 }
 
-function commitCapKw(h: MockHousehold): number {
-  if (h.baselineKw === null) return 0;
+/** null until the household has a baseline, like the API. */
+function commitCapKw(h: MockHousehold): number | null {
+  if (h.baselineKw === null) return null;
   return roundKw(Math.min(h.baselineKw, capKw(h.billAvgKwhMonth)));
+}
+
+function totalCreditPhp(): number {
+  const sum = history.reduce((s, item) => s + (item.result?.creditPhp ?? 0), 0);
+  return Math.round(sum * 100) / 100;
 }
 
 function totalPoints(): number {
@@ -200,7 +206,7 @@ export async function getBarangays(): Promise<Barangay[]> {
   return barangays;
 }
 
-export async function register(input: RegisterHouseholdInput): Promise<RegisterHouseholdResponse> {
+export async function register(input: RegisterHouseholdInput): Promise<RegisterResult> {
   await delay(500);
   if (!barangays.some((b) => b.id === input.barangayId)) {
     throw new ApiError(422, { error: 'unknown_barangay' });
@@ -217,28 +223,34 @@ export async function register(input: RegisterHouseholdInput): Promise<RegisterH
     baselineKw: input.meterType === 'ami' ? 1.9 : null,
     rehearsal: [],
   };
-  return {
-    token: 'mock-token',
-    householdId: household.id,
-    needsRehearsal: input.meterType === 'standard',
-  };
+  return { token: 'mock-token', household: meOf(household) };
 }
 
-export async function getMe(): Promise<MeResponse> {
+export async function getMe(): Promise<HouseholdMe> {
   await delay();
-  const h = requireHousehold();
+  return meOf(requireHousehold());
+}
+
+/** The same shape as GET /auth/me (HouseholdMe in @kapitwatt/shared). */
+function meOf(h: MockHousehold): HouseholdMe {
   const b = barangays.find((x) => x.id === h.barangayId)!;
   return {
-    householdId: h.id,
+    id: h.id,
     barangayId: b.id,
     barangayName: b.name,
     municipality: b.municipality,
     meterType: h.meterType,
+    path: pathOf(h),
+    meterSerial: h.meterSerial,
+    billAvgKwhMonth: h.billAvgKwhMonth,
     baselineKw: h.baselineKw,
+    needsRehearsal: h.meterType === 'standard' && h.baselineKw === null,
+    rehearsalReadings: h.rehearsal.length,
     trustScore: 0.5,
     commitCapKw: commitCapKw(h),
-    totalPoints: totalPoints(),
-    serverTime: iso(Date.now()),
+    optedIn: true,
+    points: totalPoints(),
+    creditPhp: totalCreditPhp(),
   };
 }
 
@@ -348,7 +360,7 @@ export async function createCommitment(input: CreateCommitmentInput): Promise<Co
   if (h.baselineKw === null) throw new ApiError(409, { error: 'needs_rehearsal' });
   if (event.commitment) throw new ApiError(409, { error: 'already_committed' });
   if (Date.now() >= event.windowEnd) throw new ApiError(409, { error: 'window_closed' });
-  if (input.committedKw > commitCapKw(h)) throw new ApiError(422, { error: 'above_cap' });
+  if (input.committedKw > (commitCapKw(h) ?? 0)) throw new ApiError(422, { error: 'above_cap' });
   event.commitment = {
     id: fakeId(5000 + event.seq),
     alertId: input.alertId,

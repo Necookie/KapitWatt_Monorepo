@@ -203,7 +203,7 @@ export default function SignUpScreen() {
         onPress={() => {
           if (!parsed.success) return;
           registerMutation.mutate(parsed.data, {
-            onSuccess: (res) => router.replace(res.needsRehearsal ? '/rehearsal' : '/'),
+            onSuccess: (res) => router.replace(res.household.needsRehearsal ? '/rehearsal' : '/'),
           });
         }}
       />
