@@ -83,6 +83,59 @@ describe('a full simulated event (FR-SIM-10)', () => {
   });
 });
 
+describe('operator override of barangay targets', () => {
+  it('changes only the named barangay and marks it as an override', () => {
+    const { backend, alertId } = setup();
+    const before = backend.totals(alertId).barangays;
+    const picked = before[0]!;
+    const targets = backend.updateTargets(alertId, [
+      { barangayId: picked.barangayId, targetKw: 12.5 },
+    ]);
+    const after = backend.totals(alertId);
+    expect(after.barangays[0]!.targetKw).toBe(12.5);
+    expect(after.barangays.slice(1)).toEqual(before.slice(1));
+    expect(after.targetKw).toBe(600);
+    expect(targets.filter((t) => t.isOverride).map((t) => t.barangayId)).toEqual([
+      picked.barangayId,
+    ]);
+  });
+
+  it('decides the target-hit marker against the overridden share', async () => {
+    const { backend, alertId } = setup();
+    const ids = backend.totals(alertId).barangays.map((b) => b.barangayId);
+    backend.updateTargets(alertId, [
+      { barangayId: ids[0]!, targetKw: 1 },
+      { barangayId: ids[1]!, targetKw: 10_000 },
+    ]);
+    await backend.run(alertId, DEFAULT_PARAMS, 'commit');
+    backend.fastForward(alertId, 'window_end');
+    await backend.run(alertId, DEFAULT_PARAMS, 'deliver');
+    const rows = backend.totals(alertId).barangays;
+    expect(rows[0]!.targetHit).toBe(true);
+    expect(rows[1]!.targetHit).toBe(false);
+  });
+
+  it('refuses a barangay the alert does not target, and any change once the window has ended', () => {
+    const backend = new MemoryBackend({ sleep: async () => {} });
+    backend.seed(DEFAULT_PARAMS);
+    const all = backend.listBarangays();
+    const alert = backend.createAlert({
+      level: 'yellow',
+      ...WINDOW,
+      targetKw: 100,
+      targetBarangayIds: [all[0]!.id],
+      message: 'test',
+    });
+    expect(() =>
+      backend.updateTargets(alert.id, [{ barangayId: all[1]!.id, targetKw: 5 }]),
+    ).toThrow();
+    backend.fastForward(alert.id, 'window_end');
+    expect(() =>
+      backend.updateTargets(alert.id, [{ barangayId: all[0]!.id, targetKw: 5 }]),
+    ).toThrow();
+  });
+});
+
 describe('pacing and safety', () => {
   it('spreads commits over the pace', async () => {
     const sleeps: number[] = [];

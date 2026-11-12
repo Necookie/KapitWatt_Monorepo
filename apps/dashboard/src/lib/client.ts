@@ -7,6 +7,7 @@ import type {
   SimParams,
   SimRunSummary,
   SimStatus,
+  UpdateTargetsInput,
 } from '@kapitwatt/shared';
 import { MemoryBackend, MemoryBackendError } from '@kapitwatt/sim';
 import { ApiError, api } from './api';
@@ -25,6 +26,8 @@ export interface DashboardClient {
   getCurrentAlert(): Promise<DashboardAlert | null>;
   createAlert(input: CreateAlertInput): Promise<DashboardAlert>;
   getTotals(alertId: string): Promise<AlertTotals>;
+  /** Operator override of barangay shares of the target, while the alert is open. */
+  updateTargets(alertId: string, targets: UpdateTargetsInput['targets']): Promise<void>;
   fastForward(alertId: string, to: FastForwardInput['to']): Promise<void>;
   settle(alertId: string): Promise<void>;
   simStatus(): Promise<SimStatus>;
@@ -93,6 +96,12 @@ const liveClient: DashboardClient = {
     return alert;
   },
   getTotals: (alertId) => api<AlertTotals>(`/alerts/${alertId}/totals`),
+  async updateTargets(alertId, targets) {
+    await api(`/alerts/${alertId}/targets`, {
+      ...json({ targets } satisfies UpdateTargetsInput),
+      method: 'PUT',
+    });
+  },
   async fastForward(alertId, to) {
     await api(`/alerts/${alertId}/fast-forward`, json({ to } satisfies FastForwardInput));
   },
@@ -142,6 +151,10 @@ const fixtureClient: DashboardClient = {
   getCurrentAlert: () => viaFixture((b) => b.currentAlert()),
   createAlert: (input) => viaFixture((b) => b.createAlert(input, 'operator (fixture)')),
   getTotals: (alertId) => viaFixture((b) => b.totals(alertId)),
+  updateTargets: (alertId, targets) =>
+    viaFixture((b) => {
+      b.updateTargets(alertId, targets);
+    }),
   fastForward: (alertId, to) =>
     viaFixture((b) => {
       b.fastForward(alertId, to);

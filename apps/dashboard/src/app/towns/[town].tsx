@@ -1,12 +1,14 @@
 import type { BarangayTotals } from '@kapitwatt/shared';
 import { Link, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { TargetMeter } from '@/components/charts';
 import { DataTable, type Column } from '@/components/DataTable';
-import { Card, Notice, PageHeader, Stat, Tag, Txt } from '@/components/ui';
-import { errorMessage } from '@/lib/client';
+import { TextField } from '@/components/form';
+import { Button, Card, Notice, PageHeader, Stat, Tag, Txt } from '@/components/ui';
+import { client, errorMessage } from '@/lib/client';
 import { byTown, count, kw, percent } from '@/lib/format';
-import { useCurrentAlert, useTotals } from '@/lib/queries';
+import { useAction, useCurrentAlert, useTotals } from '@/lib/queries';
 import { colors } from '@/theme';
 
 export default function TownScreen() {
@@ -19,6 +21,32 @@ export default function TownScreen() {
   const status = totals.data?.status ?? alert.data?.status;
   const measured = status === 'settling' || status === 'settled';
   const failed = alert.error ?? totals.error;
+
+  // Operator override of barangay shares (PRD: "the operator can override a barangay's
+  // share"). The API accepts it until the window has ended.
+  const editable = status === 'scheduled' || status === 'active' || status === 'window_open';
+  /** Typed targets by barangay id while editing; null when not editing. */
+  const [draft, setDraft] = useState<Record<string, string> | null>(null);
+  const typed = (b: BarangayTotals) => draft?.[b.barangayId] ?? String(b.targetKw);
+  const changed = (town?.barangays ?? []).filter(
+    (b) => draft?.[b.barangayId] !== undefined && Number(typed(b)) !== b.targetKw,
+  );
+  const invalid = changed.some((b) => typed(b).trim() === '' || !(Number(typed(b)) >= 0));
+  const save = useAction(() =>
+    client.updateTargets(
+      alert.data!.id,
+      changed.map((b) => ({ barangayId: b.barangayId, targetKw: Number(typed(b)) })),
+    ),
+  );
+  const stopEditing = () => {
+    save.reset();
+    setDraft(null);
+  };
+  // What the barangay targets would add up to across the whole alert, with the edits applied.
+  const allTargets = (totals.data?.barangays ?? []).reduce(
+    (sum, b) => sum + (draft?.[b.barangayId] !== undefined ? Number(typed(b)) || 0 : b.targetKw),
+    0,
+  );
 
   const columns: Column<BarangayTotals>[] = [
     {
@@ -54,7 +82,20 @@ export default function TownScreen() {
       header: 'Target kW',
       width: 90,
       align: 'right',
-      render: (b) => <Txt numeric>{kw(b.targetKw)}</Txt>,
+      render: (b) =>
+        draft ? (
+          <TextField
+            label={`Target kW for ${b.name}`}
+            numeric
+            width={72}
+            value={typed(b)}
+            onChangeText={(text) =>
+              setDraft({ ...draft, [b.barangayId]: text.replace(/[^0-9.]/g, '') })
+            }
+          />
+        ) : (
+          <Txt numeric>{kw(b.targetKw)}</Txt>
+        ),
     },
     {
       key: 'committed',
@@ -163,9 +204,41 @@ export default function TownScreen() {
               />
             </View>
           </Card>
-          <Card title="Barangays" padded={false}>
+          <Card
+            title="Barangays"
+            padded={false}
+            aside={
+              draft ? (
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Button small label="Cancel" disabled={save.isPending} onPress={stopEditing} />
+                  <Button
+                    small
+                    kind="primary"
+                    label="Save targets"
+                    busy={save.isPending}
+                    disabled={invalid || changed.length === 0}
+                    onPress={() => save.mutate(undefined, { onSuccess: stopEditing })}
+                  />
+                </View>
+              ) : editable ? (
+                <Button small kind="ghost" label="Edit targets" onPress={() => setDraft({})} />
+              ) : undefined
+            }
+          >
             <DataTable columns={columns} rows={town.barangays} rowKey={(b) => b.barangayId} />
           </Card>
+          {save.error ? <Notice tone="critical">{errorMessage(save.error)}</Notice> : null}
+          {draft ? (
+            <Notice tone={invalid ? 'warning' : 'neutral'}>
+              {invalid
+                ? 'Enter a target of 0 kW or more for each barangay.'
+                : `An override changes that barangay's share only. The alert asks for ${kw(
+                    totals.data?.targetKw ?? 0,
+                  )} kW in all; the barangay targets would add up to ${kw(
+                    Math.round(allTargets * 10) / 10,
+                  )} kW.`}
+            </Notice>
+          ) : null}
           <Txt size="xs" tone="muted">
             A barangay that reaches 100% of its target at settlement earns every household there
             with a verified cut a bonus on its own credit. The bonus rate is a placeholder.

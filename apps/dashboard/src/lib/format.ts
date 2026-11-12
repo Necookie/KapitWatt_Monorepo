@@ -17,7 +17,7 @@ export function power(valueKw: number): string {
   return `${(valueKw / 1000).toLocaleString(LOCALE, { maximumFractionDigits: 2 })} MW`;
 }
 
-export const count =(value: number): string => value.toLocaleString(LOCALE);
+export const count = (value: number): string => value.toLocaleString(LOCALE);
 
 export function percent(part: number, whole: number): string {
   return whole > 0 ? `${Math.round((part / whole) * 100)}%` : '0%';

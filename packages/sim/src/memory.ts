@@ -7,6 +7,7 @@ import {
   splitTargetKw,
   verifyCut,
   type Alert,
+  type AlertTarget,
   type AlertTotals,
   type BarangayTotals,
   type BarangayWithCount,
@@ -16,6 +17,7 @@ import {
   type SimParams,
   type SimRunSummary,
   type SimStatus,
+  type UpdateTargetsInput,
 } from '@kapitwatt/shared';
 import { DEFAULT_PARAMS } from './presets';
 import { createRng } from './rng';
@@ -68,6 +70,8 @@ interface MemAlert {
   alert: Alert;
   windowMinutes: number;
   targetByBarangay: Record<string, number>;
+  /** Barangays whose share the operator has set by hand. */
+  overrides: Set<string>;
   commitments: Map<string, MemCommitment>;
 }
 
@@ -237,6 +241,7 @@ export class MemoryBackend {
       alert,
       windowMinutes: (end.getTime() - start.getTime()) / 60_000,
       targetByBarangay: splitTargetKw(input.targetKw, optedIn),
+      overrides: new Set(),
       commitments: new Map(),
     });
     return alert;
@@ -253,6 +258,33 @@ export class MemoryBackend {
       if (a.alert.status !== 'cancelled') return a.alert;
     }
     return null;
+  }
+
+  /**
+   * PUT /alerts/:id/targets. Operator override of barangay shares, while the alert is
+   * still open. Only the named barangays change; the alert's own target stays as sent.
+   */
+  updateTargets(alertId: string, targets: UpdateTargetsInput['targets']): AlertTarget[] {
+    const found = this.find(alertId);
+    if (['settling', 'settled', 'cancelled'].includes(found.alert.status)) {
+      throw new MemoryBackendError(409, 'this alert can no longer be changed');
+    }
+    if (targets.some((t) => !found.alert.targetBarangayIds.includes(t.barangayId))) {
+      throw new MemoryBackendError(422, 'only barangays this alert targets can be changed');
+    }
+    for (const t of targets) {
+      found.targetByBarangay[t.barangayId] = Math.round(t.targetKw * 100) / 100;
+      found.overrides.add(t.barangayId);
+    }
+    return this.barangays
+      .filter((b) => found.alert.targetBarangayIds.includes(b.id))
+      .map((b) => ({
+        barangayId: b.id,
+        name: b.name,
+        municipality: b.municipality,
+        targetKw: Math.round((found.targetByBarangay[b.id] ?? 0) * 100) / 100,
+        isOverride: found.overrides.has(b.id),
+      }));
   }
 
   /**
