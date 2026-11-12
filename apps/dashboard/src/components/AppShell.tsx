@@ -5,7 +5,7 @@ import { withAlpha } from '@kapitwatt/tokens';
 import { Chip, Logo, Text } from '@kapitwatt/ui';
 import { Link, usePathname } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { USE_FIXTURES } from '@/lib/client';
 import { fraction } from '@/lib/format';
 import { useSimParams } from '@/lib/sim-params';
@@ -247,7 +247,8 @@ function RailItem({ item, stretch = false }: { item: Destination; stretch?: bool
         accessibilityLabel={item.label}
         accessibilityState={{ selected: active }}
         {...currentPage(active)}
-        style={[NO_NATIVE_OUTLINE, stretch ? { flex: 1, minWidth: 0 } : null]}
+        // Link asChild (Slot) refuses style arrays, so flatten.
+        style={StyleSheet.flatten([NO_NATIVE_OUTLINE, stretch ? { flex: 1, minWidth: 0 } : null])}
       >
         {(s: PressState) => (
           <View

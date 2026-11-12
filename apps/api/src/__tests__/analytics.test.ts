@@ -26,6 +26,7 @@ describe('funnelStages', () => {
     amiComplete: n[2]!,
     verified: n[3]!,
     verifiedKwh: 0,
+    paidPhp: 0,
   });
 
   it('puts both paths side by side, stage by stage', () => {

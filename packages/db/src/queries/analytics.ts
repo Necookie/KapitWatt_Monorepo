@@ -17,6 +17,8 @@ export interface FunnelRow {
   amiComplete: number;
   verified: number;
   verifiedKwh: number;
+  /** Credit plus bonus paid to this path. */
+  paidPhp: number;
 }
 
 /** Funnel counts per verification path. `minIntervals` is the AMI coverage threshold in intervals. */
@@ -34,9 +36,11 @@ export async function funnelByPath(
            count(*) filter (where coalesce(ami.n, 0) > 0)::int as ami_any,
            count(*) filter (where coalesce(ami.n, 0) >= ${minIntervals})::int as ami_complete,
            count(*) filter (where c.status = 'verified')::int as verified,
-           coalesce(sum(c.verified_kwh) filter (where c.status = 'verified'), 0) as verified_kwh
+           coalesce(sum(c.verified_kwh) filter (where c.status = 'verified'), 0) as verified_kwh,
+           coalesce(sum(rw.credit_php + rw.bonus_php), 0) as paid
     from commitments c
     join alerts a on a.id = c.alert_id
+    left join rewards rw on rw.commitment_id = c.id
     left join meter_readings rb on rb.commitment_id = c.id and rb.kind = 'before'
     left join meter_readings ra on ra.commitment_id = c.id and ra.kind = 'after'
     left join lateral (
@@ -56,6 +60,7 @@ export async function funnelByPath(
     amiComplete: Number(r.ami_complete),
     verified: Number(r.verified),
     verifiedKwh: Number(r.verified_kwh),
+    paidPhp: Number(r.paid),
   }));
 }
 
@@ -114,6 +119,7 @@ export interface AlertHistoryRow {
   committedKw: number;
   deliveredKw: number | null;
   verifiedCount: number | null;
+  verifiedKwh: number;
   paidPhp: number;
   effectiveNow: Date;
 }
@@ -129,11 +135,13 @@ export async function listAlertHistory(
            now() + make_interval(secs => case when ${isDemo} then a.clock_offset_sec else 0 end)
              as effective_now,
            coalesce(c.households, 0) as households, coalesce(c.committed_kw, 0) as committed_kw,
-           coalesce(c.paid, 0) as paid, s.delivered_kw, s.verified_count
+           coalesce(c.paid, 0) as paid, coalesce(c.verified_kwh, 0) as verified_kwh,
+           s.delivered_kw, s.verified_count
     from alerts a
     left join lateral (
       select count(*)::int as households, sum(cm.committed_kw) as committed_kw,
-             sum(coalesce(r.credit_php, 0) + coalesce(r.bonus_php, 0)) as paid
+             sum(coalesce(r.credit_php, 0) + coalesce(r.bonus_php, 0)) as paid,
+             sum(cm.verified_kwh) filter (where cm.status = 'verified') as verified_kwh
       from commitments cm left join rewards r on r.commitment_id = cm.id
       where cm.alert_id = a.id
     ) c on true
@@ -152,6 +160,7 @@ export async function listAlertHistory(
     committedKw: Number(r.committed_kw),
     deliveredKw: r.delivered_kw === null ? null : Number(r.delivered_kw),
     verifiedCount: r.verified_count === null ? null : Number(r.verified_count),
+    verifiedKwh: Number(r.verified_kwh),
     paidPhp: Number(r.paid),
     effectiveNow: r.effective_now as Date,
   }));

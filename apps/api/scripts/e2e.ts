@@ -920,12 +920,31 @@ async function phase6Settlement(
       analytics.timeline.at(-1)!.committedKw === analytics.committedKw,
     'analytics: commit timeline ends at the committed total',
   );
+  check(
+    analytics.paths.length === 2 &&
+      analytics.paths.reduce((n, p) => n + p.committedHouseholds, 0) === result.commitments &&
+      analytics.paths.reduce((n, p) => n + p.verifiedHouseholds, 0) === result.verifiedCount,
+    'analytics: per-path totals add up to the commitments and verified count',
+  );
+  check(
+    Math.abs(
+      analytics.paths.reduce((n, p) => n + p.paidPhp, 0) -
+        (analytics.payouts.creditPhp + analytics.payouts.bonusPhp),
+    ) < 0.05,
+    'analytics: per-path paid adds up to credit plus bonus',
+  );
   const historyList = AlertHistoryResponse.parse(
     (await call('GET', '/analytics/history', undefined, OPERATOR)).json,
   ).alerts;
   check(
     historyList.find((h) => h.alertId === id)?.deliveredKw === result.deliveredKw,
     'analytics: history shows the settled delivered kW',
+  );
+  check(
+    Math.abs(
+      (historyList.find((h) => h.alertId === id)?.verifiedKwh ?? 0) - analytics.verifiedKwh,
+    ) < 0.01,
+    'analytics: history carries the verified kWh',
   );
   check((await call('GET', '/analytics/history')).status === 401, 'analytics are operator-only');
 

@@ -141,6 +141,17 @@ export async function alertAnalytics(
     barangays: totals.barangays.length,
     barangaysAtTarget: totals.barangays.filter((b) => b.targetHit).length,
     funnel: funnelStages(funnel),
+    paths: (['ami', 'photo'] as const).map((path) => {
+      const r = funnel.find((f) => f.path === path);
+      return {
+        path,
+        committedHouseholds: r?.committed ?? 0,
+        committedKw: roundKw(r?.committedKw ?? 0),
+        verifiedHouseholds: r?.verified ?? 0,
+        verifiedKwh: Math.round((r?.verifiedKwh ?? 0) * 1000) / 1000,
+        paidPhp: roundPhp(r?.paidPhp ?? 0),
+      };
+    }),
     outcomes: [...tally].map(([outcome, households]) => ({ outcome, households })),
     payouts: {
       creditPhp: roundPhp(payouts.creditPhp),
@@ -169,6 +180,7 @@ export async function alertHistory(
     committedKw: roundKw(r.committedKw),
     deliveredKw: r.deliveredKw,
     verifiedCount: r.verifiedCount,
+    verifiedKwh: Math.round(r.verifiedKwh * 1000) / 1000,
     paidPhp: roundPhp(r.paidPhp),
   }));
 }

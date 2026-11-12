@@ -325,6 +325,17 @@ export const AlertAnalytics = z.object({
   barangaysAtTarget: z.number().int(),
   funnel: z.array(z.object({ stage: FunnelStage, ami: z.number().int(), photo: z.number().int() })),
   outcomes: z.array(z.object({ outcome: AnalyticsOutcome, households: z.number().int() })),
+  /** Smart meter vs photo, side by side: what each path committed, verified and was paid. */
+  paths: z.array(
+    z.object({
+      path: VerificationPath,
+      committedHouseholds: z.number().int(),
+      committedKw: z.number(),
+      verifiedHouseholds: z.number().int(),
+      verifiedKwh: z.number(),
+      paidPhp: z.number(),
+    }),
+  ),
   payouts: z.object({
     creditPhp: z.number(),
     bonusPhp: z.number(),
@@ -351,6 +362,8 @@ export const AlertHistoryItem = z.object({
   /** Settled delivered kW; null until the alert settles. */
   deliveredKw: z.number().nullable(),
   verifiedCount: z.number().int().nullable(),
+  /** Verified kWh (0 until settled). With paidPhp it gives the cost per verified kWh. */
+  verifiedKwh: z.number(),
   paidPhp: z.number(),
 });
 export type AlertHistoryItem = z.infer<typeof AlertHistoryItem>;

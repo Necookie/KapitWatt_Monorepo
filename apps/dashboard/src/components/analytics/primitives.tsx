@@ -1,0 +1,222 @@
+import { useTheme } from '@kapitwatt/hooks';
+import { Icon, type IconName } from '@kapitwatt/icons';
+import { fontFamily } from '@kapitwatt/tokens';
+import { Card, Divider, ProgressBar, Stack, Text } from '@kapitwatt/ui';
+import type { CSSProperties, ReactNode } from 'react';
+import { View, type ViewStyle } from 'react-native';
+
+/**
+ * Building blocks for the analytics views, on the design system only: theme colour roles and the
+ * dataViz palette (committed = primary, delivered = relief, target = tertiary), the type scale,
+ * the 4-unit spacing and the shape scale. Flat, no shadows. Every chart also states its numbers in
+ * text, so nothing depends on colour alone.
+ */
+
+/** Chart colours, from the theme. Smart meter and photo are a split of delivered, so they get two
+ *  related hues that never collide with the reserved alert, simulated or brand colours. */
+export function useChartColors() {
+  const t = useTheme();
+  return {
+    committed: t.dataViz.committed,
+    delivered: t.dataViz.delivered,
+    target: t.dataViz.target,
+    baseline: t.dataViz.baseline,
+    grid: t.dataViz.grid,
+    area: t.dataViz.reliefArea,
+    ami: t.color.secondary,
+    photo: t.color.relief,
+    ink: t.color.onSurface,
+    muted: t.color.onSurfaceVariant,
+    surface: t.color.surface,
+    track: t.color.surfaceContainerHighest,
+    error: t.color.error,
+    errorSoft: t.color.errorContainer,
+    pending: t.color.outline,
+  };
+}
+
+/** Font for SVG labels: the brand's Albert Sans, matching the type scale. */
+export const svgFont = fontFamily.medium;
+
+/** A rounded-up axis maximum on a 1, 2, 2.5, 4, 5, 6, 8 x 10^n ladder (each splits into 4 clean ticks). */
+export function niceMax(value: number): number {
+  if (value <= 0) return 1;
+  const exp = 10 ** Math.floor(Math.log10(value));
+  const f = value / exp;
+  const step = [1, 2, 2.5, 4, 5, 6, 8, 10].find((s) => f <= s) ?? 10;
+  return step * exp;
+}
+
+/** Evenly spaced axis ticks from 0 to max. */
+export const ticks = (max: number, count = 4) =>
+  Array.from({ length: count + 1 }, (_, i) => (max * i) / count);
+
+/** A titled panel: the dashboard's outlined card with an icon, a title, an optional note and an aside. */
+export function Panel({
+  title,
+  icon,
+  note,
+  aside,
+  children,
+  style,
+}: {
+  title: string;
+  icon?: IconName;
+  note?: string;
+  aside?: ReactNode;
+  children: ReactNode;
+  style?: ViewStyle;
+}) {
+  return (
+    <Card variant="outlined" padding={0} style={style}>
+      <Stack direction="row" align="center" justify="space-between" gap={3} padding={4} wrap>
+        <Stack direction="row" align="center" gap={2} style={{ flexShrink: 1 }}>
+          {icon ? <Icon name={icon} size="sm" color="onSurfaceVariant" /> : null}
+          <View style={{ flexShrink: 1 }}>
+            <Text variant="titleMedium">{title}</Text>
+            {note ? (
+              <Text variant="bodySmall" color="onSurfaceVariant">
+                {note}
+              </Text>
+            ) : null}
+          </View>
+        </Stack>
+        {aside}
+      </Stack>
+      <Divider />
+      <View style={{ padding: 16 }}>{children}</View>
+    </Card>
+  );
+}
+
+/** A headline figure: label, value in the data type style, unit, context, and optional target progress. */
+export function KpiCard({
+  label,
+  icon,
+  value,
+  unit,
+  caption,
+  progress,
+}: {
+  label: string;
+  icon: IconName;
+  value: string;
+  unit?: string;
+  caption?: string;
+  progress?: { share: number; tone: 'primary' | 'relief' | 'tertiary'; label: string };
+}) {
+  return (
+    <Card variant="outlined" padding={4} style={{ flexGrow: 1, flexBasis: 160, minWidth: 150 }}>
+      <Stack gap={2}>
+        <Stack direction="row" align="center" gap={2}>
+          <Icon name={icon} size="sm" color="onSurfaceVariant" />
+          <Text variant="labelMedium" color="onSurfaceVariant">
+            {label}
+          </Text>
+        </Stack>
+        <Stack direction="row" align="flex-end" gap={1}>
+          <Text variant="dataMedium">{value}</Text>
+          {unit ? (
+            <Text variant="titleSmall" color="onSurfaceVariant" style={{ marginBottom: 6 }}>
+              {unit}
+            </Text>
+          ) : null}
+        </Stack>
+        {progress ? (
+          // The track runs to 125% so a value past target visibly crosses the target tick.
+          <ProgressBar
+            value={Math.min(progress.share / 1.25, 1)}
+            target={1 / 1.25}
+            tone={progress.tone}
+            size="thin"
+            accessibilityLabel={progress.label}
+          />
+        ) : null}
+        {caption ? (
+          <Text variant="bodySmall" color="onSurfaceVariant">
+            {caption}
+          </Text>
+        ) : null}
+      </Stack>
+    </Card>
+  );
+}
+
+/** A legend entry: swatch (or a dashed line) and a name. */
+export function Legend({ items }: { items: { color: string; label: string; dashed?: boolean }[] }) {
+  return (
+    <Stack direction="row" gap={4} wrap>
+      {items.map((item) => (
+        <Stack key={item.label} direction="row" align="center" gap={2}>
+          {item.dashed ? (
+            <View
+              style={{
+                width: 16,
+                borderTopWidth: 2,
+                borderStyle: 'dashed',
+                borderColor: item.color,
+              }}
+            />
+          ) : (
+            <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: item.color }} />
+          )}
+          <Text variant="labelMedium" color="onSurfaceVariant">
+            {item.label}
+          </Text>
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
+
+/** A responsive row of panels that wraps on narrow screens. */
+export function Row({ children }: { children: ReactNode }) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, alignItems: 'stretch' }}>
+      {children}
+    </View>
+  );
+}
+
+export const grow = (basis: number, weight = 1): ViewStyle => ({
+  flexGrow: weight,
+  flexBasis: basis,
+  minWidth: Math.min(basis, 320),
+});
+
+/** Empty state inside a panel. */
+export function Empty({ children }: { children: ReactNode }) {
+  return (
+    <Text variant="bodyMedium" color="onSurfaceVariant">
+      {children}
+    </Text>
+  );
+}
+
+/** Hover tooltip for the SVG plots: inverse surface, like the design system's snackbars. */
+export function Tooltip({ left, top, lines }: { left: string; top: number; lines: string[] }) {
+  const t = useTheme();
+  const style: CSSProperties = {
+    position: 'absolute',
+    left,
+    top,
+    transform: 'translate(-50%, -100%)',
+    background: t.color.inverseSurface,
+    color: t.color.inverseOnSurface,
+    borderRadius: t.radius.sm,
+    padding: '6px 10px',
+    fontFamily: fontFamily.medium,
+    fontSize: 12,
+    lineHeight: '16px',
+    whiteSpace: 'nowrap',
+    pointerEvents: 'none',
+    zIndex: 2,
+  };
+  return (
+    <div style={style}>
+      {lines.map((line) => (
+        <div key={line}>{line}</div>
+      ))}
+    </div>
+  );
+}
