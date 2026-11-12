@@ -1,6 +1,6 @@
 import { useTheme } from '@kapitwatt/hooks';
 import { Icon, type IconName } from '@kapitwatt/icons';
-import { fontFamily } from '@kapitwatt/tokens';
+import { fontFamily, withAlpha } from '@kapitwatt/tokens';
 import { Card, Divider, ProgressBar, Stack, Text } from '@kapitwatt/ui';
 import type { CSSProperties, ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
@@ -218,5 +218,40 @@ export function Tooltip({ left, top, lines }: { left: string; top: number; lines
         <div key={line}>{line}</div>
       ))}
     </div>
+  );
+}
+
+/**
+ * Share-of-target colour scale, shared by the map and the heat grid: the relief role at 100% or
+ * more, stepping up in opacity from 50% (shares cluster between 50% and 100%, so the scale spends
+ * its range there).
+ */
+export function useShareShade() {
+  const t = useTheme();
+  return (share: number) =>
+    share >= 1
+      ? t.color.relief
+      : withAlpha(t.color.relief, 0.1 + Math.min(1, Math.max(0, (share - 0.5) / 0.5)) * 0.6);
+}
+
+/** Legend for the share-of-target scale. */
+export function ShareScale() {
+  const shade = useShareShade();
+  return (
+    <Stack direction="row" align="center" gap={2}>
+      <Text variant="labelSmall" color="onSurfaceVariant">
+        50% or less
+      </Text>
+      <View
+        style={{ flexDirection: 'row', width: 160, height: 8, borderRadius: 4, overflow: 'hidden' }}
+      >
+        {[0.5, 0.625, 0.75, 0.875, 0.99, 1].map((s) => (
+          <View key={s} style={{ flex: 1, backgroundColor: shade(s) }} />
+        ))}
+      </View>
+      <Text variant="labelSmall" color="onSurfaceVariant">
+        100%+ of target
+      </Text>
+    </Stack>
   );
 }

@@ -3,6 +3,7 @@ import { POLL_INTERVAL_MS, REWARD, type AlertAnalytics, type AlertStatus } from 
 import { Card, Chip, SegmentedButtons, Stack, Text, type ChipTone } from '@kapitwatt/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
+import { BarangayMap } from '@/components/analytics/BarangayMap';
 import {
   AlertHistoryBars,
   BarangayHeatGrid,
@@ -144,7 +145,14 @@ export default function AnalyticsScreen() {
         ) : view === 'barangays' ? (
           <Stack gap={4}>
             <Panel
-              title="Pilot map by share of target"
+              title="Pilot map"
+              icon="location"
+              note="Targeted barangays in the seven Laguna towns, shaded by delivered kW against their share of the target."
+            >
+              <BarangayMap barangays={totals.data?.barangays ?? []} />
+            </Panel>
+            <Panel
+              title="Share of target by town"
               icon="barangay"
               note="Each tile is a targeted barangay, grouped by town. Delivered kW against its share of the target."
             >
