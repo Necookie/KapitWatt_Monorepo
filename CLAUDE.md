@@ -69,6 +69,7 @@ pnpm db:seed                 # load the 21 pilot barangays (reference data, safe
 pnpm db:smoke                # insert, read back, delete one row through the app's driver
 pnpm --filter @kapitwatt/dashboard build   # expo export -> apps/dashboard/dist
 pnpm deploy:api              # preflight, then wrangler deploy with its secrets (from main)
+pnpm deploy:dashboard        # build with the Doppler env, then deploy to kapitwatt.dhekode.com
 pnpm --filter @kapitwatt/api smoke:live   # read-only checks of the deployed API
 ```
 
@@ -293,7 +294,10 @@ Live API: https://kapitwatt-api.dheyn-main.workers.dev (use as `EXPO_PUBLIC_API_
   `SIM_KEY`, `OPERATOR_KEY`, `EXPO_ACCESS_TOKEN` if set) go up together. Then run
   `doppler run -- pnpm --filter @kapitwatt/api smoke:live`. Cloudflare access: `npx wrangler login`, or a
   `CLOUDFLARE_API_TOKEN` in Doppler.
-- Dashboard: `expo export --platform web`, then Cloudflare Pages serving `apps/dashboard/dist`.
+- Dashboard: https://kapitwatt.dhekode.com. `pnpm deploy:dashboard` exports the web build with the
+  Doppler env and deploys it as static assets on Cloudflare Workers (`apps/dashboard/wrangler.jsonc`).
+  The API must list that origin in `ALLOWED_ORIGINS` (`apps/api/wrangler.jsonc`), so redeploy the API
+  when the origin changes; otherwise the browser blocks every call (CORS).
 - Mobile: EAS build, Android APK. Expo Go during development. Push needs real phones; test it by hour 8 to 12.
 
 ## Conventions
