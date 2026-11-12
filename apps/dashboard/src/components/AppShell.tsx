@@ -10,13 +10,12 @@ import { Tag, Txt } from './ui';
 const NAV = [
   { href: '/', label: 'Live load' },
   { href: '/alerts/new', label: 'Send alert' },
+  { href: '/flagged', label: 'Flagged readings' },
   { href: '/alerts/log', label: 'Alert log' },
   { href: '/simulator', label: 'Simulator' },
 ] as const;
 
-const LATER = [{ href: '/flagged', label: 'Flagged readings' }] as const;
-
-function NavLink({ href, label, later }: { href: string; label: string; later?: boolean }) {
+function NavLink({ href, label }: { href: string; label: string }) {
   const pathname = usePathname();
   const active =
     href === '/' ? pathname === '/' || pathname.startsWith('/towns') : pathname === href;
@@ -33,11 +32,10 @@ function NavLink({ href, label, later }: { href: string; label: string; later?: 
           >
             <Txt
               weight={active ? '600' : '500'}
-              style={{ color: active ? colors.brandStrong : later ? colors.muted : colors.body }}
+              style={{ color: active ? colors.brandStrong : colors.body }}
             >
               {label}
             </Txt>
-            {later ? <Tag label="P1" /> : null}
           </View>
         )}
       </Pressable>
@@ -99,14 +97,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             <NavLink key={item.href} {...item} />
           ))}
         </View>
-        <View style={styles.navGroup}>
-          <Txt size="xs" tone="faint" weight="600" style={styles.navHeading}>
-            LATER
-          </Txt>
-          {LATER.map((item) => (
-            <NavLink key={item.href} {...item} later />
-          ))}
-        </View>
 
         <View style={styles.sidebarFoot}>
           <Txt size="xs" tone="muted" weight="600">
@@ -151,7 +141,6 @@ const styles = StyleSheet.create({
   brand: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg },
   brandMark: { width: 22, height: 22, borderRadius: 5, backgroundColor: colors.brand },
   navGroup: { gap: 2, paddingHorizontal: space.sm },
-  navHeading: { paddingHorizontal: space.sm, paddingBottom: 4, letterSpacing: 0.6 },
   navLink: {
     flexDirection: 'row',
     alignItems: 'center',

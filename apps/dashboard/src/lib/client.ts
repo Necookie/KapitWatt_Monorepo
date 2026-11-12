@@ -1,9 +1,16 @@
-import { ActiveAlertResponse, AlertLogResponse, AlertView, ApiErrorBody } from '@kapitwatt/shared';
+import {
+  ActiveAlertResponse,
+  AlertLogResponse,
+  AlertView,
+  ApiErrorBody,
+  FlaggedReading,
+} from '@kapitwatt/shared';
 import type {
   AlertTotals,
   BarangayWithCount,
   CreateAlertInput,
   FastForwardInput,
+  ReviewReadingInput,
   SimParams,
   SimRunSummary,
   SimStatus,
@@ -34,6 +41,9 @@ export interface DashboardClient {
   updateTargets(alertId: string, targets: UpdateTargetsInput['targets']): Promise<void>;
   fastForward(alertId: string, to: FastForwardInput['to']): Promise<void>;
   settle(alertId: string): Promise<void>;
+  /** Readings that failed a rule check and wait for a person (FR-DASH-11). */
+  listFlagged(): Promise<FlaggedReading[]>;
+  reviewReading(readingId: string, decision: ReviewReadingInput['decision']): Promise<void>;
   simStatus(): Promise<SimStatus>;
   simSeed(params: Pick<SimParams, 'amiShare' | 'seed'>): Promise<void>;
   simRun(alertId: string, params: SimParams, phase: 'commit' | 'deliver'): Promise<SimRunSummary>;
@@ -122,6 +132,16 @@ const liveClient: DashboardClient = {
   async settle(alertId) {
     await api(`/alerts/${alertId}/settle`, json({}));
   },
+  async listFlagged() {
+    // The row shape is FlaggedReading in @kapitwatt/shared. The route's envelope is not
+    // fixed yet, so both a bare list and { readings } are read.
+    const body = await api<unknown>('/readings/flagged');
+    const rows = Array.isArray(body) ? body : (body as { readings?: unknown } | null)?.readings;
+    return FlaggedReading.array().parse(rows ?? []);
+  },
+  async reviewReading(readingId, decision) {
+    await api(`/readings/${readingId}/review`, json({ decision } satisfies ReviewReadingInput));
+  },
   simStatus: () => api<SimStatus>('/sim/status'),
   async simSeed(params) {
     await api('/sim/seed', json(params));
@@ -137,11 +157,15 @@ const liveClient: DashboardClient = {
 
 // --- fixture -------------------------------------------------------------------
 
+/** Fixture only: the share of simulated photo readings held for review. */
+export const FIXTURE_FLAGGED_SHARE = 0.03;
+
 let backend: MemoryBackend | null = null;
 
 function fixtureBackend(): MemoryBackend {
   if (!backend) {
-    backend = new MemoryBackend();
+    // The fixture runs no photo checks, so it flags a few readings to give the review list rows.
+    backend = new MemoryBackend({ flaggedShare: FIXTURE_FLAGGED_SHARE });
     // Start seeded so a page refresh during development lands on a usable state.
     backend.seed({ amiShare: 0.15, seed: 2026 });
   }
@@ -181,6 +205,11 @@ const fixtureClient: DashboardClient = {
   settle: (alertId) =>
     viaFixture((b) => {
       b.settle(alertId);
+    }),
+  listFlagged: () => viaFixture((b) => b.listFlagged()),
+  reviewReading: (readingId, decision) =>
+    viaFixture((b) => {
+      b.review(readingId, decision);
     }),
   simStatus: () => viaFixture((b) => b.status()),
   simSeed: (params) =>

@@ -110,6 +110,63 @@ describe('alert log', () => {
   });
 });
 
+describe('flagged readings (fixture only)', () => {
+  async function measured(flaggedShare: number) {
+    const backend = new MemoryBackend({ sleep: async () => {}, flaggedShare });
+    backend.seed(DEFAULT_PARAMS);
+    const alert = backend.createAlert({
+      level: 'red',
+      ...WINDOW,
+      targetKw: 600,
+      targetBarangayIds: [],
+      message: 'test',
+    });
+    await backend.run(alert.id, DEFAULT_PARAMS, 'commit');
+    backend.fastForward(alert.id, 'window_end');
+    await backend.run(alert.id, DEFAULT_PARAMS, 'deliver');
+    return { backend, alertId: alert.id };
+  }
+
+  it('flags nothing unless asked to', async () => {
+    const { backend } = await measured(0);
+    expect(backend.listFlagged()).toHaveLength(0);
+  });
+
+  it('holds a flagged cut until it is approved, and drops it when rejected', async () => {
+    const { backend, alertId } = await measured(0.05);
+    const all = await measured(0);
+    const full = all.backend.totals(all.alertId).deliveredKw;
+    const flagged = backend.listFlagged();
+    expect(flagged.length).toBeGreaterThan(5);
+    expect(flagged.every((r) => r.flags.length === 1 && r.meterSerial.startsWith('SIM-'))).toBe(
+      true,
+    );
+    const held = backend.totals(alertId).deliveredKw;
+    expect(held).toBeLessThan(full);
+
+    // Sending the readings again neither releases nor re-rolls the held ones.
+    await backend.run(alertId, DEFAULT_PARAMS, 'deliver');
+    expect(backend.listFlagged()).toEqual(flagged);
+    expect(backend.totals(alertId).deliveredKw).toBe(held);
+
+    backend.review(flagged[0]!.id, 'reject');
+    expect(backend.totals(alertId).deliveredKw).toBe(held);
+    expect(() => backend.review(flagged[0]!.id, 'approve')).toThrow();
+
+    for (const r of flagged.slice(1)) backend.review(r.id, 'approve');
+    expect(backend.listFlagged()).toHaveLength(0);
+    const after = backend.totals(alertId).deliveredKw;
+    expect(after).toBeGreaterThan(held);
+    expect(after).toBeLessThanOrEqual(full);
+  });
+
+  it('reset removes the flagged readings of simulated households', async () => {
+    const { backend } = await measured(0.05);
+    backend.reset();
+    expect(backend.listFlagged()).toHaveLength(0);
+  });
+});
+
 describe('cancelling an alert', () => {
   it('takes the alert out of force, keeps it in the log and refuses later commits', async () => {
     const { backend, alertId } = setup();

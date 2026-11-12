@@ -13,7 +13,10 @@ import {
   type BarangayWithCount,
   type CreateAlertInput,
   type FastForwardInput,
+  type FlaggedReading,
   type MeterType,
+  type ReadingFlag,
+  type ReviewReadingInput,
   type SimParams,
   type SimRunSummary,
   type SimStatus,
@@ -39,7 +42,9 @@ import { buildLagunaSeed } from './seed';
  *
  * It follows the same rules as the real services (target split, commit cutoff and cap,
  * one reading per kind, payout math from @kapitwatt/shared) but it is NOT the API:
- * no push, no photo checks, no rewards table. Nothing here is used in the deployed demo.
+ * no push, no photos, no rewards table. It runs no photo checks either: the flagged
+ * readings it can produce (`flaggedShare`) are made up so the review screen has rows.
+ * Nothing here is used in the deployed demo.
  */
 
 // The package compiles without DOM or Node typings; both runtimes provide this.
@@ -49,11 +54,28 @@ interface MemHousehold {
   id: string;
   barangayId: string;
   meterType: MeterType;
+  meterSerial: string;
   billAvgKwhMonth: number;
   baselineKw: number;
   lastReadingKwh: number;
   isSimulated: boolean;
 }
+
+/** A photo reading held for a person to approve or reject. */
+interface MemFlagged {
+  reading: FlaggedReading;
+  householdId: string;
+  /** The cut this reading would verify if approved. */
+  heldCutKw: number;
+}
+
+/** Flags the fixture hands out. The real checks live in apps/api. */
+const FIXTURE_FLAGS: readonly ReadingFlag[] = [
+  'late',
+  'too_far',
+  'serial_mismatch',
+  'duplicate_photo',
+];
 
 interface MemCommitment {
   householdId: string;
@@ -62,8 +84,10 @@ interface MemCommitment {
   committedKw: number;
   baselineKw: number;
   readings: Partial<Record<SimReading['kind'], SimReading>>;
-  /** Verified cut, once both readings are in. */
+  /** Verified cut, once both readings are in (and, if flagged, approved). */
   paidCutKw: number | null;
+  /** Set when a reading was flagged: the cut waits for, or got, a person's decision. */
+  review?: 'pending' | 'approved' | 'rejected';
 }
 
 interface MemAlert {
@@ -79,6 +103,11 @@ export interface MemoryBackendOptions {
   /** Defaults to a real timer. Tests pass an instant one. */
   sleep?: (ms: number) => Promise<void>;
   now?: () => Date;
+  /**
+   * Share of completed photo households whose reading is flagged for review. 0 by default,
+   * so runs match the plan's numbers; the dashboard fixture sets it to try the review screen.
+   */
+  flaggedShare?: number;
 }
 
 export class MemoryBackendError extends Error {
@@ -98,6 +127,10 @@ export class MemoryBackend {
   private readonly barangays: BarangayWithCount[] = [];
   private readonly households = new Map<string, MemHousehold>();
   private readonly alerts: MemAlert[] = [];
+  private readonly flagged = new Map<string, MemFlagged>();
+  private readonly flaggedShare: number;
+  /** Its own stream, so flagging never shifts the runner's draws. */
+  private readonly flagRng = createRng(0x51ed270b);
   /** Alerts before this index predate the last reset and are no longer "current". */
   private currentFrom = 0;
   private readonly sleep: (ms: number) => Promise<void>;
@@ -106,6 +139,7 @@ export class MemoryBackend {
   constructor(options: MemoryBackendOptions = {}) {
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.now = options.now ?? (() => new Date());
+    this.flaggedShare = options.flaggedShare ?? 0;
     // Reference data, like `pnpm db:seed`: present before any household exists.
     for (const [municipality, names] of Object.entries(PILOT_BARANGAYS)) {
       for (const name of names) {
@@ -149,6 +183,7 @@ export class MemoryBackend {
         id,
         barangayId,
         meterType: h.meterType,
+        meterSerial: h.meterSerial,
         billAvgKwhMonth: h.billAvgKwhMonth,
         baselineKw: h.baselineKw,
         lastReadingKwh: Math.round((1000 + rng() * 8000) * 10) / 10,
@@ -166,6 +201,9 @@ export class MemoryBackend {
   reset(): SimStatus {
     for (const [id, h] of this.households) {
       if (h.isSimulated) this.households.delete(id);
+    }
+    for (const [id, f] of this.flagged) {
+      if (!this.households.has(f.householdId)) this.flagged.delete(id);
     }
     for (const a of this.alerts) {
       for (const [householdId] of a.commitments) {
@@ -408,6 +446,30 @@ export class MemoryBackend {
     };
   }
 
+  // --- flagged readings ---------------------------------------------------
+
+  /** GET /readings/flagged: readings waiting for a decision, oldest first. */
+  listFlagged(): FlaggedReading[] {
+    return [...this.flagged.values()]
+      .map((f) => f.reading)
+      .sort((a, b) => (a.capturedAt < b.capturedAt ? -1 : a.capturedAt > b.capturedAt ? 1 : 0));
+  }
+
+  /**
+   * POST /readings/:id/review. Approving lets the held cut count, at full weight, toward
+   * the barangay total; rejecting leaves the household with no verified cut.
+   */
+  review(readingId: string, decision: ReviewReadingInput['decision']): void {
+    const held = this.flagged.get(readingId);
+    if (!held) throw new MemoryBackendError(404, 'reading not found, or already reviewed');
+    this.flagged.delete(readingId);
+    if (!held.reading.alertId) return;
+    const commitment = this.find(held.reading.alertId).commitments.get(held.householdId);
+    if (!commitment) return;
+    commitment.review = decision === 'approve' ? 'approved' : 'rejected';
+    if (decision === 'approve') commitment.paidCutKw = held.heldCutKw;
+  }
+
   // --- the port the simulator runs through ---------------------------------
 
   readonly port: SimPort = {
@@ -468,18 +530,54 @@ export class MemoryBackend {
     }
     const { before, after } = commitment.readings;
     if (!before || !after || after.atMinute <= before.atMinute) return;
+    // Already decided (or waiting on a person): sending the readings again changes nothing.
+    if (commitment.paidCutKw !== null || commitment.review) return;
     const actualKw = actualKwFromReadings(
       before.readingKwh,
       after.readingKwh,
       (after.atMinute - before.atMinute) / 60,
     );
-    commitment.paidCutKw = verifyCut({
+    const { paidCutKw } = verifyCut({
       baselineKw: commitment.baselineKw,
       actualKw,
       committedKw: commitment.committedKw,
       billAvgKwhMonth: h.billAvgKwhMonth,
       windowHours: found.windowMinutes / 60,
-    }).paidCutKw;
+    });
+    if (
+      commitment.path === 'photo' &&
+      this.flaggedShare > 0 &&
+      this.flagRng() < this.flaggedShare
+    ) {
+      // Held for a person: nothing counts until the reading is approved.
+      const flag = FIXTURE_FLAGS[Math.floor(this.flagRng() * FIXTURE_FLAGS.length)]!;
+      const flaggedReading = flag === 'late' || this.flagRng() < 0.5 ? after : before;
+      const barangay = this.barangays.find((b) => b.id === h.barangayId);
+      const id = this.id();
+      this.flagged.set(id, {
+        householdId: h.id,
+        heldCutKw: paidCutKw,
+        reading: {
+          id,
+          alertId,
+          barangayName: barangay?.name ?? '',
+          municipality: barangay?.municipality ?? '',
+          meterSerial: h.meterSerial,
+          kind: flaggedReading.kind,
+          readingKwh: flaggedReading.readingKwh,
+          previousKwh: flaggedReading === after ? before.readingKwh : h.lastReadingKwh,
+          capturedAt: new Date(
+            new Date(found.alert.windowStart).getTime() + flaggedReading.atMinute * 60_000,
+          ).toISOString(),
+          flags: [flag],
+          // The fixture has no photos.
+          hasPhoto: false,
+        },
+      });
+      commitment.review = 'pending';
+    } else {
+      commitment.paidCutKw = paidCutKw;
+    }
     h.lastReadingKwh = after.readingKwh;
   }
 }

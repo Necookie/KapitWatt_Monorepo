@@ -17,6 +17,11 @@ export function power(valueKw: number): string {
   return `${(valueKw / 1000).toLocaleString(LOCALE, { maximumFractionDigits: 2 })} MW`;
 }
 
+/** A meter register reading, to the one decimal a household types. */
+export function reading(valueKwh: number): string {
+  return valueKwh.toLocaleString(LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
 export const count = (value: number): string => value.toLocaleString(LOCALE);
 
 export function percent(part: number, whole: number): string {

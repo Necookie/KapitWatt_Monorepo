@@ -11,6 +11,7 @@ export const keys = {
   alert: ['alert', 'current'] as const,
   alertLog: ['alert', 'log'] as const,
   totals: (alertId: string) => ['alert', alertId, 'totals'] as const,
+  flagged: ['readings', 'flagged'] as const,
   simStatus: ['sim', 'status'] as const,
 };
 
@@ -33,6 +34,10 @@ export function useTotals(alertId: string | undefined) {
     enabled: Boolean(alertId),
     ...live,
   });
+}
+
+export function useFlagged() {
+  return useQuery({ queryKey: keys.flagged, queryFn: client.listFlagged, ...live });
 }
 
 export function useSimStatus() {
