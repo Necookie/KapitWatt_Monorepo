@@ -146,23 +146,23 @@ Screens (Expo Router, one file per screen under `src/app/`): `index` (home), `si
 
 Screens: `index` (live overview), `alerts/new`, `alerts/log`, `towns/[town]`, `flagged`, `simulator`.
 
-| ID         | Requirement                                                                                                                                                                         | Pri |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
-| FR-DASH-01 | The alert form shall take level (yellow or red), window start and end (default 2 hours, with quick presets), target barangays (towns, barangays, or all pilot areas) and target kW. | P0  |
-| FR-DASH-02 | The alert form shall show a preview of the message households will receive.                                                                                                         | P0  |
-| FR-DASH-03 | Sending shall require a confirm step that states level, number of towns and approximate households, for example "Send red alert to 7 towns, about 1,200 households?".               | P0  |
-| FR-DASH-04 | The overview shall show total committed kW against the alert target, updating as households commit.                                                                                 | P0  |
-| FR-DASH-05 | The overview shall show verified delivered kW against target per town, with drill-down from a town to its barangays.                                                                | P0  |
-| FR-DASH-06 | Each barangay shall show delivered kW against its own target and a marker when it has hit 100%.                                                                                     | P0  |
-| FR-DASH-07 | A "Measure (fast-forward)" control shall end the window, compress the photo timers and trigger settlement. It shall be available in the demo environment only.                      | P0  |
-| FR-DASH-08 | The simulator panel shall expose participation, follow-through, path mix, photo completion and preset, plus seed, run event and reset actions.                                      | P0  |
-| FR-DASH-09 | Simulation parameters in force shall stay visible on the dashboard and be labelled as assumptions. The dashboard shall state that households are simulated.                         | P0  |
-| FR-DASH-10 | Live figures shall refresh by short polling about every 2 seconds.                                                                                                                  | P0  |
-| FR-DASH-11 | A flagged readings list shall show each reading that failed a rule check with its photo, typed reading, previous reading and flags, and let a person approve or reject it.          | P1  |
-| FR-DASH-12 | The operator shall be able to schedule a send, send a reminder 15 minutes before the window, and cancel an alert (which sends an alert-lifted push).                                | P1  |
-| FR-DASH-13 | An alert log shall list every alert with sender, time, level, window and targets.                                                                                                   | P1  |
-| FR-DASH-14 | A load curve shall show baseline versus actual with relief shaded, and a relief forecast (committed kW times follow-through rate).                                                  | P1  |
-| FR-DASH-15 | Feeder-level check comparing barangay feeder load with forecast.                                                                                                                    | P2  |
+| ID         | Requirement                                                                                                                                                                                                                                 | Pri |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| FR-DASH-01 | The alert form shall take level (yellow or red; a red alert can ask for a bigger cut than a yellow one), window start and end (default 2 hours, with quick presets), target barangays (towns, barangays, or all pilot areas) and target kW. | P0  |
+| FR-DASH-02 | The alert form shall show a preview of the message households will receive.                                                                                                                                                                 | P0  |
+| FR-DASH-03 | Sending shall require a confirm step that states level, number of towns and approximate households, for example "Send red alert to 7 towns, about 1,200 households?".                                                                       | P0  |
+| FR-DASH-04 | The overview shall show total committed kW against the alert target, updating as households commit.                                                                                                                                         | P0  |
+| FR-DASH-05 | The overview shall show verified delivered kW against target per town, with drill-down from a town to its barangays.                                                                                                                        | P0  |
+| FR-DASH-06 | Each barangay shall show delivered kW against its own target and a marker when it has hit 100%.                                                                                                                                             | P0  |
+| FR-DASH-07 | A "Measure (fast-forward)" control shall end the window, compress the photo timers and trigger settlement. It shall be available in the demo environment only.                                                                              | P0  |
+| FR-DASH-08 | The simulator panel shall expose participation, follow-through, path mix, photo completion and preset, plus seed, run event and reset actions.                                                                                              | P0  |
+| FR-DASH-09 | Simulation parameters in force shall stay visible on the dashboard and be labelled as assumptions. The dashboard shall state that households are simulated.                                                                                 | P0  |
+| FR-DASH-10 | Live figures shall refresh by short polling about every 2 seconds.                                                                                                                                                                          | P0  |
+| FR-DASH-11 | A flagged readings list shall show each reading that failed a rule check with its photo, typed reading, previous reading and flags, and let a person approve or reject it.                                                                  | P1  |
+| FR-DASH-12 | The operator shall be able to schedule a send, send a reminder 15 minutes before the window, and cancel an alert (which sends an alert-lifted push).                                                                                        | P1  |
+| FR-DASH-13 | An alert log shall list every alert with sender, time, level, window and targets.                                                                                                                                                           | P1  |
+| FR-DASH-14 | A load curve shall show baseline versus actual with relief shaded, and a relief forecast (committed kW times follow-through rate).                                                                                                          | P1  |
+| FR-DASH-15 | Feeder-level check comparing barangay feeder load with forecast.                                                                                                                                                                            | P2  |
 
 ### 3.3 API (`apps/api`)
 
@@ -179,24 +179,26 @@ Screens: `index` (live overview), `alerts/new`, `alerts/log`, `towns/[town]`, `f
 
 #### Alerts and commitments
 
-| ID        | Requirement                                                                                                                                                            | Pri |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
-| FR-API-10 | `POST /alerts` shall validate `CreateAlertInput`, store the alert with `created_by` and `created_at`, and dispatch push. An empty target list means all pilot areas.   | P0  |
-| FR-API-11 | The alert's target kW shall be split across targeted barangays in proportion to opted-in households. An operator override of a barangay's share shall take precedence. | P0  |
-| FR-API-12 | `GET /alerts/active` and `GET /alerts/:id` shall return the alert with its status (`scheduled`, `active`, `window_open`, `settling`, `settled`, `cancelled`).          | P0  |
-| FR-API-13 | `POST /commitments` shall record one commitment per household per alert, with the path taken from the household's meter type and a snapshot of its baseline.           | P0  |
-| FR-API-14 | A commitment shall be rejected if the household is not opted in, is outside the targeted barangays, has no baseline, or asks for more than its cap.                    | P0  |
-| FR-API-15 | `GET /alerts/:id/totals` shall return `AlertTotals`: target, committed and delivered kW overall and per barangay with `targetHit`.                                     | P0  |
-| FR-API-16 | `GET /commitments/by-alert/:alertId` and `GET /commitments/history` shall return the household's own commitment for an alert and its past commitments.                 | P0  |
-| FR-API-17 | `POST /alerts/:id/cancel` shall cancel an alert and send an alert-lifted push. Scheduled sends and reminder pushes shall be supported.                                 | P1  |
+| ID        | Requirement                                                                                                                                                                                     | Pri |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| FR-API-10 | `POST /alerts` shall validate `CreateAlertInput`, store the alert with `created_by` and `created_at`, and dispatch push. An empty target list means all pilot areas.                            | P0  |
+| FR-API-11 | The alert's target kW shall be split across targeted barangays in proportion to opted-in households. An operator override of a barangay's share shall take precedence.                          | P0  |
+| FR-API-12 | `GET /alerts/active` and `GET /alerts/:id` shall return the alert with its status (`scheduled`, `active`, `window_open`, `settling`, `settled`, `cancelled`).                                   | P0  |
+| FR-API-13 | `POST /commitments` shall record one commitment per household per alert, with the path taken from the household's meter type and a snapshot of its baseline.                                    | P0  |
+| FR-API-14 | A commitment shall be rejected if the household is not opted in, is outside the targeted barangays, has no baseline, asks for more than its cap, or arrives after window start (see FR-API-18). | P0  |
+| FR-API-15 | `GET /alerts/:id/totals` shall return `AlertTotals`: target, committed and delivered kW overall and per barangay with `targetHit`.                                                              | P0  |
+| FR-API-16 | `GET /commitments/by-alert/:alertId` and `GET /commitments/history` shall return the household's own commitment for an alert and its past commitments.                                          | P0  |
+| FR-API-17 | `POST /alerts/:id/cancel` shall cancel an alert and send an alert-lifted push. Scheduled sends and reminder pushes shall be supported.                                                          | P1  |
+| FR-API-18 | **Commit window.** A household may commit any time from when the alert is sent until window start (plan, photo timing chart). The cutoff uses server time.                                      | P0  |
 
 #### Push
 
-| ID        | Requirement                                                                                                                  | Pri |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------- | --- |
-| FR-API-20 | Push shall be sent through Expo Push only to households that are opted in, have a push token and are in a targeted barangay. | P0  |
-| FR-API-21 | Simulated households shall never be sent a push.                                                                             | P0  |
-| FR-API-22 | A push failure shall not fail alert creation; the alert stays stored so the app can fetch it.                                | P0  |
+| ID        | Requirement                                                                                                                                                      | Pri |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| FR-API-20 | Push shall be sent through Expo Push only to households that are opted in, have a push token and are in a targeted barangay.                                     | P0  |
+| FR-API-21 | Simulated households shall never be sent a push.                                                                                                                 | P0  |
+| FR-API-22 | A push failure shall not fail alert creation; the alert stays stored so the app can fetch it.                                                                    | P0  |
+| FR-API-23 | Committed photo households shall get a reminder push at window start (take the before photo) and at window end (take the after photo), to reduce photo drop-off. | P1  |
 
 #### Meter readings and rule checks
 
@@ -232,7 +234,7 @@ Screens: `index` (live overview), `alerts/new`, `alerts/log`, `towns/[town]`, `f
 | FR-API-59 | An AMI household with missing interval data shall get no payout and its commitment shall be flagged.                                                                                                                        | P0  |
 | FR-API-60 | `GET /rewards/by-alert/:alertId` shall return the household's result card; `GET /rewards/summary` its totals; `GET /barangays/leaderboard` the barangay ranking.                                                            | P0  |
 | FR-API-61 | All baseline, payout and check math shall come from `@kapitwatt/shared`, and shall reproduce the plan's worked example: 1.6 kWh, PHP 8.06 credit, PHP 1.61 bonus, 160 points (AMI: PHP 13.44).                              | P0  |
-| FR-API-62 | Trust score shall start neutral, rise with clean settled events, fall with flagged readings, and set the largest cut a household can commit.                                                                                | P1  |
+| FR-API-62 | Trust score shall start neutral, rise with clean settled events, fall with flagged readings, and set the largest cut a household can commit and how often the household is audited.                                         | P1  |
 | FR-API-63 | An AMI feed adapter shall supply interval readings behind one interface. It is simulated in the demo.                                                                                                                       | P1  |
 
 #### Health
@@ -243,22 +245,22 @@ Screens: `index` (live overview), `alerts/new`, `alerts/log`, `towns/[town]`, `f
 
 ### 3.4 Simulator (`packages/sim` and `/sim` routes)
 
-| ID        | Requirement                                                                                                                                                                                  | Pri |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
-| FR-SIM-01 | `POST /sim/seed` shall create about 1,200 simulated households and their appliances across the 7 towns and 21 barangays, with the configured AMI share.                                      | P0  |
-| FR-SIM-02 | `POST /sim/run` shall, for an alert's targeted barangays, make simulated households commit and then generate their delivered kWh.                                                            | P0  |
-| FR-SIM-03 | Run parameters shall be `SimParams`: participation (default 0.6, range 0.2 to 0.8), follow-through 0.8, AMI share 0.15, photo completion 0.9, baseline noise 0.1, cut 1 kW, pace 25 s, seed. | P0  |
-| FR-SIM-04 | The fake meter feed shall generate AMI interval readings for smart-meter households and before and after readings for photo households, all marked simulated.                                | P0  |
-| FR-SIM-05 | Commits shall be spread over about 20 to 30 seconds so the live total rises gradually.                                                                                                       | P0  |
-| FR-SIM-06 | `POST /sim/reset` shall delete simulated rows only (`is_simulated`), with cascades removing their appliances, commitments, readings and rewards. Real households stay.                       | P0  |
-| FR-SIM-07 | `GET /sim/status` shall return counts, the last run and the current settings.                                                                                                                | P0  |
-| FR-SIM-08 | The simulator shall act only through the `SimPort` interface, which is implemented on the same services real households use. It shall never write to the database directly.                  | P0  |
-| FR-SIM-09 | Simulator routes shall be off unless `APP_ENV` is `demo` and shall always require the simulator key.                                                                                         | P0  |
-| FR-SIM-10 | With default parameters and a 600 kW target over all pilot areas, a run shall produce about 720 kW committed and about 527 kW delivered (about 86 kW AMI, about 441 kW photo).               | P0  |
-| FR-SIM-11 | Presets shall be available: poor 30%, typical 60%, best 80% participation.                                                                                                                   | P1  |
-| FR-SIM-12 | Runs shall be repeatable from a seed, and a known seed shall make the presenter's barangay reach its target.                                                                                 | P1  |
-| FR-SIM-13 | A run shall return a per-town summary.                                                                                                                                                       | P1  |
-| FR-SIM-14 | Failure injection (no-shows, late commits) and import of real PSA barangay lists.                                                                                                            | P2  |
+| ID        | Requirement                                                                                                                                                                                                                                                | Pri |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| FR-SIM-01 | `POST /sim/seed` shall create about 1,200 simulated households and their appliances across the 7 towns and 21 barangays, with the configured AMI share.                                                                                                    | P0  |
+| FR-SIM-02 | `POST /sim/run` shall, for an alert's targeted barangays, make simulated households commit and then generate their delivered kWh.                                                                                                                          | P0  |
+| FR-SIM-03 | Run parameters shall be `SimParams`: participation (default 0.6, range 0.2 to 0.8), follow-through 0.8 (adjustable per path, so AMI and photo households can differ), AMI share 0.15, photo completion 0.9, baseline noise 0.1, cut 1 kW, pace 25 s, seed. | P0  |
+| FR-SIM-04 | The fake meter feed shall generate AMI interval readings for smart-meter households and before and after readings for photo households, all marked simulated.                                                                                              | P0  |
+| FR-SIM-05 | Commits shall be spread over about 20 to 30 seconds so the live total rises gradually.                                                                                                                                                                     | P0  |
+| FR-SIM-06 | `POST /sim/reset` shall delete simulated rows only (`is_simulated`), with cascades removing their appliances, commitments, readings and rewards. Real households stay.                                                                                     | P0  |
+| FR-SIM-07 | `GET /sim/status` shall return counts, the last run and the current settings.                                                                                                                                                                              | P0  |
+| FR-SIM-08 | The simulator shall act only through the `SimPort` interface, which is implemented on the same services real households use. It shall never write to the database directly.                                                                                | P0  |
+| FR-SIM-09 | Simulator routes shall be off unless `APP_ENV` is `demo` and shall always require the simulator key.                                                                                                                                                       | P0  |
+| FR-SIM-10 | With default parameters and a 600 kW target over all pilot areas, a run shall produce about 720 kW committed and about 527 kW delivered (about 86 kW AMI, about 441 kW photo).                                                                             | P0  |
+| FR-SIM-11 | Presets shall be available: poor 30%, typical 60%, best 80% participation.                                                                                                                                                                                 | P1  |
+| FR-SIM-12 | Runs shall be repeatable from a seed, and a known seed shall make the presenter's barangay reach its target.                                                                                                                                               | P1  |
+| FR-SIM-13 | A run shall return a per-town summary.                                                                                                                                                                                                                     | P1  |
+| FR-SIM-14 | Failure injection (no-shows, late commits) and import of real PSA barangay lists.                                                                                                                                                                          | P2  |
 
 ## 4. External interfaces
 
@@ -428,3 +430,12 @@ Seven tables. SQL is in `packages/db/migrations/0001_init.sql`; Zod mirrors are 
   the registered serial, checked by a person or by optional OCR).
 - Liliw franchise coverage and Laguna smart-meter coverage: to confirm with Meralco.
 - Meter display resolution: older meters may show whole kWh only.
+- How a red alert asks for a bigger cut (FR-DASH-01). The plan says it can but not how: a stronger default
+  message, a suggested commitment, or a higher cap. The household's commit cap applies either way.
+- What an audit is (FR-API-62). The plan says the trust score sets how often a household is audited but
+  does not define the audit, for example sending a passing reading to manual review anyway.
+- Follow-through per path (FR-SIM-03). `SimParams` in `packages/shared` has a single `followThrough` today;
+  per-path values need a small schema change.
+- Commit cutoff in the demo (FR-API-18). In the script, simulated commits arrive from 2:20 to about 2:45
+  while the before photo is taken at 2:35, so the window would already be open. Decide whether demo mode
+  opens the window after the simulated commits finish, or relaxes the cutoff for simulated households.

@@ -52,7 +52,7 @@ Requirement IDs refer to the [SRS](../srs/SRS.md).
 | Feature                        | Done when                                                                                 | SRS             |
 | ------------------------------ | ----------------------------------------------------------------------------------------- | --------------- |
 | Token auth and opt-in          | Register returns a token; protected routes resolve the household                          | FR-API-01 to 06 |
-| Alert and commitment endpoints | Create alert, split target per barangay, record commitments, live totals                  | FR-API-10 to 16 |
+| Alert and commitment endpoints | Create alert, split target per barangay, record commitments, live totals                  | FR-API-10 to 18 |
 | Push dispatch                  | Expo Push to opted-in tokens in targeted barangays only                                   | FR-API-20 to 22 |
 | Meter reading endpoints        | Photo upload, server timestamp, rule checks, flags, no resubmission                       | FR-API-30 to 40 |
 | Baseline and kWh avoided       | Baseline from rehearsal or AMI history; verified kWh capped by commitment and bill        | FR-API-50 to 53 |
@@ -89,6 +89,7 @@ pieces, and a screen recording of the full demo as backup.
 | Trust score and commit cap            | 3, 1  | Until then the cap comes from the baseline and the bill   |
 | Appliance helper                      | 1     | Helper only, never used for payment                       |
 | Schedule, reminder, cancel, alert log | 2, 3  | Send-now is enough for the demo                           |
+| Photo reminders at window start, end  | 3     | Fewer missed photos, so more verified kW (FR-API-23)      |
 | AMI feed adapter                      | 3     | The simulator's fake feed covers the demo                 |
 | Run summary per town                  | 4     |                                                           |
 
@@ -150,7 +151,7 @@ Defaults; every one is an assumption and stays visible on the dashboard.
 | Households       | 1,200 simulated                  |
 | Participation    | 60% (adjustable 20% to 80%)      |
 | Cut size         | 1 kW per participating household |
-| Follow-through   | 80%                              |
+| Follow-through   | 80% (adjustable per path)        |
 | Path mix         | 15% smart meter, 85% photo       |
 | Photo completion | 90%                              |
 | Baseline noise   | Plus or minus 10%                |
@@ -248,10 +249,33 @@ One folder per person and per AI agent, to avoid merge conflicts.
 A change to `packages/shared` (a new schema or field) is kept small and announced, since everyone imports
 it.
 
-### Suggested order
+### 24-hour schedule (from the plan)
 
-The plan fixes two timing points: **test push on real phones by hour 8 to 12**, and **start with polling**
-for live totals. The rest of this sequence is the team's own suggestion for hitting them.
+The plan's build chart (section 8) runs these tracks in parallel. Hours are read off the chart, so treat
+them as approximate. Two points are firm: **test push on real phones by hour 8 to 12**, and **start with
+polling** for live totals.
+
+| Track                                                     | Hours      | Owner   |
+| --------------------------------------------------------- | ---------- | ------- |
+| Repo, pnpm workspace, shared package                      | H0 to H2   | All     |
+| DB schema + Laguna seed (7 towns, 21 barangays, 1,200 hh) | H1 to H5   | 3, 4    |
+| API: alerts, commits, checks, rewards                     | H2 to H10  | 3       |
+| Mobile: sign-up, meter setup, commit a cut                | H2 to H11  | 1       |
+| Dashboard: alert form, live kW, barangay view, flags      | H4 to H14  | 2       |
+| Simulator: event runner, path mix, fake meter feed        | H5 to H11  | 4       |
+| Push notifications on real phones                         | H8 to H12  | 1, 3    |
+| Photo flow: capture, rehearsal, checks                    | H9 to H16  | 1, 3    |
+| Rewards: credit, points, barangay bonus                   | H12 to H17 | 3, 4    |
+| Integration test of the full loop                         | H15 to H19 | 5       |
+| APK build (EAS) + deploy to Cloudflare                    | H17 to H20 | 1, 2, 3 |
+| Demo script, slides, on-site rehearsal                    | H18 to H24 | 5       |
+| Submit and demo                                           | H24        | All     |
+
+The plan names the tracks but not who runs each; the owner column follows the folder ownership above.
+
+### Checkpoints
+
+The team's own milestones within that schedule:
 
 | Phase               | Goal                                                                                                 |
 | ------------------- | ---------------------------------------------------------------------------------------------------- |
