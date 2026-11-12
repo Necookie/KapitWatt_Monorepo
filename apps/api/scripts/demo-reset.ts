@@ -27,7 +27,7 @@ import {
 } from '@kapitwatt/db';
 import { PAST_EVENTS, replayPastEvent } from '../src/services/demo';
 import { seedSimulation } from '../src/services/sim';
-import { DEFAULT_DEMO_PASSWORD, ensureDemoAccounts } from './demo/accounts';
+import { DEFAULT_DEMO_PASSWORD, DEMO_VENUE, ensureDemoAccounts } from './demo/accounts';
 import { describeForecast, forecastWithSeed, LIVE_EVENT, loadForecastInputs } from './demo/live';
 
 /** The simulated households' seed. Kept apart from the live event's seed, which is searched for. */
@@ -53,8 +53,8 @@ await ensureDemoAccounts({
   api: process.env.API_URL ?? 'https://kapitwatt-api.dheyn-main.workers.dev',
   db,
   password: process.env.DEMO_PASSWORD ?? DEFAULT_DEMO_PASSWORD,
-  lat: Number(process.env.DEMO_LAT ?? 14.2814),
-  lng: Number(process.env.DEMO_LNG ?? 121.4161),
+  lat: Number(process.env.DEMO_LAT ?? DEMO_VENUE.lat),
+  lng: Number(process.env.DEMO_LNG ?? DEMO_VENUE.lng),
 });
 
 const wiped = await wipeDemoWorld(db);

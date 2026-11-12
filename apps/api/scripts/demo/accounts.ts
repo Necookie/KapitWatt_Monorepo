@@ -19,6 +19,12 @@ import {
 export const DEMO_EMAIL_DOMAIN = 'kapitwatt.test';
 export const DEMO_SERIAL_PREFIX = 'DEMO-';
 export const DEFAULT_DEMO_PASSWORD = 'KapitWatt-Demo-2026';
+/**
+ * Where the demo is held: Ortigas, Pasig (near Meralco Center). The ten accounts are registered here so
+ * meter photos taken at the venue pass the GPS check (within GPS_MAX_DISTANCE_M). Their address text
+ * stays in Bagumbayan: only the photo location moves. Override with DEMO_LAT and DEMO_LNG.
+ */
+export const DEMO_VENUE = { lat: 14.5906, lng: 121.0671 } as const;
 /** The presenter's barangay: every demo account lives here, and the live event is set up around it. */
 export const DEMO_BARANGAY = PILOT_BARANGAYS[HUB_TOWN][0];
 

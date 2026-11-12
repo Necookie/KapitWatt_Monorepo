@@ -290,7 +290,9 @@ The live event: alert to all pilot areas, 600 kW, 2 h; simulator seed **`LIVE_EV
 `apps/api/scripts/demo/live.ts` (type it in Simulator > Realism > Random seed; do not re-seed on stage).
 With that seed Bagumbayan reaches its target from simulated households alone; testers' commits only
 add to it. If the reset's data changes, run `pnpm demo:seed-search` and update the seed. The reset
-prints each demo account's last meter reading: a tester must type a higher one. Run the reset before
+prints each demo account's last meter reading: a tester must type a higher one. The accounts'
+registered location (the GPS check, 200 m) is the venue, `DEMO_VENUE` in
+`apps/api/scripts/demo/accounts.ts` (Ortigas, Pasig); set `DEMO_LAT`/`DEMO_LNG` for another venue. Run the reset before
 phones are handed out (each replayed alert is open for a few seconds).
 
 ### Guardrails
