@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 
 export type Sample = { at: number; kw: number };
 
@@ -8,26 +8,24 @@ export type Sample = { at: number; kw: number };
  */
 const store = new Map<string, Sample[]>();
 
-/** Records each polled committed total while `recording`; returns the samples so far. */
+/**
+ * Records each polled committed total while `recording`; returns the samples so far. Recorded while
+ * rendering, not in an effect, so a new total costs one render instead of two. Recording is
+ * idempotent (a total equal to the last is not added), so a repeated render adds nothing.
+ */
 export function useCommitSamples(
   alertId: string | undefined,
   committedKw: number,
   recording: boolean,
 ) {
-  const [samples, setSamples] = useState<Sample[]>(() =>
-    alertId ? (store.get(alertId) ?? []) : [],
-  );
-  useEffect(() => {
-    if (!alertId) return;
+  return useMemo(() => {
+    if (!alertId) return [];
     const list = store.get(alertId) ?? [];
-    if (recording) {
-      const last = list[list.length - 1];
-      if (!last || last.kw !== committedKw) {
-        list.push({ at: Date.now(), kw: committedKw });
-        store.set(alertId, list);
-      }
+    store.set(alertId, list);
+    const last = list[list.length - 1];
+    if (recording && (!last || last.kw !== committedKw)) {
+      list.push({ at: Date.now(), kw: committedKw });
     }
-    setSamples([...list]);
+    return [...list];
   }, [alertId, committedKw, recording]);
-  return samples;
 }

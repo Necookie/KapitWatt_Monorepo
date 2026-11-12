@@ -2,6 +2,7 @@ import { useTheme } from '@kapitwatt/hooks';
 import { withAlpha } from '@kapitwatt/tokens';
 import { Text } from '@kapitwatt/ui';
 import { View } from 'react-native';
+import { motion, transition } from '@/styles/motion';
 import { CHART, GUTTER, type Column } from './columns';
 
 export function WaterfallBar({
@@ -36,13 +37,17 @@ export function WaterfallBar({
           />
         ) : null}
         <View
-          style={{
-            position: 'absolute',
-            left: GUTTER / 2,
-            right: GUTTER / 2,
-            bottom: bottom + height + t.space[1],
-            alignItems: 'center',
-          }}
+          style={[
+            {
+              position: 'absolute',
+              left: GUTTER / 2,
+              right: GUTTER / 2,
+              bottom: bottom + height + t.space[1],
+              alignItems: 'center',
+            },
+            transition('bottom'),
+            motion.fadeIn,
+          ]}
         >
           {/* A surface behind the figure so the target line never runs through it. */}
           <Text
@@ -56,25 +61,30 @@ export function WaterfallBar({
             {col.text}
           </Text>
         </View>
+        {/* Grows from its baseline on first show; a new total glides there. */}
         <View
-          style={{
-            position: 'absolute',
-            left: GUTTER / 2,
-            right: GUTTER / 2,
-            bottom,
-            height,
-            flexDirection: 'column-reverse',
-            borderRadius: t.radius.xs,
-            overflow: 'hidden',
-            // An assumption: one dashed outline round the whole bar.
-            ...(col.projected
-              ? {
-                  borderWidth: t.borderWidth.strong,
-                  borderStyle: 'dashed' as const,
-                  borderColor: t.color.outline,
-                }
-              : null),
-          }}
+          style={[
+            motion.growY,
+            transition('bottom, height'),
+            {
+              position: 'absolute',
+              left: GUTTER / 2,
+              right: GUTTER / 2,
+              bottom,
+              height,
+              flexDirection: 'column-reverse',
+              borderRadius: t.radius.xs,
+              overflow: 'hidden',
+              // An assumption: one dashed outline round the whole bar.
+              ...(col.projected
+                ? {
+                    borderWidth: t.borderWidth.strong,
+                    borderStyle: 'dashed' as const,
+                    borderColor: t.color.outline,
+                  }
+                : null),
+            },
+          ]}
         >
           {col.segs.map((s, i) => (
             <View

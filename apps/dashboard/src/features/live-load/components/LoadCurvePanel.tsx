@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { SimParams } from '@kapitwatt/shared';
 import { useTheme } from '@kapitwatt/hooks';
 import { Text } from '@kapitwatt/ui';
@@ -8,7 +9,7 @@ import { fraction } from '@/utils/format';
 import { LoadCurve } from './LoadCurve';
 
 /** The load curve in its panel, with the legend in the header and the forecast's assumptions. */
-export function LoadCurvePanel({
+export const LoadCurvePanel = memo(function LoadCurvePanel({
   windowStart,
   windowEnd,
   baselineKw,
@@ -60,4 +61,4 @@ export function LoadCurvePanel({
       </View>
     </Panel>
   );
-}
+});

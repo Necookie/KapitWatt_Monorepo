@@ -5,6 +5,7 @@ import { withAlpha } from '@kapitwatt/tokens';
 import { Text } from '@kapitwatt/ui';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import type { PressState } from '@/utils/press-state';
+import { motion } from '@/styles/motion';
 
 /** The send action in the alert's own colour; red and yellow mean the NGCP alert. */
 export function SendButton({
@@ -12,6 +13,7 @@ export function SendButton({
   label,
   disabled = false,
   busy = false,
+  sent = false,
   size = 'lg',
   onPress,
 }: {
@@ -21,13 +23,17 @@ export function SendButton({
   size?: 'md' | 'lg';
   disabled?: boolean;
   busy?: boolean;
+  /** Sent: a check and "Sent" for a moment before the page moves on. */
+  sent?: boolean;
   onPress: () => void;
 }) {
   const t = useTheme();
   const c = t.color;
   const ring = useFocusVisible();
   const [bg, fg] = level === 'red' ? [c.alertRed, c.onAlertRed] : [c.alertYellow, c.onAlertYellow];
-  const off = disabled || busy;
+  const off = disabled || busy || sent;
+  // Sent keeps the alert colour: it is done, not disabled.
+  const dim = off && !sent;
   return (
     <Pressable
       accessibilityRole="button"
@@ -47,7 +53,7 @@ export function SendButton({
             height: size === 'lg' ? t.size.controlLg : t.size.controlMd,
             paddingHorizontal: size === 'lg' ? t.space[6] : t.space[5],
             borderRadius: t.radius.full,
-            backgroundColor: off ? withAlpha(c.onSurface, 0.12) : bg,
+            backgroundColor: dim ? withAlpha(c.onSurface, 0.12) : bg,
             ...(s.focused && ring
               ? {
                   outlineStyle: 'solid' as const,
@@ -72,16 +78,20 @@ export function SendButton({
               }}
             />
           ) : null}
-          {busy ? (
+          {sent ? (
+            <View style={motion.pop}>
+              <Icon name="check" weight="bold" size="sm" color={fg} />
+            </View>
+          ) : busy ? (
             <ActivityIndicator size="small" color={fg} />
           ) : (
             <Icon name="send" size="sm" color={off ? withAlpha(c.onSurface, 0.38) : fg} />
           )}
           <Text
             variant={size === 'lg' ? 'titleSmall' : 'labelLarge'}
-            style={{ color: off ? withAlpha(c.onSurface, 0.38) : fg }}
+            style={{ color: dim ? withAlpha(c.onSurface, 0.38) : fg }}
           >
-            {label}
+            {sent ? 'Sent' : label}
           </Text>
         </View>
       )}

@@ -1,21 +1,28 @@
 import { useTheme } from '@kapitwatt/hooks';
 import { withAlpha } from '@kapitwatt/tokens';
 import { Text } from '@kapitwatt/ui';
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Platform, View } from 'react-native';
 import Svg, { Line, Path } from 'react-native-svg';
 import { clock, kw } from '@/utils/format';
 import { Legend } from '@/components/Legend';
 import { Panel } from '@/components/Panel';
 import { useLayoutValue } from '@/hooks/useLayoutValue';
+import { motion } from '@/styles/motion';
 import type { Sample } from '../hooks/useCommitSamples';
 
 const H = 180;
 
 /** The committed total climbing toward the target, while commitments come in. */
-export function CommitTimeline({ samples, target }: { samples: Sample[]; target: number }) {
+export const CommitTimeline = memo(function CommitTimeline({
+  samples,
+  target,
+}: {
+  samples: Sample[];
+  target: number;
+}) {
   const t = useTheme();
-  const [width, onLayout] = useLayoutValue((w) => Math.round(w));
+  const [width, onLayout] = useLayoutValue((w) => Math.round(w), 0);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -60,7 +67,7 @@ export function CommitTimeline({ samples, target }: { samples: Sample[]; target:
       style={{ flex: 1 }}
     >
       <View style={{ gap: t.space[2] }}>
-        <View style={{ height: H }} onLayout={onLayout}>
+        <View style={[{ height: H }, motion.wipe]} onLayout={onLayout}>
           {width > 0 ? (
             <Svg width={width} height={H} {...svgProps}>
               {[0.25, 0.5, 0.75].map((f) => (
@@ -137,4 +144,4 @@ export function CommitTimeline({ samples, target }: { samples: Sample[]; target:
       </View>
     </Panel>
   );
-}
+});

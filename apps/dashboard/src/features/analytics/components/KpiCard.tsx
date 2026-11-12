@@ -1,5 +1,6 @@
 import { Icon, type IconName } from '@kapitwatt/icons';
 import { Card, ProgressBar, Skeleton, SkeletonText, Stack, Text } from '@kapitwatt/ui';
+import { motion } from '@/styles/motion';
 
 /** A headline figure: label, value in the data type style, unit, context, and optional target progress. */
 export function KpiCard({
@@ -44,7 +45,7 @@ export function KpiCard({
             {label}
           </Text>
         </Stack>
-        <Stack direction="row" align="flex-end" gap={1}>
+        <Stack direction="row" align="flex-end" gap={1} style={motion.fadeIn}>
           <Text variant="dataMedium">{value}</Text>
           {unit ? (
             <Text variant="titleSmall" color="onSurfaceVariant" style={{ marginBottom: 6 }}>

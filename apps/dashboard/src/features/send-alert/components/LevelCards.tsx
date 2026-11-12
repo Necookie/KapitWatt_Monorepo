@@ -7,6 +7,7 @@ import { Pressable, View } from 'react-native';
 import { kw } from '@/utils/format';
 import { LEVELS } from '../utils/levels';
 import type { PressState } from '@/utils/press-state';
+import { motion } from '@/styles/motion';
 
 /**
  * The NGCP alert level as two large cards. The selected one fills with its alert colour; red and
@@ -99,7 +100,11 @@ export function LevelCards({
                       backgroundColor: on ? withAlpha(fg, 0.18) : 'transparent',
                     }}
                   >
-                    {on ? <Icon name="check" weight="bold" size="sm" color={fg} /> : null}
+                    {on ? (
+                      <View style={motion.pop}>
+                        <Icon name="check" weight="bold" size="sm" color={fg} />
+                      </View>
+                    ) : null}
                   </View>
                 </View>
                 <Text variant="bodyMedium" style={{ color: fg }}>

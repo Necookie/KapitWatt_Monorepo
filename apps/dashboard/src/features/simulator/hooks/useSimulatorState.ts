@@ -21,7 +21,8 @@ export function useSimulatorState(params: SimParams) {
   // A settled or cancelled alert is history: the next event needs a new one.
   const live = Boolean(alert.data) && alertStatus !== 'settled' && alertStatus !== 'cancelled';
   const canRun = demo && live && alertStatus === 'active' && households > 0;
-  const committed = live && (totals.data?.committedKw ?? 0) > 0;
+  const committedKw = live ? (totals.data?.committedKw ?? 0) : 0;
+  const committed = committedKw > 0;
   const targetKw = live && alert.data ? alert.data.targetKw : PLAN_TARGET_KW;
   // An alert may target only some barangays; the run only reaches households there.
   const targeted =
@@ -42,6 +43,7 @@ export function useSimulatorState(params: SimParams) {
     live,
     canRun,
     committed,
+    committedKw,
     targetKw,
     targeted,
     expected,

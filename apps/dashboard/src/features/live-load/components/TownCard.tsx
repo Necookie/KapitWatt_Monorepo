@@ -8,6 +8,7 @@ import { kw, percent, type TownTotals } from '@/utils/format';
 import { SIZE } from '../utils/town-ring';
 import { Ring } from './Ring';
 import type { PressState } from '@/utils/press-state';
+import { motion } from '@/styles/motion';
 
 /** One town: its ring, figures and a link to its barangays. */
 export function TownCard({ town, measured }: { town: TownTotals; measured: boolean }) {
@@ -59,6 +60,29 @@ export function TownCard({ town, measured }: { town: TownTotals; measured: boole
             <Text variant="labelMedium" style={{ fontVariant: ['tabular-nums'] }}>
               {percent(value, town.targetKw)}
             </Text>
+            {/* Mounts when the town reaches its target, so it pops in at that moment. */}
+            {hit ? (
+              <View
+                style={[
+                  {
+                    position: 'absolute',
+                    top: -2,
+                    right: -2,
+                    width: 22,
+                    height: 22,
+                    borderRadius: t.radius.full,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 2,
+                    borderColor: t.color.surfaceContainerLow,
+                    backgroundColor: measured ? t.dataViz.delivered : t.dataViz.committed,
+                  },
+                  motion.pop,
+                ]}
+              >
+                <Icon name="check" weight="bold" size="sm" color={t.color.onPrimary} />
+              </View>
+            ) : null}
           </View>
           <View style={{ flex: 1, minWidth: 0, gap: t.space[0.5] }}>
             <Text variant="titleMedium" numberOfLines={1}>

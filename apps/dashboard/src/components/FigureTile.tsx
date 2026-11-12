@@ -1,13 +1,14 @@
 import { useTheme, useWindowClass } from '@kapitwatt/hooks';
 import { Icon, type IconName } from '@kapitwatt/icons';
 import { ProgressBar, Text } from '@kapitwatt/ui';
+import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 export type Tile = {
   label: string;
   icon: IconName;
-  /** Already formatted; undefined shows a dash (not measured yet). */
-  value?: string;
+  /** Already formatted (or a counting Tally); undefined shows a dash (not measured yet). */
+  value?: ReactNode;
   unit?: string;
   note: string;
   bg: string;

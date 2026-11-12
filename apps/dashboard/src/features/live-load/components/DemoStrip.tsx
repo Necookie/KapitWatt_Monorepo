@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { AlertStatus } from '@kapitwatt/shared';
 import { useTheme } from '@kapitwatt/hooks';
 import { Icon } from '@kapitwatt/icons';
@@ -8,7 +9,13 @@ import type { DashboardAlert } from '@/api/client';
 import { StageControl } from './StageControl';
 
 /** Demo only: the stage buttons in their own dashed strip, so nobody mistakes them for operations. */
-export function DemoStrip({ alert, status }: { alert: DashboardAlert; status: AlertStatus }) {
+export const DemoStrip = memo(function DemoStrip({
+  alert,
+  status,
+}: {
+  alert: DashboardAlert;
+  status: AlertStatus;
+}) {
   const t = useTheme();
   const router = useRouter();
   return (
@@ -38,4 +45,4 @@ export function DemoStrip({ alert, status }: { alert: DashboardAlert; status: Al
       <Button label="Simulator" variant="text" onPress={() => router.push('/simulator')} />
     </View>
   );
-}
+});
