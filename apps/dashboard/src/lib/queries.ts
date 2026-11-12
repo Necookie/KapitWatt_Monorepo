@@ -9,6 +9,7 @@ const live = { refetchInterval: POLL_INTERVAL_MS, retry: false } as const;
 export const keys = {
   barangays: ['barangays'] as const,
   alert: ['alert', 'current'] as const,
+  alertLog: ['alert', 'log'] as const,
   totals: (alertId: string) => ['alert', alertId, 'totals'] as const,
   simStatus: ['sim', 'status'] as const,
 };
@@ -19,6 +20,10 @@ export function useBarangays() {
 
 export function useCurrentAlert() {
   return useQuery({ queryKey: keys.alert, queryFn: client.getCurrentAlert, ...live });
+}
+
+export function useAlertLog() {
+  return useQuery({ queryKey: keys.alertLog, queryFn: client.listAlerts, ...live });
 }
 
 export function useTotals(alertId: string | undefined) {

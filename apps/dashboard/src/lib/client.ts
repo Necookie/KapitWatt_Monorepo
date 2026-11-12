@@ -1,4 +1,4 @@
-import { ActiveAlertResponse, AlertView, ApiErrorBody } from '@kapitwatt/shared';
+import { ActiveAlertResponse, AlertLogResponse, AlertView, ApiErrorBody } from '@kapitwatt/shared';
 import type {
   AlertTotals,
   BarangayWithCount,
@@ -25,6 +25,8 @@ export interface DashboardClient {
   /** The alert the operator is working on, settled ones included. Null when there is none. */
   getCurrentAlert(): Promise<DashboardAlert | null>;
   createAlert(input: CreateAlertInput): Promise<DashboardAlert>;
+  /** The alert log, newest first (FR-DASH-13). */
+  listAlerts(): Promise<DashboardAlert[]>;
   getTotals(alertId: string): Promise<AlertTotals>;
   /** Operator override of barangay shares of the target, while the alert is open. */
   updateTargets(alertId: string, targets: UpdateTargetsInput['targets']): Promise<void>;
@@ -62,6 +64,9 @@ function rememberAlertId(id: string | null): void {
 
 const json = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) });
 
+/** The most the API returns in one call (LimitQuery). */
+const ALERT_LOG_LIMIT = 100;
+
 const liveClient: DashboardClient = {
   async listBarangays() {
     return (await api<{ barangays: BarangayWithCount[] }>('/barangays')).barangays;
@@ -94,6 +99,9 @@ const liveClient: DashboardClient = {
     );
     rememberAlertId(alert.id);
     return alert;
+  },
+  async listAlerts() {
+    return AlertLogResponse.parse(await api(`/alerts?limit=${ALERT_LOG_LIMIT}`)).alerts;
   },
   getTotals: (alertId) => api<AlertTotals>(`/alerts/${alertId}/totals`),
   async updateTargets(alertId, targets) {
@@ -150,6 +158,7 @@ const fixtureClient: DashboardClient = {
   listBarangays: () => viaFixture((b) => b.listBarangays()),
   getCurrentAlert: () => viaFixture((b) => b.currentAlert()),
   createAlert: (input) => viaFixture((b) => b.createAlert(input, 'operator (fixture)')),
+  listAlerts: () => viaFixture((b) => b.listAlerts(ALERT_LOG_LIMIT)),
   getTotals: (alertId) => viaFixture((b) => b.totals(alertId)),
   updateTargets: (alertId, targets) =>
     viaFixture((b) => {

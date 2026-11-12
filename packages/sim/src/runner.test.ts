@@ -91,6 +91,25 @@ describe('a full simulated event (FR-SIM-10)', () => {
   });
 });
 
+describe('alert log', () => {
+  it('lists every alert newest first, cancelled ones included', () => {
+    const { backend, alertId } = setup();
+    backend.reset();
+    const next = backend.createAlert({
+      level: 'yellow',
+      ...WINDOW,
+      targetKw: 300,
+      targetBarangayIds: [],
+      message: 'second',
+    });
+    const log = backend.listAlerts();
+    expect(log.map((a) => a.id)).toEqual([next.id, alertId]);
+    expect(log.map((a) => a.status)).toEqual(['active', 'cancelled']);
+    expect(log[0]!.createdBy).toBe('operator');
+    expect(backend.listAlerts(1)).toHaveLength(1);
+  });
+});
+
 describe('operator override of barangay targets', () => {
   it('changes only the named barangay and marks it as an override', () => {
     const { backend, alertId } = setup();

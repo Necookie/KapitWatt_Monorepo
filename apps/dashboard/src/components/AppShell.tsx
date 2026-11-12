@@ -10,13 +10,11 @@ import { Tag, Txt } from './ui';
 const NAV = [
   { href: '/', label: 'Live load' },
   { href: '/alerts/new', label: 'Send alert' },
+  { href: '/alerts/log', label: 'Alert log' },
   { href: '/simulator', label: 'Simulator' },
 ] as const;
 
-const LATER = [
-  { href: '/flagged', label: 'Flagged readings' },
-  { href: '/alerts/log', label: 'Alert log' },
-] as const;
+const LATER = [{ href: '/flagged', label: 'Flagged readings' }] as const;
 
 function NavLink({ href, label, later }: { href: string; label: string; later?: boolean }) {
   const pathname = usePathname();

@@ -247,6 +247,14 @@ export class MemoryBackend {
     return alert;
   }
 
+  /** GET /alerts: the alert log, newest first. Cancelled and pre-reset alerts stay in it. */
+  listAlerts(limit = 20): Alert[] {
+    return this.alerts
+      .map((a) => a.alert)
+      .reverse()
+      .slice(0, limit);
+  }
+
   getAlert(alertId: string): Alert {
     return this.find(alertId).alert;
   }
