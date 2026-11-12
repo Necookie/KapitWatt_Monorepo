@@ -59,6 +59,12 @@ async function phase1Households() {
   const { json: list } = await call('GET', '/barangays');
   const all = list.barangays as { id: string; municipality: string }[];
   check(all.length === 21, 'GET /barangays lists the 21 pilot barangays');
+  check(
+    (list.barangays as { optedInHouseholds?: number }[]).every(
+      (b) => typeof b.optedInHouseholds === 'number',
+    ),
+    'each barangay carries its opted-in household count',
+  );
   // Use a barangay where no real phone is registered, so the phase 2 push cannot reach anyone.
   const quiet = new Set(
     (
@@ -185,6 +191,12 @@ async function phase2Alerts(ctx: Awaited<ReturnType<typeof phase1Households>>) {
       totals.barangays.length === 1 &&
       totals.barangays[0]?.targetKw === 10,
     'totals: 0 kW committed, whole target on the one barangay',
+  );
+  check(
+    totals.status === 'active' &&
+      totals.barangays[0]?.households === 2 &&
+      totals.deliveredAmiKw === 0,
+    'totals carry status, opted-in households (the 2 test households) and the path split',
   );
 
   const override = await call(

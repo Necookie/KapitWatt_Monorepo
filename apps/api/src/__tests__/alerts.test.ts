@@ -82,19 +82,50 @@ describe('computeTotals', () => {
     { barangayId: B2, name: 'Calios', municipality: 'Santa Cruz', targetKw: 1, isOverride: false },
   ];
 
+  const input = {
+    alertId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+    targetKw: 1.8,
+    windowHours: 2,
+    status: 'window_open' as const,
+    targets,
+    optedIn: { [B1]: 40, [B2]: 50 },
+  };
+
   it('sums committed and delivered per barangay and marks targets hit', () => {
     const totals = AlertTotals.parse(
-      computeTotals('7c9e6679-7425-40de-944b-e07fc1f90ae7', 1.8, 2, targets, [
-        workedExample,
-        { ...workedExample, id: 'c2', barangayId: B2, after: null },
-      ]),
+      computeTotals({
+        ...input,
+        commitments: [workedExample, { ...workedExample, id: 'c2', barangayId: B2, after: null }],
+      }),
     );
     expect(totals.committedKw).toBe(2);
     expect(totals.deliveredKw).toBe(0.8);
-    expect(totals.barangays.map((b) => [b.committedKw, b.deliveredKw, b.targetHit])).toEqual([
-      [1, 0.8, true],
-      [1, 0, false],
+    expect(totals.status).toBe('window_open');
+    expect(totals.committedHouseholds).toBe(2);
+    expect(
+      totals.barangays.map((b) => [b.committedKw, b.deliveredKw, b.targetHit, b.households]),
+    ).toEqual([
+      [1, 0.8, true, 40],
+      [1, 0, false, 50],
     ]);
+  });
+
+  it('splits delivered kW by path, and the parts add up to the total', () => {
+    const ami: TotalsCommitmentRow = {
+      ...workedExample,
+      id: 'c3',
+      path: 'ami',
+      before: null,
+      after: null,
+      amiKwh: 1.1,
+      amiIntervals: 12,
+    };
+    const totals = computeTotals({ ...input, commitments: [workedExample, ami] });
+    expect(totals.deliveredAmiKw).toBe(0.8);
+    expect(totals.deliveredPhotoKw).toBe(0.8);
+    expect(totals.deliveredKw).toBe(1.6);
+    const [b1] = totals.barangays;
+    expect(b1!.deliveredAmiKw! + b1!.deliveredPhotoKw!).toBeCloseTo(b1!.deliveredKw);
   });
 });
 

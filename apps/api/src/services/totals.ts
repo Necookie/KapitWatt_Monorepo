@@ -2,6 +2,7 @@ import {
   getAlert,
   listAlertTargets,
   listTotalsCommitments,
+  optedInCounts,
   type AlertTargetRow,
   type Db,
   type TotalsCommitmentRow,
@@ -12,9 +13,11 @@ import {
   barangayTargetHit,
   roundKw,
   verifyCut,
+  type AlertStatus,
   type AlertTotals,
 } from '@kapitwatt/shared';
 import { notFound } from '../lib/errors';
+import { deriveAlertStatus } from './alert-view';
 
 const HOUR_MS = 3_600_000;
 
@@ -50,50 +53,102 @@ export function deliveredKw(c: TotalsCommitmentRow, windowHours: number): number
   }).paidCutKw;
 }
 
-/** Live committed and delivered kW, overall and per targeted barangay. Pure. */
-export function computeTotals(
-  alertId: string,
-  targetKw: number,
-  windowHours: number,
-  targets: AlertTargetRow[],
-  commitments: TotalsCommitmentRow[],
-): AlertTotals {
-  const committed = new Map<string, number>();
-  const delivered = new Map<string, number>();
-  for (const c of commitments) {
-    committed.set(c.barangayId, (committed.get(c.barangayId) ?? 0) + c.committedKw);
-    delivered.set(c.barangayId, (delivered.get(c.barangayId) ?? 0) + deliveredKw(c, windowHours));
+export interface TotalsInput {
+  alertId: string;
+  targetKw: number;
+  windowHours: number;
+  status: AlertStatus;
+  targets: AlertTargetRow[];
+  commitments: TotalsCommitmentRow[];
+  /** Opted-in households per barangay (what the target was split by). */
+  optedIn: Record<string, number>;
+}
+
+interface Tally {
+  committedKw: number;
+  committedHouseholds: number;
+  amiKw: number;
+  photoKw: number;
+}
+
+/**
+ * Live committed and delivered kW, overall and per targeted barangay, with delivered kW split by
+ * verification path. Each barangay's delivered kW is the sum of its rounded path parts, so the parts
+ * always add up to the total shown. Pure.
+ */
+export function computeTotals(input: TotalsInput): AlertTotals {
+  const tally = new Map<string, Tally>();
+  for (const c of input.commitments) {
+    const t = tally.get(c.barangayId) ?? {
+      committedKw: 0,
+      committedHouseholds: 0,
+      amiKw: 0,
+      photoKw: 0,
+    };
+    t.committedKw += c.committedKw;
+    t.committedHouseholds += 1;
+    const kw = deliveredKw(c, input.windowHours);
+    if (c.path === 'ami') t.amiKw += kw;
+    else t.photoKw += kw;
+    tally.set(c.barangayId, t);
   }
-  const barangays = targets.map((t) => {
-    const d = roundKw(delivered.get(t.barangayId) ?? 0);
+
+  const barangays = input.targets.map((target) => {
+    const t = tally.get(target.barangayId);
+    const deliveredAmiKw = roundKw(t?.amiKw ?? 0);
+    const deliveredPhotoKw = roundKw(t?.photoKw ?? 0);
+    const delivered = roundKw(deliveredAmiKw + deliveredPhotoKw);
     return {
-      barangayId: t.barangayId,
-      name: t.name,
-      municipality: t.municipality,
-      targetKw: t.targetKw,
-      committedKw: roundKw(committed.get(t.barangayId) ?? 0),
-      deliveredKw: d,
-      targetHit: barangayTargetHit(d, t.targetKw),
+      barangayId: target.barangayId,
+      name: target.name,
+      municipality: target.municipality,
+      targetKw: target.targetKw,
+      committedKw: roundKw(t?.committedKw ?? 0),
+      deliveredKw: delivered,
+      targetHit: barangayTargetHit(delivered, target.targetKw),
+      households: input.optedIn[target.barangayId] ?? 0,
+      committedHouseholds: t?.committedHouseholds ?? 0,
+      deliveredAmiKw,
+      deliveredPhotoKw,
     };
   });
-  const sum = (m: Map<string, number>) => roundKw([...m.values()].reduce((a, b) => a + b, 0));
+
+  const total = (pick: (b: (typeof barangays)[number]) => number) =>
+    roundKw(barangays.reduce((sum, b) => sum + pick(b), 0));
   return {
-    alertId,
-    targetKw,
-    committedKw: sum(committed),
-    deliveredKw: sum(delivered),
+    alertId: input.alertId,
+    targetKw: input.targetKw,
+    committedKw: total((b) => b.committedKw),
+    deliveredKw: total((b) => b.deliveredKw),
     barangays,
+    status: input.status,
+    committedHouseholds: barangays.reduce((sum, b) => sum + b.committedHouseholds, 0),
+    deliveredAmiKw: total((b) => b.deliveredAmiKw),
+    deliveredPhotoKw: total((b) => b.deliveredPhotoKw),
   };
 }
 
-/** GET /alerts/:id/totals. Three queries, whatever the number of households. */
+/** GET /alerts/:id/totals. Four queries, whatever the number of households. */
 export async function alertTotals(db: Db, alertId: string, isDemo: boolean): Promise<AlertTotals> {
   const alert = await getAlert(db, alertId, isDemo);
   if (!alert) throw notFound('Alert');
-  const [targets, commitments] = await Promise.all([
+  const [targets, commitments, optedIn] = await Promise.all([
     listAlertTargets(db, alertId),
     listTotalsCommitments(db, alertId, isDemo),
+    optedInCounts(db, alert.targetBarangayIds),
   ]);
-  const windowHours = (alert.windowEnd.getTime() - alert.windowStart.getTime()) / HOUR_MS;
-  return computeTotals(alertId, alert.targetKw, windowHours, targets, commitments);
+  return computeTotals({
+    alertId,
+    targetKw: alert.targetKw,
+    windowHours: (alert.windowEnd.getTime() - alert.windowStart.getTime()) / HOUR_MS,
+    status: deriveAlertStatus(
+      alert.storedStatus,
+      alert.windowStart,
+      alert.windowEnd,
+      alert.effectiveNow,
+    ),
+    targets,
+    commitments,
+    optedIn,
+  });
 }
