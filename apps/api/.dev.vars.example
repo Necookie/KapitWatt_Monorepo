@@ -1,5 +1,7 @@
-# Copy to .dev.vars (gitignored). Local secrets for `wrangler dev`.
-# DATABASE_URL is NOT set here: `pnpm dev:api` reads it from the repo root
-# .env.local, which `neon env pull` writes.
-SIM_KEY=change-me
-OPERATOR_KEY=change-me
+# Names only. Values live in Doppler (project kapitwatt); `pnpm dev:api` injects them.
+# Do not create apps/api/.dev.vars: wrangler would read it instead of Doppler.
+DATABASE_URL=
+SIM_KEY=
+OPERATOR_KEY=
+# Optional: Expo access token for push (enhanced push security).
+EXPO_ACCESS_TOKEN=

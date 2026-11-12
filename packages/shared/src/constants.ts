@@ -27,7 +27,23 @@ export const PHOTO_RULES = {
 export const SETTLEMENT_DELAY_MIN = 30;
 
 export const COMMIT_PRESETS_KW = [0.5, 1, 1.5, 2] as const;
+/** The stepper moves in 0.1 kW, the precision kW is kept to. */
+export const COMMIT_STEP_KW = 0.1;
+/** Largest single commitment, whatever the baseline says. Placeholder. */
+export const MAX_COMMIT_KW = 5;
 export const DEFAULT_WINDOW_HOURS = 2;
+
+/** GPS check: a photo must be taken within this many metres of the registered address. Placeholder. */
+export const GPS_MAX_DISTANCE_M = 200;
+/** Rehearsal: the two practice photos must be at least this far apart to measure a baseline. Placeholder. */
+export const REHEARSAL_MIN_MINUTES = 30;
+/** Largest meter photo the API accepts. */
+export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+
+/** Meralco AMI meters record in 5-minute intervals. */
+export const AMI_INTERVAL_MIN = 5;
+/** AMI settlement needs at least this share of the window's intervals; less counts as missing data. */
+export const AMI_MIN_COVERAGE = 0.8;
 
 /** Dashboard live totals use short polling. */
 export const POLL_INTERVAL_MS = 2000;

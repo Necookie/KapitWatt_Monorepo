@@ -1,26 +1,37 @@
-import { zValidator } from '@hono/zod-validator';
-import { RegisterHouseholdInput } from '@kapitwatt/shared';
+import { RegisterHouseholdInput, UpdatePushTokenInput } from '@kapitwatt/shared';
 import { Hono } from 'hono';
-import { z } from 'zod';
 import type { AppEnv } from '../env';
-import { notImplemented } from '../lib/todo';
+import { validate } from '../lib/validate';
 import { householdAuth } from '../middleware/auth';
+import { clientIp, rateLimit } from '../middleware/rate-limit';
+import * as households from '../services/households';
 
 /** Sign-up and opt-in. P0. */
 export const auth = new Hono<AppEnv>();
 
-// Opt in, register meter type and serial, store consent. Returns the household and its token.
-auth.post('/register', zValidator('json', RegisterHouseholdInput), (c) =>
-  notImplemented(c, 'register household'),
+const perHousehold = rateLimit('RL_HOUSEHOLD', (c) => `hh:${c.var.householdId}`);
+
+// Opt in, register meter type and serial, store consent. Returns the token once, plus the household.
+auth.post(
+  '/register',
+  rateLimit('RL_REGISTER', (c) => `register:${clientIp(c)}`),
+  validate('json', RegisterHouseholdInput),
+  async (c) => c.json(await households.register(c.var.db, c.req.valid('json')), 201),
 );
 
 // Store or refresh the Expo push token.
 auth.put(
   '/push-token',
   householdAuth,
-  zValidator('json', z.object({ pushToken: z.string() })),
-  (c) => notImplemented(c, 'store push token'),
+  perHousehold,
+  validate('json', UpdatePushTokenInput),
+  async (c) => {
+    await households.setPushToken(c.var.db, c.var.householdId, c.req.valid('json').pushToken);
+    return c.body(null, 204);
+  },
 );
 
-// Current household: baseline, trust score, commit cap, points.
-auth.get('/me', householdAuth, (c) => notImplemented(c, 'get current household'));
+// Current household: baseline, rehearsal progress, trust score, commit cap, points.
+auth.get('/me', householdAuth, async (c) =>
+  c.json(await households.me(c.var.db, c.var.householdId)),
+);

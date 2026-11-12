@@ -47,14 +47,14 @@ Replace them in place; keep the route paths.
 
 ```bash
 pnpm install                 # once, from the repo root
-pnpm dev:api                 # wrangler dev on http://localhost:8787
+doppler setup                # once, after `doppler login`; doppler.yaml names project kapitwatt, config dev
+pnpm dev:api                 # doppler run -- wrangler dev on http://localhost:8787
 pnpm dev:mobile              # expo start (Expo Go / dev build)
 pnpm dev:dashboard           # expo start --web
 pnpm typecheck               # tsc --noEmit in every package
 pnpm test                    # vitest in shared and sim
 pnpm format                  # prettier
 pnpm build                   # typecheck all + bundle API (dry run) + export dashboard
-neon env pull                # write the linked Neon branch's DATABASE_URL(s) to .env.local
 pnpm db:migrate              # apply packages/db/migrations/*.sql (direct connection)
 pnpm db:seed                 # load the 21 pilot barangays (reference data, safe to re-run)
 pnpm db:smoke                # insert, read back, delete one row through the app's driver
@@ -218,18 +218,32 @@ Simulated households are flagged `is_simulated`; reset deletes those rows only.
 ## Open decisions (do not decide these silently; ask)
 
 - (Decided: the database is **Neon**. See "Database" below.)
-- **Photo storage:** Cloudflare R2 or Supabase Storage (private bucket either way).
+- (Decided: meter photos go to a private **Cloudflare R2** bucket bound to the API Worker, never public.)
+- (Decided: smart-meter 5-minute data goes to its own `ami_intervals` table; `meter_readings` is photo-only.)
+- (Decided: env and secrets live in **Doppler**, project `kapitwatt`. See "Environment" below.)
 - **Which barangays:** the 21 names in `PILOT_BARANGAYS` (`packages/shared/src/constants.ts`) are real PSA
   names, but which 3 per town is our own sample. Change them there, then run `pnpm db:seed`.
 - **Liliw franchise coverage** and **Laguna smart-meter coverage:** to confirm with Meralco.
 - **Lint:** no ESLint config yet; Prettier only.
 
+## Environment (Doppler)
+
+- Every secret and env var lives in Doppler, project `kapitwatt` (config `dev` for local work). The
+  committed `doppler.yaml` names the project and config; it holds no secrets.
+- Once per machine: `doppler login` (add `--scope <repo path>` if you also use other Doppler workplaces),
+  then `doppler setup` in the repo root.
+- The root scripts (`dev:*`, `db:*`, `deploy:api`) run under `doppler run --`, so values reach the process
+  env and are never written to disk. Expo reads `EXPO_PUBLIC_*` from it at bundle time.
+- The API Worker declares `secrets.required` in `wrangler.jsonc`, so `wrangler dev` reads them from the
+  process env. **Do not create `apps/api/.dev.vars`**: if it exists, wrangler uses it instead of Doppler.
+- Never print secret values. To see what is set: `doppler secrets --only-names`.
+
 ## Database (Neon)
 
 - Linked with the Neon CLI (`neon`, not `neonctl`): the gitignored `.neon` file pins the org, project and
   branch (`production`). `neon.ts` at the root declares Neon services; Postgres only for now.
-- `neon env pull` (or `neon deploy`) writes `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct)
-  into the root `.env.local`. Never commit it. `pnpm dev:api` loads it automatically.
+- `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) come from Doppler. (`neon env pull` still
+  works for a quick local `.env.local`, which the db scripts read if present, but Doppler is the source.)
 - **App traffic uses the pooled `DATABASE_URL`** through `@neondatabase/serverless` over HTTP (Neon's
   recommendation for Workers without Hyperdrive). One HTTPS request per query, nothing to pool or close.
   For atomic multi-statement writes such as settlement, use `db.transaction([...])`.
@@ -244,15 +258,16 @@ Simulated households are flagged `is_simulated`; reset deletes those rows only.
 
 Live API: https://kapitwatt-api.dheyn-main.workers.dev (use as `EXPO_PUBLIC_API_URL` on phones).
 
-- API: `wrangler deploy` to Cloudflare Workers. Secrets `DATABASE_URL`, `SIM_KEY`, `OPERATOR_KEY` via
-  `wrangler secret put`; local values in `apps/api/.dev.vars` (copy from `.dev.vars.example`).
+- API: `pnpm deploy:api` runs `wrangler deploy` to Cloudflare Workers, then uploads `DATABASE_URL`,
+  `SIM_KEY`, `OPERATOR_KEY` (and `EXPO_ACCESS_TOKEN` if set) from Doppler with `wrangler secret bulk`.
 - Dashboard: `expo export --platform web`, then Cloudflare Pages serving `apps/dashboard/dist`.
 - Mobile: EAS build, Android APK. Expo Go during development. Push needs real phones; test it by hour 8 to 12.
 
 ## Conventions
 
 - TypeScript strict everywhere. Prettier (single quotes, 100 columns).
-- Never commit `.env`, `.dev.vars` or any key. Only the `*.example` files are tracked.
+- Never commit `.env`, `.dev.vars` or any key. Secrets live in Doppler; the `*.example` files only list
+  names.
 - Money is PHP rounded to 2 decimals; kW is kept to 0.1 (matches the plan's worked example).
 - Use server time for anything that affects a payout, never the phone clock.
 - **Branching: feature branch -> `dev` -> `main`.** `dev` is the default branch and where work

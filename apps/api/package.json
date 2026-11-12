@@ -4,13 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev --env-file ../../.env.local --env-file .dev.vars",
+    "dev": "wrangler dev",
     "build": "wrangler deploy --dry-run --outdir dist",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "tsx scripts/e2e.ts"
   },
   "dependencies": {
-    "@hono/zod-validator": "latest",
+    "@hono/zod-validator": "^0.9.1",
     "@kapitwatt/db": "workspace:*",
     "@kapitwatt/shared": "workspace:*",
     "@kapitwatt/sim": "workspace:*",
@@ -19,7 +21,9 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261112.1",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3",
+    "vitest": "^5.1.0",
     "wrangler": "^4.160.1"
   }
 }
