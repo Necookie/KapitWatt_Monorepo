@@ -79,8 +79,9 @@ export interface DemoWipeResult {
  * The clean slate before a demo. Deletes, in one transaction:
  *   every alert (with, by cascade, its commitments, readings, rewards, targets and settlement);
  *   every simulated household (and its smart-meter intervals);
- *   orphan sign-ups: real households with no email and no login token, which nobody can ever use
- *   (an older household that still holds a token is kept: a phone may still be signed in with it);
+ *   orphan sign-ups: real households with no email that nobody uses: no login token, or a token but
+ *   never a practice run and no push token (a sign-up the phone reported as failed, which never kept
+ *   the token). An older household in use (baseline or push token) is kept: a phone holds its token;
  *   the demo accounts' own leftover readings and intervals (a practice run done on stage).
  * Real households with a login keep their rows; their event history goes with the alerts.
  */
@@ -89,7 +90,8 @@ export async function wipeDemoWorld(db: Db): Promise<DemoWipeResult> {
     db`delete from alerts returning id`,
     db`delete from households where is_simulated returning id`,
     db`delete from households
-       where not is_simulated and not is_demo and email is null and auth_token_hash is null
+       where not is_simulated and not is_demo and email is null
+         and (auth_token_hash is null or (baseline_kw is null and push_token is null))
        returning id`,
     db`delete from meter_readings m using households h
        where m.household_id = h.id and h.is_demo`,
