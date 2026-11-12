@@ -1,6 +1,6 @@
-import type { Alert, AlertStatus } from '@kapitwatt/shared';
+import type { AlertStatus } from '@kapitwatt/shared';
 import { StyleSheet, View } from 'react-native';
-import { client, errorMessage } from '@/lib/client';
+import { client, errorMessage, type DashboardAlert } from '@/lib/client';
 import { STAGES, stageIndex, useAction, useCommitRunInProgress, useSimStatus } from '@/lib/queries';
 import { useSimParams } from '@/lib/sim-params';
 import { colors, space } from '@/theme';
@@ -12,7 +12,7 @@ import { Button, Notice, Txt } from './ui';
  *
  *   Sent ── Open window ──► Window open ── End window and measure ──► Measuring ── Settle ──► Settled
  */
-export function StageControl({ alert, status }: { alert: Alert; status: AlertStatus }) {
+export function StageControl({ alert, status }: { alert: DashboardAlert; status: AlertStatus }) {
   const { params } = useSimParams();
   const sim = useSimStatus();
   const hasSimulated = (sim.data?.simulatedHouseholds ?? 0) > 0;

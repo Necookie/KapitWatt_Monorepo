@@ -1,4 +1,5 @@
-import type { Alert, AlertStatus, AlertTotals } from '@kapitwatt/shared';
+import type { AlertStatus, AlertTotals } from '@kapitwatt/shared';
+import type { DashboardAlert } from '@/lib/client';
 import { StyleSheet, View } from 'react-native';
 import { clock, count, kw, percent } from '@/lib/format';
 import { colors, space } from '@/theme';
@@ -7,7 +8,13 @@ import { StageControl } from './StageControl';
 import { Card, LegendItem, Stat, Tag, Txt } from './ui';
 
 /** The alert in force: what was sent, where it stands, and the headline load figures. */
-export function AlertSummary({ alert, totals }: { alert: Alert; totals: AlertTotals | undefined }) {
+export function AlertSummary({
+  alert,
+  totals,
+}: {
+  alert: DashboardAlert;
+  totals: AlertTotals | undefined;
+}) {
   const status: AlertStatus = totals?.status ?? alert.status;
   const target = totals?.targetKw ?? alert.targetKw;
   const committed = totals?.committedKw ?? 0;

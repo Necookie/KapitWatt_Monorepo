@@ -28,6 +28,7 @@ packages/
   db/          Postgres schema, migrations, query helpers                   @kapitwatt/db
   sim/         Laguna seed data + event runner (demo only)                  @kapitwatt/sim
   config/      Shared tsconfig base                                         @kapitwatt/config
+  assets/      Logo, app icons, mascot, Albert Sans (see its README)        @kapitwatt/assets
 docs/          The full plan (PDF, source of truth), PRD, SRS, MVP
 ```
 
@@ -40,8 +41,11 @@ Inside each app:
 - `packages/shared/src/schemas/` (enums, entities, requests, sim) and `src/math/` (payout, baseline,
   barangay, checks).
 
-Screens and API routes are currently placeholders that return a `Placeholder` component or HTTP 501.
-Replace them in place; keep the route paths.
+Built so far in the API: sign-up, profile, push token, barangays, alerts (create, log, active, view,
+totals, targets) and commitments. Readings, rewards, settlement, fast-forward, leaderboard and the
+simulator routes still return HTTP 501. The mobile app still runs on its mock (`USE_MOCKS` in
+`apps/mobile/src/lib/config.ts`) and the dashboard on its fixture (`EXPO_PUBLIC_FIXTURES=1`) until those
+land. Replace placeholders in place; keep the route paths.
 
 ## Commands
 

@@ -1,6 +1,5 @@
-import { ApiErrorBody } from '@kapitwatt/shared';
+import { ActiveAlertResponse, AlertView, ApiErrorBody } from '@kapitwatt/shared';
 import type {
-  Alert,
   AlertTotals,
   BarangayWithCount,
   CreateAlertInput,
@@ -17,11 +16,14 @@ import { ApiError, api } from './api';
  * implementations: the live API, and a fixture that runs the real simulator against
  * an in-memory backend in the browser. Set EXPO_PUBLIC_FIXTURES=1 for the fixture.
  */
+/** What the dashboard reads of an alert: the API's AlertView without its clock. The fixture's Alert fits too. */
+export type DashboardAlert = Omit<AlertView, 'serverNow'>;
+
 export interface DashboardClient {
   listBarangays(): Promise<BarangayWithCount[]>;
   /** The alert the operator is working on, settled ones included. Null when there is none. */
-  getCurrentAlert(): Promise<Alert | null>;
-  createAlert(input: CreateAlertInput): Promise<Alert>;
+  getCurrentAlert(): Promise<DashboardAlert | null>;
+  createAlert(input: CreateAlertInput): Promise<DashboardAlert>;
   getTotals(alertId: string): Promise<AlertTotals>;
   fastForward(alertId: string, to: FastForwardInput['to']): Promise<void>;
   settle(alertId: string): Promise<void>;
@@ -67,7 +69,7 @@ const liveClient: DashboardClient = {
     const remembered = recallAlertId();
     if (remembered) {
       try {
-        const { alert } = await api<{ alert: Alert }>(`/alerts/${remembered}`);
+        const alert = AlertView.parse(await api(`/alerts/${remembered}`));
         if (alert.status !== 'cancelled') return alert;
         rememberAlertId(null);
       } catch (error) {
@@ -75,12 +77,18 @@ const liveClient: DashboardClient = {
         rememberAlertId(null);
       }
     }
-    const { alert } = await api<{ alert: Alert | null }>('/alerts/active');
+    const { alert } = ActiveAlertResponse.parse(await api('/alerts/active'));
     if (alert) rememberAlertId(alert.id);
     return alert;
   },
   async createAlert(input) {
-    const { alert } = await api<{ alert: Alert }>('/alerts', json(input));
+    // One key per confirm: a repeated request returns the same alert and sends no second push.
+    const alert = AlertView.parse(
+      await api('/alerts', {
+        ...json(input),
+        headers: { 'idempotency-key': globalThis.crypto.randomUUID() },
+      }),
+    );
     rememberAlertId(alert.id);
     return alert;
   },
