@@ -1,9 +1,9 @@
 import { themes } from '@kapitwatt/styles';
 import { StyleSheet, View } from 'react-native';
+import { radius, space } from '@kapitwatt/tokens';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { Row } from '@/components/ui';
 import { formatKw } from '@/utils/format';
-import { radius, space } from '@/styles/theme';
 
 const c = themes.light.color;
 
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
   panel: {
     borderRadius: radius.lg,
     backgroundColor: c.surfaceContainerLow,
-    padding: space.lg,
-    gap: space.sm,
+    padding: space[4],
+    gap: space[2],
   },
 });

@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { describeError } from '@/api/http';
 import { startOver } from '@/utils/nav';
+import { dateLabel } from '../utils/date-label';
 import { useDeleteAccount, useHistory, useLogout, useMe, useUpdateProfile } from '@/api/queries';
 
 /**
@@ -21,9 +22,14 @@ export function useProfile() {
   const [address, setAddress] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [password, setPassword] = useState('');
-  const [pulling, setPulling] = useState(false);
 
   const savedKwh = (history.data ?? []).reduce((t, i) => t + (i.result?.verifiedKwh ?? 0), 0);
+  // The band: the household's name over its barangay.
+  const title = me.data?.accountName ?? 'Household';
+  const place = me.data ? `${me.data.barangayName}, ${me.data.municipality}` : undefined;
+  const consentDetail = me.data?.consentAt
+    ? `Consent given ${dateLabel(me.data.consentAt)}`
+    : 'Consent not recorded';
   const edit = UpdateProfileInput.safeParse({ accountName: name, serviceAddress: address });
   const saveError = update.isError
     ? describeError(update.error, {}, 'Could not save your changes. Try again.')
@@ -37,10 +43,8 @@ export function useProfile() {
     : null;
 
   const leave = () => startOver('/welcome');
-  const refresh = () => {
-    setPulling(true);
-    void Promise.all([me.refetch(), history.refetch()]).finally(() => setPulling(false));
-  };
+  // Pull to refresh (the shared Screen shows the spinner until both are back).
+  const refresh = () => Promise.all([me.refetch(), history.refetch()]);
   const startEdit = () => {
     update.reset();
     setName(me.data?.accountName ?? '');
@@ -76,7 +80,9 @@ export function useProfile() {
     deleting,
     password,
     setPassword,
-    pulling,
+    title,
+    place,
+    consentDetail,
     savedKwh,
     canSave: edit.success,
     saveError,

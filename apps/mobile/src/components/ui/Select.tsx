@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius, space, text } from '@/styles/theme';
+import { fontFamily, radius, space, withAlpha } from '@kapitwatt/tokens';
+import { themes } from '@kapitwatt/styles';
+import { Text } from '@kapitwatt/ui';
+
+const c = themes.light.color;
 
 /**
  * Dropdown: a field showing the current choice; tapping it opens a list of options in a sheet.
@@ -21,7 +25,9 @@ export function Select<T extends string>(props: {
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{props.label}</Text>
+      <Text variant="bodyLarge" style={styles.label}>
+        {props.label}
+      </Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${props.label}: ${selected?.label ?? 'not chosen'}`}
@@ -30,10 +36,16 @@ export function Select<T extends string>(props: {
         onPress={() => setOpen(true)}
         style={[styles.input, props.disabled && styles.disabled]}
       >
-        <Text style={[styles.value, !selected && styles.placeholder]} numberOfLines={1}>
+        <Text
+          variant="bodyLarge"
+          style={[styles.value, !selected && styles.placeholder]}
+          numberOfLines={1}
+        >
           {selected?.label ?? props.placeholder ?? 'Choose…'}
         </Text>
-        <Text style={styles.chevron}>▾</Text>
+        <Text variant="bodyLarge" style={styles.chevron}>
+          ▾
+        </Text>
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
@@ -42,8 +54,10 @@ export function Select<T extends string>(props: {
           onPress={() => setOpen(false)}
           accessibilityLabel="Close"
         />
-        <View style={[styles.sheet, { paddingBottom: space.lg + insets.bottom }]}>
-          <Text style={styles.sheetTitle}>{props.label}</Text>
+        <View style={[styles.sheet, { paddingBottom: space[4] + insets.bottom }]}>
+          <Text variant="titleLarge" style={styles.sheetTitle}>
+            {props.label}
+          </Text>
           <FlatList
             data={props.options}
             keyExtractor={(o) => o.value}
@@ -63,10 +77,17 @@ export function Select<T extends string>(props: {
                     pressed && styles.optionPressed,
                   ]}
                 >
-                  <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>
+                  <Text
+                    variant="bodyLarge"
+                    style={[styles.optionLabel, active && styles.optionLabelActive]}
+                  >
                     {item.label}
                   </Text>
-                  {active ? <Text style={styles.check}>✓</Text> : null}
+                  {active ? (
+                    <Text variant="bodyLarge" style={styles.check}>
+                      ✓
+                    </Text>
+                  ) : null}
                 </Pressable>
               );
             }}
@@ -78,43 +99,43 @@ export function Select<T extends string>(props: {
 }
 
 const styles = StyleSheet.create({
-  field: { gap: space.xs },
-  label: { ...text.body, fontFamily: fonts.semibold, color: colors.ink },
+  field: { gap: space[1] },
+  label: { fontFamily: fontFamily.semibold, color: c.onSurface },
   input: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.sm,
+    gap: space[2],
     minHeight: 50,
-    backgroundColor: colors.background,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: c.outlineVariant,
     borderRadius: radius.md,
-    paddingHorizontal: space.md,
+    paddingHorizontal: space[3],
   },
   disabled: { opacity: 0.45 },
-  value: { ...text.body, color: colors.ink, flex: 1 },
-  placeholder: { color: colors.muted },
-  chevron: { ...text.body, color: colors.muted },
-  backdrop: { flex: 1, backgroundColor: 'rgba(15, 42, 67, 0.4)' },
+  value: { color: c.onSurface, flex: 1 },
+  placeholder: { color: c.onSurfaceVariant },
+  chevron: { color: c.onSurfaceVariant },
+  backdrop: { flex: 1, backgroundColor: withAlpha(c.scrim, 0.4) },
   sheet: {
     maxHeight: '60%',
-    backgroundColor: colors.background,
+    backgroundColor: c.surface,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
-    paddingTop: space.lg,
-    paddingHorizontal: space.lg,
+    paddingTop: space[4],
+    paddingHorizontal: space[4],
   },
-  sheetTitle: { ...text.title, color: colors.ink, marginBottom: space.sm },
+  sheetTitle: { color: c.onSurface, marginBottom: space[2] },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: space.md,
-    paddingHorizontal: space.md,
+    paddingVertical: space[3],
+    paddingHorizontal: space[3],
     borderRadius: radius.md,
   },
-  optionActive: { backgroundColor: colors.surface },
-  optionPressed: { backgroundColor: colors.surface },
-  optionLabel: { ...text.body, color: colors.ink, flex: 1 },
-  optionLabelActive: { fontFamily: fonts.semibold },
-  check: { ...text.body, color: colors.teal, fontFamily: fonts.semibold },
+  optionActive: { backgroundColor: c.surfaceContainerHighest },
+  optionPressed: { backgroundColor: c.surfaceContainerHighest },
+  optionLabel: { color: c.onSurface, flex: 1 },
+  optionLabelActive: { fontFamily: fontFamily.semibold },
+  check: { color: c.primary, fontFamily: fontFamily.semibold },
 });

@@ -2,8 +2,8 @@ import { themes } from '@kapitwatt/styles';
 import { Text, type MascotPose } from '@kapitwatt/ui';
 import { forwardRef, type ComponentRef } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { fontFamily } from '@kapitwatt/tokens';
 import { LivingMascot } from '@/components/mascot/LivingMascot';
-import { fonts } from '@/styles/theme';
 import { HEADING_MASCOT } from '../utils/heading-mascot';
 
 const c = themes.light.color;
@@ -52,6 +52,6 @@ export const StepHeading = forwardRef<
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   words: { flex: 1, gap: 2 },
-  label: { fontFamily: fonts.semibold, letterSpacing: 0.5 },
+  label: { fontFamily: fontFamily.semibold, letterSpacing: 0.5 },
   line: { fontSize: 22, lineHeight: 28, color: c.onSurface },
 });

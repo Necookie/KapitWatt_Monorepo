@@ -2,9 +2,9 @@ import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { radius } from '@kapitwatt/tokens';
 import { useReveal, type RevealTarget } from '@/components/ui';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { radius } from '@/styles/theme';
 
 const t = themes.light;
 const c = t.color;

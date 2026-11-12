@@ -4,7 +4,8 @@ import { Text } from '@kapitwatt/ui';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '@/styles/theme';
+import { fontFamily } from '@kapitwatt/tokens';
+import { TabLantern } from './TabLantern';
 
 const c = themes.light.color;
 
@@ -18,7 +19,7 @@ const TABS: Record<string, { label: string; icon: IconName }> = {
 
 /**
  * The "clean bar" from the mockups: white, a hairline on top, the active tab in primary with its
- * filled icon and a short indicator bar above it.
+ * filled icon and a small lit lantern hanging above it.
  */
 export function CleanTabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -46,7 +47,7 @@ export function CleanTabBar({ state, emitter, navigateToTab }: BottomTabBarProps
             }}
             style={styles.tab}
           >
-            <View style={[styles.indicator, focused && styles.indicatorOn]} />
+            <TabLantern on={focused} />
             <Icon name={tab.icon} weight={focused ? 'fill' : 'regular'} color={color} />
             <Text variant="labelMedium" style={[{ color }, focused && styles.labelOn]}>
               {tab.label}
@@ -66,15 +67,7 @@ const styles = StyleSheet.create({
     borderTopColor: c.outlineVariant,
     paddingHorizontal: 8,
   },
-  tab: { flex: 1, alignItems: 'center', gap: 4, paddingTop: 10, minHeight: 56 },
-  indicator: {
-    position: 'absolute',
-    top: -1,
-    width: 32,
-    height: 3,
-    borderBottomLeftRadius: 3,
-    borderBottomRightRadius: 3,
-  },
-  indicatorOn: { backgroundColor: c.primary },
-  labelOn: { fontFamily: fonts.semibold },
+  // Room at the top for the active tab's lantern.
+  tab: { flex: 1, alignItems: 'center', gap: 4, paddingTop: 16, minHeight: 60 },
+  labelOn: { fontFamily: fontFamily.semibold },
 });

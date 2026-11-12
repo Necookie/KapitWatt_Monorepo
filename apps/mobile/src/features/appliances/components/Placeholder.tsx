@@ -1,13 +1,23 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts } from '@/styles/theme';
+import { StyleSheet, View } from 'react-native';
+import { fontFamily } from '@kapitwatt/tokens';
+import { themes } from '@kapitwatt/styles';
+import { Text } from '@kapitwatt/ui';
+
+const c = themes.light.color;
 
 /** Stand-in for a screen that is routed but not built yet. Delete once nothing uses it. */
 export function Placeholder(props: { title: string; priority: 'P0' | 'P1' | 'P2'; todo: string }) {
   return (
     <View style={styles.root}>
-      <Text style={styles.priority}>{props.priority}</Text>
-      <Text style={styles.title}>{props.title}</Text>
-      <Text style={styles.todo}>{props.todo}</Text>
+      <Text variant="labelLarge" style={styles.priority}>
+        {props.priority}
+      </Text>
+      <Text variant="headlineSmall" style={styles.title}>
+        {props.title}
+      </Text>
+      <Text variant="bodyLarge" style={styles.todo}>
+        {props.todo}
+      </Text>
     </View>
   );
 }
@@ -18,9 +28,9 @@ const styles = StyleSheet.create({
     padding: 24,
     gap: 8,
     justifyContent: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: c.surface,
   },
-  priority: { color: colors.amber, fontFamily: fonts.semibold },
-  title: { color: colors.ink, fontSize: 24, fontFamily: fonts.semibold },
-  todo: { color: colors.muted, fontSize: 16, lineHeight: 22 },
+  priority: { color: c.simulated, fontFamily: fontFamily.semibold },
+  title: { color: c.onSurface },
+  todo: { color: c.onSurfaceVariant },
 });

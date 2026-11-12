@@ -1,114 +1,36 @@
 import { Icon } from '@kapitwatt/icons';
+import { TextField as DsTextField, Text, type TextFieldProps } from '@kapitwatt/ui';
+import { useRef } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { radius, space } from '@kapitwatt/tokens';
 import { themes } from '@kapitwatt/styles';
-import { Text } from '@kapitwatt/ui';
-import { useRef, useState, type ComponentRef, type Ref } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
-import { colors, radius, space } from '@/styles/theme';
 import { useReveal, type RevealTarget } from './reveal';
 
-const t = themes.light;
-const c = t.color;
+const c = themes.light.color;
 
 /**
- * A labelled text input with the same frame as a button: 56 px tall, 12 px corners (mockup page 1,
- * Log in). White fill so it reads as tappable; 2 px primary border while focused, error border and
- * message when `error` is set. Password fields (`secureTextEntry`) get a show/hide eye. `ref` reaches
- * the input (to move focus to it from the field before). On focus the screen scrolls the whole
- * field into view above the keyboard (Screen).
+ * The design system's text field (@kapitwatt/ui: outlined, label above, error or supporting text
+ * below, the eye on password fields, `ref` to the input), plus one thing only the phone needs: on
+ * focus the screen scrolls the whole field into view above the keyboard (Screen).
  */
-export function TextField(
-  props: Omit<TextInputProps, 'style'> & {
-    label: string;
-    hint?: string;
-    error?: string;
-    /** Unit shown inside the field on the right, e.g. "kWh". */
-    suffix?: string;
-    ref?: Ref<ComponentRef<typeof TextInput>>;
-  },
-) {
-  const {
-    label,
-    hint,
-    error,
-    suffix,
-    secureTextEntry,
-    onFocus,
-    onBlur,
-    editable = true,
-    ref,
-    ...input
-  } = props;
-  const [focused, setFocused] = useState(false);
-  const [revealed, setRevealed] = useState(false);
+export function TextField(props: TextFieldProps) {
   const box = useRef<RevealTarget>(null);
   const reveal = useReveal();
-  const strong = focused || !!error;
-
   return (
     <View ref={box} style={styles.field}>
-      <Text variant="labelLarge" color={error ? 'error' : 'onSurfaceVariant'}>
-        {label}
-      </Text>
-      <View
-        style={[
-          styles.frame,
-          {
-            borderWidth: strong ? t.borderWidth.strong : t.borderWidth.hairline,
-            borderColor: error ? c.error : focused ? c.primary : c.outline,
-            // Keep the text still when the border thickens.
-            paddingLeft: strong ? 15 : 16,
-            backgroundColor: editable ? c.surfaceContainerLowest : c.surfaceContainerHigh,
-          },
-        ]}
-      >
-        <TextInput
-          {...input}
-          ref={ref}
-          editable={editable}
-          secureTextEntry={secureTextEntry && !revealed}
-          accessibilityLabel={label}
-          placeholderTextColor={c.onSurfaceVariant}
-          onFocus={(e) => {
-            setFocused(true);
-            reveal(box.current);
-            onFocus?.(e);
-          }}
-          onBlur={(e) => {
-            setFocused(false);
-            onBlur?.(e);
-          }}
-          style={styles.input}
-        />
-        {suffix ? (
-          <Text color="onSurfaceVariant" style={styles.suffix}>
-            {suffix}
-          </Text>
-        ) : null}
-        {secureTextEntry ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={revealed ? 'Hide password' : 'Show password'}
-            onPress={() => setRevealed((r) => !r)}
-            style={styles.eye}
-          >
-            <Icon name={revealed ? 'hide' : 'show'} color="onSurfaceVariant" />
-          </Pressable>
-        ) : null}
-      </View>
-      {error || hint ? (
-        <Text variant="bodyMedium" color={error ? 'error' : 'onSurfaceVariant'}>
-          {error ?? hint}
-        </Text>
-      ) : null}
+      <DsTextField
+        {...props}
+        onFocus={(e) => {
+          reveal(box.current);
+          props.onFocus?.(e);
+        }}
+      />
     </View>
   );
 }
 
-/**
- * A password input: a TextField that starts hidden, with the eye on the right to show it and hide
- * it again, so a household can check what it typed on a small keyboard.
- */
-export function PasswordField(props: Omit<Parameters<typeof TextField>[0], 'secureTextEntry'>) {
+/** A password field: the text field hidden, with the eye to show it and hide it again. */
+export function PasswordField(props: Omit<TextFieldProps, 'secureTextEntry'>) {
   return <TextField autoCapitalize="none" autoCorrect={false} {...props} secureTextEntry />;
 }
 
@@ -123,7 +45,7 @@ export function Checkbox(props: {
       accessibilityRole="checkbox"
       accessibilityState={{ checked: props.checked }}
       accessibilityLabel={props.label}
-      hitSlop={space.sm}
+      hitSlop={space[2]}
       onPress={() => props.onChange(!props.checked)}
       style={styles.checkRow}
     >
@@ -136,41 +58,18 @@ export function Checkbox(props: {
 }
 
 const styles = StyleSheet.create({
-  field: { gap: 6, alignSelf: 'stretch' },
-  frame: {
-    height: t.size.controlLg,
-    borderRadius: radius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingRight: 4,
-  },
-  input: {
-    ...t.text.bodyLarge,
-    flex: 1,
-    minWidth: 0,
-    height: '100%',
-    color: c.onSurface,
-    paddingVertical: 0,
-  },
-  suffix: { paddingHorizontal: 12 },
-  eye: {
-    width: t.size.touchTarget,
-    height: t.size.touchTarget,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkRow: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
+  field: { alignSelf: 'stretch' },
+  checkRow: { flexDirection: 'row', gap: space[3], alignItems: 'flex-start' },
   box: {
     width: 24,
     height: 24,
     marginTop: 2,
     borderRadius: radius.sm / 2,
     borderWidth: 2,
-    borderColor: colors.teal,
+    borderColor: c.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  boxChecked: { backgroundColor: colors.teal },
+  boxChecked: { backgroundColor: c.primary },
   checkLabel: { flex: 1 },
 });

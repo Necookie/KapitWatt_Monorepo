@@ -3,7 +3,7 @@ import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { space } from '@/styles/theme';
+import { space, stateLayer, withAlpha } from '@kapitwatt/tokens';
 
 const c = themes.light.color;
 
@@ -54,11 +54,11 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
+    gap: space[3],
     minHeight: 56,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    paddingHorizontal: space[4],
+    paddingVertical: space[3],
   },
   divider: { borderBottomWidth: 1, borderBottomColor: c.outlineVariant },
-  pressed: { backgroundColor: c.surfaceContainerLow },
+  pressed: { backgroundColor: withAlpha(c.onSurface, stateLayer.pressed) },
 });

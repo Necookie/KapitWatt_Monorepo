@@ -2,7 +2,7 @@ import { Icon } from '@kapitwatt/icons';
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { radius, space } from '@/styles/theme';
+import { radius, space } from '@kapitwatt/tokens';
 
 const c = themes.light.color;
 
@@ -41,12 +41,12 @@ export function MeterCard(props: {
 }
 
 const styles = StyleSheet.create({
-  meterCard: { flex: 1, borderRadius: radius.md, padding: 14, gap: space.xs },
+  meterCard: { flex: 1, borderRadius: radius.md, padding: 14, gap: space[1] },
   meterPicture: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    marginBottom: space.xs,
+    marginBottom: space[1],
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: c.primaryContainer,

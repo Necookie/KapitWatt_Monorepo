@@ -14,6 +14,11 @@ export function serverNow(): number {
   return Date.now() + offsetMs;
 }
 
+/** How far the server clock is ahead of the phone's (ms), for the shared useCountdown. */
+export function serverOffsetMs(): number {
+  return offsetMs;
+}
+
 /** Server-corrected "now", re-rendering every second. */
 export function useServerNow(intervalMs = 1000): number {
   const [now, setNow] = useState(serverNow);

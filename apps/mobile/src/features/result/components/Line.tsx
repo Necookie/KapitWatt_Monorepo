@@ -1,7 +1,7 @@
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { fonts, space } from '@/styles/theme';
+import { fontFamily, space } from '@kapitwatt/tokens';
 
 const c = themes.light.color;
 
@@ -23,8 +23,8 @@ export function Line(props: { label: string; value: string; note?: string; last?
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  strong: { fontFamily: fonts.semibold },
+  strong: { fontFamily: fontFamily.semibold },
   tabular: { fontVariant: ['tabular-nums'] },
-  line: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md },
+  line: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3] },
   divider: { borderBottomWidth: 1, borderBottomColor: c.outlineVariant },
 });

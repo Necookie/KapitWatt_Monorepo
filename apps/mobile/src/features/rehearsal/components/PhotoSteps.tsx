@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { space } from '@/styles/theme';
+import { space } from '@kapitwatt/tokens';
 import { PhotoStep } from './PhotoStep';
 
 /** The two practice photos, marked done, now or later from how many are taken. */
@@ -24,5 +24,5 @@ export function PhotoSteps(props: { taken: number }) {
 }
 
 const styles = StyleSheet.create({
-  steps: { gap: space.md },
+  steps: { gap: space[3] },
 });

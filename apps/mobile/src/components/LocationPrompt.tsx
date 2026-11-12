@@ -1,8 +1,12 @@
+import { Button, Text } from '@kapitwatt/ui';
 import { useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet, Text, View } from 'react-native';
-import { Button } from '@/components/ui';
+import { AppState, StyleSheet, View } from 'react-native';
+import { radius, space } from '@kapitwatt/tokens';
+import { themes } from '@kapitwatt/styles';
+
 import { fixLocation, LOCATION_HELP, type LocationProblem } from '@/utils/location';
-import { colors, radius, space, text } from '@/styles/theme';
+
+const c = themes.light.color;
 
 /**
  * Shown when we could not get the phone's location. The button brings back the right system
@@ -27,8 +31,12 @@ export function LocationPrompt(props: { problem: LocationProblem; onRetry: () =>
 
   return (
     <View style={styles.box}>
-      <Text style={styles.message}>{help.message}</Text>
+      <Text variant="bodyLarge" style={styles.message}>
+        {help.message}
+      </Text>
       <Button
+        size="lg"
+        fullWidth
         label={help.button}
         loading={busy}
         onPress={async () => {
@@ -48,12 +56,12 @@ export function LocationPrompt(props: { problem: LocationProblem; onRetry: () =>
 
 const styles = StyleSheet.create({
   box: {
-    gap: space.sm,
-    padding: space.md,
+    gap: space[2],
+    padding: space[3],
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.red,
-    backgroundColor: colors.background,
+    borderColor: c.error,
+    backgroundColor: c.surface,
   },
-  message: { ...text.body, color: colors.red },
+  message: { color: c.error },
 });

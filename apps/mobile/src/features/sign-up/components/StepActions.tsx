@@ -1,8 +1,8 @@
-import { Text } from '@kapitwatt/ui';
+import { Button, Text } from '@kapitwatt/ui';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { Button } from '@/components/ui';
-import { space } from '@/styles/theme';
+import { space } from '@kapitwatt/tokens';
+
 import type { StepId } from '../utils/draft';
 
 /** The foot of each step: Continue (or Join the pilot at review), with the step's short notes. */
@@ -20,13 +20,21 @@ export function StepActions(props: {
     <View style={styles.actions}>
       {step === 'review' ? (
         <Button
+          size="lg"
+          fullWidth
           label="Join the pilot"
           disabled={!props.canJoin}
           loading={props.joining}
           onPress={props.onJoin}
         />
       ) : (
-        <Button label="Continue" disabled={!props.done} onPress={props.onContinue} />
+        <Button
+          size="lg"
+          fullWidth
+          label="Continue"
+          disabled={!props.done}
+          onPress={props.onContinue}
+        />
       )}
       {step === 'review' ? (
         <Text variant="bodySmall" color="onSurfaceVariant" align="center">
@@ -43,7 +51,7 @@ export function StepActions(props: {
           <Text variant="bodyMedium" color="onSurfaceVariant">
             Have an account?
           </Text>
-          <Button label="Log in" variant="text" onPress={() => router.replace('/login')} />
+          <Button variant="text" label="Log in" onPress={() => router.replace('/login')} />
         </View>
       ) : null}
     </View>
@@ -51,6 +59,6 @@ export function StepActions(props: {
 }
 
 const styles = StyleSheet.create({
-  actions: { marginTop: 'auto', gap: space.xs },
+  actions: { marginTop: 'auto', gap: space[1] },
   loginRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
 });

@@ -23,12 +23,3 @@ export function formatWindow(startIso: string | number, endIso: string | number)
   const [startTime, startHalf] = start.split(' ');
   return startHalf === end.split(' ')[1] ? `${startTime}–${end}` : `${start}–${end}`;
 }
-
-/** "1:05:09" or "4:09"; never negative. */
-export function formatDuration(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
-}

@@ -1,11 +1,15 @@
+import { Button, Text } from '@kapitwatt/ui';
 import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
-import { Button } from '@/components/ui';
+import { StyleSheet, View } from 'react-native';
+import { fontFamily, radius, space } from '@kapitwatt/tokens';
+import { themes } from '@kapitwatt/styles';
+
 import { MOCK } from '@/api/config';
 import { mockFastForward, mockPhase, mockResetAll, mockSendAlert } from '@/api/mock';
 import { useRefreshAll } from '@/api/queries';
 import { useServerNow } from '@/utils/server-time';
-import { colors, fonts, radius, space, text } from '@/styles/theme';
+
+const c = themes.light.color;
 
 /** What the next press does, named after the real operator action it stands in for. */
 const NEXT_STEP: Record<ReturnType<typeof mockPhase>, string> = {
@@ -31,15 +35,32 @@ export function MockControls() {
 
   return (
     <View style={styles.box}>
-      <Text style={styles.heading}>OPERATOR CONTROLS (DEMO)</Text>
-      <Text style={styles.body}>
+      <Text variant="bodyMedium" style={styles.heading}>
+        OPERATOR CONTROLS (DEMO)
+      </Text>
+      <Text variant="bodyMedium" style={styles.body}>
         These stand in for the Meralco dashboard. The real app does not have them.
       </Text>
-      <Button label={NEXT_STEP[mockPhase()]} variant="demo" onPress={() => run(mockFastForward)} />
-      <Button label="Send a new red alert" variant="demo" onPress={() => run(mockSendAlert)} />
       <Button
+        variant="tonal"
+        size="lg"
+        fullWidth
+        label={NEXT_STEP[mockPhase()]}
+        onPress={() => run(mockFastForward)}
+      />
+      <Button
+        variant="tonal"
+        size="lg"
+        fullWidth
+        label="Send a new red alert"
+        onPress={() => run(mockSendAlert)}
+      />
+      <Button
+        variant="outlined"
+        size="lg"
+        fullWidth
         label="Reset demo"
-        variant="secondary"
+
         onPress={() => {
           run(mockResetAll);
           router.replace('/');
@@ -53,12 +74,16 @@ const styles = StyleSheet.create({
   box: {
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: colors.amber,
+    borderColor: c.simulated,
     borderRadius: radius.lg,
-    padding: space.lg,
-    gap: space.sm,
-    marginTop: space.lg,
+    padding: space[4],
+    gap: space[2],
+    marginTop: space[4],
   },
-  heading: { ...text.caption, fontFamily: fonts.semibold, color: colors.amber, letterSpacing: 1 },
-  body: { ...text.caption, color: colors.muted },
+  heading: {
+    fontFamily: fontFamily.semibold,
+    color: c.simulated,
+    letterSpacing: 1,
+  },
+  body: { color: c.onSurfaceVariant },
 });
