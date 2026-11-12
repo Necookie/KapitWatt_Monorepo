@@ -5,6 +5,8 @@ import { View } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
 import { percent } from '@/utils/format';
 import { ON, ON_SOFT } from '@/styles/on-brand';
+import { arcProps } from '@/styles/motion';
+import { Tally } from '@/components/Tally';
 import { svgHidden } from '../utils/svg';
 
 /**
@@ -60,7 +62,7 @@ export function Gauge({
             strokeWidth={stroke}
             fill="none"
             strokeLinecap="round"
-            strokeDasharray={arc(r, share)}
+            {...arcProps(arc(r, share))}
             transform={rotate}
           />
         ) : null}
@@ -82,7 +84,7 @@ export function Gauge({
               strokeWidth={5}
               fill="none"
               strokeLinecap="round"
-              strokeDasharray={arc(ri, fshare)}
+              {...arcProps(arc(ri, fshare))}
               transform={rotate}
             />
           </>
@@ -98,7 +100,10 @@ export function Gauge({
         />
       </Svg>
       <Text variant="dataMedium" style={{ color: ON }}>
-        {percent(value, target)}
+        <Tally
+          value={target > 0 ? (value / target) * 100 : 0}
+          format={(n) => `${Math.round(n)}%`}
+        />
       </Text>
       <Text variant="labelMedium" style={{ color: ON_SOFT }}>
         of target

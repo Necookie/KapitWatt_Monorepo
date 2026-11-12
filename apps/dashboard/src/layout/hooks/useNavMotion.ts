@@ -1,6 +1,6 @@
 import { useTheme } from '@kapitwatt/hooks';
 import { type ViewStyle } from 'react-native';
-import { bezier } from '../utils/interaction';
+import { bezier } from '@/styles/motion';
 
 /**
  * Web-only CSS transition (the dashboard ships to the web): the browser animates it, no per-frame

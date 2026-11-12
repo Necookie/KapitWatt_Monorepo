@@ -59,7 +59,16 @@ export function TextField({
           }}
           style={[
             t.text.bodyLarge,
-            { flex: 1, color: c.onSurface, paddingVertical: t.space[3], outlineWidth: 0 },
+            // The field's border shows focus. Width 0 alone is not enough: the browser's focus ring is
+            // outline-style auto, which ignores the width.
+            {
+              flex: 1,
+              color: c.onSurface,
+              paddingVertical: t.space[3],
+              outlineWidth: 0,
+              // RN's types allow only solid, dotted or dashed; react-native-web passes 'none' on.
+              outlineStyle: 'none',
+            } as object,
           ]}
         />
         {suffix ? (

@@ -40,3 +40,6 @@ export function defaultMessage(level: AlertLevel, start: Date, end: Date): strin
     ? `Red alert on the Luzon grid. Brownouts are possible. Please cut your load from ${window}. Open KapitWatt to commit a cut and earn bill credit.`
     : `Yellow alert on the Luzon grid. Supply is tight. Please cut your load from ${window} if you can. Open KapitWatt to commit a cut and earn bill credit.`;
 }
+
+/** How long the send button shows its check before the page moves to the live view. */
+export const SENT_PAUSE_MS = 700;

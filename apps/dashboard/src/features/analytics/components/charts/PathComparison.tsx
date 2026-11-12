@@ -3,6 +3,7 @@ import { Stack, Text } from '@kapitwatt/ui';
 import { View } from 'react-native';
 import { count, fraction, kw, php } from '@/utils/format';
 import { useChartColors } from '../../hooks/useChartColors';
+import { barScale, motion } from '@/styles/motion';
 
 /** Smart meter vs photo, side by side: the case for smart meters in numbers. */
 export function PathComparison({ paths }: { paths: AlertAnalytics['paths'] }) {
@@ -38,11 +39,7 @@ export function PathComparison({ paths }: { paths: AlertAnalytics['paths'] }) {
               style={{ height: 6, borderRadius: 3, backgroundColor: c.track, overflow: 'hidden' }}
             >
               <View
-                style={{
-                  width: `${Math.min(rate, 1) * 100}%`,
-                  height: '100%',
-                  backgroundColor: color,
-                }}
+                style={[motion.growX, barScale(rate), { height: '100%', backgroundColor: color }]}
               />
             </View>
             <Stack direction="row" justify="space-between">

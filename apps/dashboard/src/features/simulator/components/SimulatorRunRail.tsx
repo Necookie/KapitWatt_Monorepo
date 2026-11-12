@@ -22,6 +22,8 @@ export function SimulatorRunRail({
       hasAlert={sim.live}
       canRun={sim.canRun}
       committed={sim.committed}
+      committedKw={sim.committedKw}
+      expectedKw={sim.expected.committedKw}
       paceSeconds={paceSeconds}
       lastRun={run.data ?? null}
       seeding={seed.isPending}

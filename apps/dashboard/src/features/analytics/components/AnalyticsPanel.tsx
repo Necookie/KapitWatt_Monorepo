@@ -3,6 +3,7 @@ import { Card, Divider, Stack, Text } from '@kapitwatt/ui';
 import type { ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
 import { PlotSkeleton } from './PlotSkeleton';
+import { motion } from '@/styles/motion';
 
 /** A titled panel: the dashboard's outlined card with an icon, a title, an optional note and an aside. */
 export function AnalyticsPanel({
@@ -43,7 +44,12 @@ export function AnalyticsPanel({
         {aside}
       </Stack>
       <Divider />
-      <View style={{ padding: 16 }} accessibilityLabel={loading ? `${title}: loading` : undefined}>
+      {/* Keyed by state so the body fades in when it replaces its skeleton. */}
+      <View
+        key={loading ? 'skeleton' : 'body'}
+        style={[{ padding: 16 }, loading ? null : motion.fadeIn]}
+        accessibilityLabel={loading ? `${title}: loading` : undefined}
+      >
         {loading ? (skeleton ?? <PlotSkeleton />) : children}
       </View>
     </Card>

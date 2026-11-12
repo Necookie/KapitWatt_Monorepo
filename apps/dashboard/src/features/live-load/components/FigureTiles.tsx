@@ -1,12 +1,16 @@
+import { memo } from 'react';
 import { useTheme } from '@kapitwatt/hooks';
 import { TileStack } from '@/components/TileStack';
+import { Tally } from '@/components/Tally';
 import { kw, percent } from '@/utils/format';
+
+const round = (n: number) => kw(Math.round(n));
 
 /**
  * The figures beside the alert hero: committed leads; forecast (an assumption) and verified delivery
  * sit beneath it. The target is in the hero.
  */
-export function FigureTiles({
+export const FigureTiles = memo(function FigureTiles({
   target,
   committed,
   forecast,
@@ -30,7 +34,7 @@ export function FigureTiles({
       lead={{
         label: 'Committed',
         icon: 'commit',
-        value: kw(Math.round(committed)),
+        value: <Tally value={committed} format={round} />,
         note: `${percent(committed, target)} of the ${kw(target)} kW target`,
         progress: {
           value: committed / Math.max(target, committed, 1),
@@ -44,7 +48,7 @@ export function FigureTiles({
         {
           label: 'Forecast',
           icon: 'chartLine',
-          value: kw(Math.round(forecast)),
+          value: <Tally value={forecast} format={round} />,
           note: `Assumption · ${percent(forecast, target)}`,
           bg: c.surfaceContainerLowest,
           fg: c.onSurface,
@@ -53,7 +57,7 @@ export function FigureTiles({
         {
           label: 'Delivered',
           icon: 'verified',
-          value: measured ? kw(Math.round(delivered)) : undefined,
+          value: measured ? <Tally value={delivered} format={round} /> : undefined,
           note: measured ? `${barangaysHit} of ${barangays} on target` : 'After the window',
           bg: measured ? c.reliefContainer : c.surfaceContainer,
           fg: measured ? c.onReliefContainer : c.onSurfaceVariant,
@@ -61,4 +65,4 @@ export function FigureTiles({
       ]}
     />
   );
-}
+});

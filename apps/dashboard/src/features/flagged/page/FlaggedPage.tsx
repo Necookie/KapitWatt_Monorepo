@@ -59,6 +59,7 @@ export default function FlaggedPage() {
               <ReviewQueue
                 rows={queue.rows}
                 selectedId={queue.selected?.id}
+                decided={queue.decided}
                 onSelect={queue.setSelectedId}
               />
             </Panel>
@@ -72,6 +73,7 @@ export default function FlaggedPage() {
               }}
             >
               {queue.selected ? (
+                // Keyed by reading: the next one fades in as the decided one leaves.
                 <ReviewPane
                   key={queue.selected.id}
                   reading={queue.selected}

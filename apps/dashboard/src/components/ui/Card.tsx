@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radius, space } from '@/styles/theme';
 import { Txt } from './Txt';
+import { motion } from '@/styles/motion';
 
 export function Card({
   title,
@@ -38,7 +39,10 @@ export function Card({
           {skeleton ?? <SkeletonText />}
         </View>
       ) : (
-        <View style={padded ? styles.cardBody : null}>{children}</View>
+        // Keyed apart from the skeleton so the body fades in when it replaces it.
+        <View key="body" style={[padded ? styles.cardBody : null, motion.fadeIn]}>
+          {children}
+        </View>
       )}
     </View>
   );

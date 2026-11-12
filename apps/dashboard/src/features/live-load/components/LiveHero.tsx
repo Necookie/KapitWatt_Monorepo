@@ -3,9 +3,10 @@ import { useTheme, useWindowClass } from '@kapitwatt/hooks';
 import { Icon } from '@kapitwatt/icons';
 import { color as roles, withAlpha } from '@kapitwatt/tokens';
 import { Text } from '@kapitwatt/ui';
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { View } from 'react-native';
 import { Notice } from '@/components/ui/Notice';
+import { Tally } from '@/components/Tally';
 import { client, errorMessage, type DashboardAlert } from '@/api/client';
 import { clock, kw, percent } from '@/utils/format';
 import { useAction } from '@/api/queries';
@@ -13,6 +14,7 @@ import { countdownFor } from '../utils/countdown';
 import { ON, ON_SOFT } from '@/styles/on-brand';
 import { Countdown } from './Countdown';
 import { Gauge } from './Gauge';
+import { LiveDot } from './LiveDot';
 import { HeroButton } from './HeroButton';
 import { StageTracker } from './StageTracker';
 
@@ -20,7 +22,7 @@ import { StageTracker } from './StageTracker';
  * The alert in force, on Grid Indigo: level pill (red or yellow, always with the word and icon), window,
  * the one figure that matters at this stage, the stage tracker, and the gauge with the countdown.
  */
-export function LiveHero({
+export const LiveHero = memo(function LiveHero({
   alert,
   status,
   target,
@@ -99,6 +101,8 @@ export function LiveHero({
                   ? `${red ? 'Red' : 'Yellow'} alert · settled`
                   : `${red ? 'Red' : 'Yellow'} alert`}
               </Text>
+              {/* Live while commitments can still come in. */}
+              {cancellable ? <LiveDot color={pillFg} /> : null}
             </View>
             <Text variant="titleMedium" style={{ color: ON }}>
               Peak window {clock(alert.windowStart)} to {clock(alert.windowEnd)}
@@ -122,11 +126,10 @@ export function LiveHero({
                   letterSpacing: -1.5,
                 }}
               >
-                {kw(
-                  Math.round(
-                    measured && status === 'settling' && delivered === 0 ? forecast : value,
-                  ),
-                )}
+                <Tally
+                  value={measured && status === 'settling' && delivered === 0 ? forecast : value}
+                  format={(n) => kw(Math.round(n))}
+                />
               </Text>
               <Text variant="headlineSmall" style={{ color: ON_SOFT }}>
                 kW
@@ -207,4 +210,4 @@ export function LiveHero({
       {cancel.error ? <Notice tone="critical">{errorMessage(cancel.error)}</Notice> : null}
     </View>
   );
-}
+});

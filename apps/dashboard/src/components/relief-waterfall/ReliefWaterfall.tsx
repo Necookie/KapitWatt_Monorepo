@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { SimParams } from '@kapitwatt/shared';
 import { useTheme, useWindowClass } from '@kapitwatt/hooks';
 import { followThroughFor } from '@kapitwatt/sim';
@@ -13,7 +14,7 @@ import { WaterfallBar } from './WaterfallBar';
  * ending at what is delivered (smart meter and photo). The two losses use the assumed rates; before
  * the window ends the last column is the forecast. Every missed photo is verified kW lost.
  */
-export function ReliefWaterfall({
+export const ReliefWaterfall = memo(function ReliefWaterfall({
   target,
   committed,
   delivered,
@@ -168,4 +169,4 @@ export function ReliefWaterfall({
       />
     </Panel>
   );
-}
+});

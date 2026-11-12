@@ -8,6 +8,7 @@ import { Pressable, View } from 'react-native';
 import { useLayoutValue } from '@/hooks/useLayoutValue';
 import { fraction, kw, percent } from '@/utils/format';
 import type { PressState } from '@/utils/press-state';
+import { motion } from '@/styles/motion';
 
 const NAMES: Record<PresetName, string> = { poor: 'Poor', typical: 'Typical', best: 'Best' };
 
@@ -92,14 +93,20 @@ export function ScenarioCards({
                       {NAMES[name]}
                     </Text>
                     {on && !narrow ? (
-                      <Icon name="check" weight="bold" size="sm" color={fg} />
+                      <View style={motion.pop}>
+                        <Icon name="check" weight="bold" size="sm" color={fg} />
+                      </View>
                     ) : null}
                   </View>
                   <Text variant="bodySmall" style={{ color: fg, opacity: 0.85 }}>
                     {fraction(participation)} of households commit
                   </Text>
                 </View>
-                {on && narrow ? <Icon name="check" weight="bold" size="sm" color={fg} /> : null}
+                {on && narrow ? (
+                  <View style={motion.pop}>
+                    <Icon name="check" weight="bold" size="sm" color={fg} />
+                  </View>
+                ) : null}
                 <Text
                   variant="titleSmall"
                   style={{ color: fg, marginTop: narrow ? 0 : t.space[1] }}

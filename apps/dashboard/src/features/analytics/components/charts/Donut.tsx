@@ -4,6 +4,7 @@ import { percent } from '@/utils/format';
 import { useChartColors } from '../../hooks/useChartColors';
 import { svgFont } from '../../utils/plot';
 import { Empty } from '../Empty';
+import { domSweep } from '@/styles/motion';
 
 export interface DonutSegment {
   label: string;
@@ -59,6 +60,7 @@ export function Donut({
               strokeDasharray={`${dash} ${circumference - dash}`}
               strokeDashoffset={-offset}
               transform="rotate(-90 75 75)"
+              style={domSweep}
             />
           );
           offset += length;

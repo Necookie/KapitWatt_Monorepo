@@ -9,7 +9,7 @@ import { HeroButton } from './HeroButton';
 import { RestingMascot } from './RestingMascot';
 
 /** The indigo hero with no alert in force: the grid is calm and the pilot is ready. */
-export function CalmHero({ loading, demo }: { loading: boolean; demo: boolean }) {
+export function CalmHero({ demo }: { demo: boolean }) {
   const t = useTheme();
   const router = useRouter();
   const wide = useWindowClass() !== 'compact';
@@ -38,12 +38,7 @@ export function CalmHero({ loading, demo }: { loading: boolean; demo: boolean })
             backgroundColor: roles.light.reliefContainer,
           }}
         >
-          <Icon
-            name={loading ? 'pending' : 'verified'}
-            weight="fill"
-            size="sm"
-            color={roles.light.onReliefContainer}
-          />
+          <Icon name="verified" weight="fill" size="sm" color={roles.light.onReliefContainer} />
           <Text
             variant="labelLarge"
             style={{
@@ -52,7 +47,7 @@ export function CalmHero({ loading, demo }: { loading: boolean; demo: boolean })
               letterSpacing: 0.6,
             }}
           >
-            {loading ? 'Checking for an alert' : 'No alert in force'}
+            No alert in force
           </Text>
         </View>
         <View>

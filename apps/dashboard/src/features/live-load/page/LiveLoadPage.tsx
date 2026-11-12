@@ -6,10 +6,12 @@ import { ReliefWaterfall } from '@/components/relief-waterfall/ReliefWaterfall';
 import { Notice } from '@/components/ui/Notice';
 import { useLayoutValue } from '@/hooks/useLayoutValue';
 import { errorMessage } from '@/api/client';
+import { motion } from '@/styles/motion';
 import { CommitTimeline } from '../components/CommitTimeline';
 import { DemoStrip } from '../components/DemoStrip';
 import { FigureTiles } from '../components/FigureTiles';
 import { LiveHero } from '../components/LiveHero';
+import { LiveSkeleton } from '../components/LiveSkeleton';
 import { LoadCurvePanel } from '../components/LoadCurvePanel';
 import { Readiness } from '../components/Readiness';
 import { TownDetailsTable } from '../components/TownDetailsTable';
@@ -20,7 +22,7 @@ import { useLiveLoadFigures } from '../hooks/useLiveLoadFigures';
  * Live load, as a bento grid: the indigo hero (level, window, the figure for this stage, stages, gauge
  * and countdown) beside committed, forecast and delivered; where the relief goes beside commitments
  * coming in (the load curve once the window has ended); towns; demo controls; the full table. With no
- * alert, the readiness bento.
+ * alert, the readiness bento; until the first answer, a skeleton of the live bento.
  */
 export default function LiveLoadPage() {
   const t = useTheme();
@@ -31,18 +33,19 @@ export default function LiveLoadPage() {
   const {
     alert,
     totals,
-    barangays,
+    pilot,
     params,
     demo,
     towns,
     status,
     measured,
     failed,
+    loading,
     target,
     committed,
     delivered,
     forecast,
-    barangayRows,
+    barangayCount,
     barangaysHit,
     committing,
     samples,
@@ -55,8 +58,11 @@ export default function LiveLoadPage() {
     <View onLayout={onLayout} style={{ gap: t.space[4] }}>
       {failed ? <Notice tone="critical">{errorMessage(failed)}</Notice> : null}
 
-      {alert.data && status ? (
-        <>
+      {loading ? (
+        <LiveSkeleton heroBeside={heroBeside} chartsBeside={chartsBeside} />
+      ) : alert.data && status ? (
+        // Each state fades in as it replaces the skeleton (or the other state).
+        <View key="live" style={[{ gap: t.space[4] }, motion.fadeIn]}>
           <Split wide={heroBeside}>
             {/* Keyed by alert: a half-confirmed cancel must never carry over to the next alert. */}
             <LiveHero
@@ -68,7 +74,7 @@ export default function LiveLoadPage() {
               forecast={forecast}
               delivered={delivered}
               households={totals.data?.committedHouseholds}
-              barangays={barangayRows.length || alert.data.targetBarangayIds.length}
+              barangays={barangayCount}
             />
             <FigureTiles
               target={target}
@@ -76,7 +82,7 @@ export default function LiveLoadPage() {
               forecast={forecast}
               delivered={delivered}
               measured={measured}
-              barangays={barangayRows.length || alert.data.targetBarangayIds.length}
+              barangays={barangayCount}
               barangaysHit={barangaysHit}
             />
           </Split>
@@ -113,15 +119,16 @@ export default function LiveLoadPage() {
           <Panel title="Details by town" subtitle="Figures in kW. Open a town for its barangays.">
             <TownDetailsTable towns={towns} measured={measured} />
           </Panel>
-        </>
+        </View>
       ) : (
-        <Readiness
-          loading={alert.isLoading}
-          demo={demo}
-          wide={heroBeside}
-          households={householdsKnown ? pilotHouseholds : undefined}
-          barangays={barangays.data ?? []}
-        />
+        <View key="calm" style={[{ gap: t.space[4] }, motion.fadeIn]}>
+          <Readiness
+            demo={demo}
+            wide={heroBeside}
+            households={householdsKnown ? pilotHouseholds : undefined}
+            barangays={pilot}
+          />
+        </View>
       )}
     </View>
   );

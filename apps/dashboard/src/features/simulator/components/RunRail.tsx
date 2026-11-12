@@ -5,6 +5,7 @@ import { Button, Text } from '@kapitwatt/ui';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { count, kw } from '@/utils/format';
+import { RunProgress } from './RunProgress';
 import { Step, type StepState } from './Step';
 
 /**
@@ -17,6 +18,8 @@ export function RunRail({
   hasAlert,
   canRun,
   committed,
+  committedKw,
+  expectedKw,
   paceSeconds,
   lastRun,
   seeding,
@@ -35,6 +38,9 @@ export function RunRail({
   canRun: boolean;
   /** Simulated commits are in: the event can be measured. */
   committed: boolean;
+  /** Committed so far, and what the run is expected to commit (for its progress). */
+  committedKw: number;
+  expectedKw: number;
   paceSeconds: number;
   lastRun: SimRunSummary | null;
   seeding: boolean;
@@ -137,6 +143,7 @@ export function RunRail({
           }
         />
         <Step n={2} title="Run event" note={runNote} state={runState} />
+        {running ? <RunProgress committedKw={committedKw} expectedKw={expectedKw} /> : null}
         <Step
           n={3}
           title="Measure on Live load"

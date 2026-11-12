@@ -27,5 +27,3 @@ export function focusRing(t: Theme, s: PressState, visible: boolean) {
       }
     : null;
 }
-
-export const bezier = (c: readonly number[]) => `cubic-bezier(${c.join(', ')})`;

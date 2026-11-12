@@ -1,6 +1,7 @@
 import Svg, { Circle } from 'react-native-svg';
 import { SIZE, STROKE } from '../utils/town-ring';
 import { svgHidden } from '../utils/svg';
+import { arcProps } from '@/styles/motion';
 
 /** A town's progress against its share of the target, as a ring. */
 export function Ring({ share, color, track }: { share: number; color: string; track: string }) {
@@ -19,7 +20,7 @@ export function Ring({ share, color, track }: { share: number; color: string; tr
           strokeWidth={STROKE}
           fill="none"
           strokeLinecap="round"
-          strokeDasharray={`${c * Math.min(share, 1)} ${c}`}
+          {...arcProps(`${c * Math.min(share, 1)} ${c}`)}
           transform={`rotate(-90 ${mid} ${mid})`}
         />
       ) : null}

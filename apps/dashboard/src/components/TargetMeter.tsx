@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import { barScale, motion } from '@/styles/motion';
 import { colors } from '@/styles/theme';
 
 /** Bars drawn with plain Views: no chart library needed for magnitudes on one axis. */
@@ -29,13 +30,16 @@ export function TargetMeter({
     >
       <View style={styles.meterTrack}>
         <View
-          style={{
-            width: `${fill * 100}%`,
-            height: 8,
-            backgroundColor: color,
-            borderTopRightRadius: END,
-            borderBottomRightRadius: END,
-          }}
+          style={[
+            motion.growX,
+            barScale(fill),
+            {
+              height: 8,
+              backgroundColor: color,
+              borderTopRightRadius: END,
+              borderBottomRightRadius: END,
+            },
+          ]}
         />
       </View>
       <View style={[styles.meterTick, { left: `${(1 / scale) * 100}%` }]} />

@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { space } from '@/styles/theme';
 import { Label } from './Label';
 import { Txt } from './Txt';
+import { motion } from '@/styles/motion';
 
 /** One headline figure with its unit and a line of context. */
 export function Stat({
@@ -32,9 +33,9 @@ export function Stat({
     );
   }
   return (
-    <View style={styles.stat}>
+    <View key="figure" style={styles.stat}>
       <Label>{label}</Label>
-      <View style={styles.statValue}>
+      <View style={[styles.statValue, motion.fadeIn]}>
         <Txt size="kpi" tone="ink" weight="600" numeric>
           {value}
         </Txt>

@@ -8,6 +8,7 @@ import { FLAG_LABEL, KIND_LABEL, flagHelp } from '../utils/checks';
 import { DecisionButton } from './DecisionButton';
 import { Fact } from './Fact';
 import { MeterPhoto } from './MeterPhoto';
+import { motion } from '@/styles/motion';
 
 /** The selected reading: photo, what the household typed, each failed check explained, decision. */
 export function ReviewPane({
@@ -25,7 +26,7 @@ export function ReviewPane({
   const c = t.color;
   const delta = r.previousKwh === null ? null : r.readingKwh - r.previousKwh;
   return (
-    <View style={{ gap: t.space[4] }}>
+    <View style={[{ gap: t.space[4] }, motion.fadeIn]}>
       <View style={{ gap: t.space[0.5] }}>
         <Text variant="titleLarge">
           {r.barangayName}, {r.municipality}
