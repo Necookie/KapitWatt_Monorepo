@@ -33,7 +33,12 @@ export default function RootLayout() {
           headerTitle: 'KapitWatt',
         }}
       >
+        <Stack.Screen name="welcome" options={{ headerTitle: 'KapitWatt' }} />
         <Stack.Screen name="sign-up" options={{ headerTitle: 'Join the pilot' }} />
+        <Stack.Screen name="login" options={{ headerTitle: 'Log in' }} />
+        <Stack.Screen name="forgot-password" options={{ headerTitle: 'Forgot password' }} />
+        <Stack.Screen name="profile" options={{ headerTitle: 'Profile and privacy' }} />
+        <Stack.Screen name="privacy" options={{ headerTitle: 'Privacy notice' }} />
         <Stack.Screen name="rehearsal" options={{ headerTitle: 'Practice run' }} />
         <Stack.Screen name="alert/[alertId]/commit" options={{ headerTitle: 'Commit a cut' }} />
         <Stack.Screen name="alert/[alertId]/capture" options={{ headerTitle: 'Meter photo' }} />

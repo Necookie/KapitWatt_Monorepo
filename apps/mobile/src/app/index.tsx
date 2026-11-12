@@ -13,8 +13,8 @@ export default function HomeScreen() {
   const me = useMe();
   const refreshAll = useRefreshAll();
 
-  // Not signed up yet: the API answers 401 without a household token.
-  if (me.error instanceof ApiError && me.error.status === 401) return <Redirect href="/sign-up" />;
+  // Not signed in: the API answers 401 without a household token.
+  if (me.error instanceof ApiError && me.error.status === 401) return <Redirect href="/welcome" />;
   if (alert.isPending || me.isPending) return <Loading />;
   if (alert.isError || me.isError) return <ErrorState onRetry={() => void refreshAll()} />;
 
@@ -69,6 +69,11 @@ export default function HomeScreen() {
           onPress={() => router.push('/leaderboard')}
         />
         <Button label="History" variant="secondary" onPress={() => router.push('/history')} />
+        <Button
+          label="Profile and privacy"
+          variant="secondary"
+          onPress={() => router.push('/profile')}
+        />
       </Card>
 
       <SimulatedNote>

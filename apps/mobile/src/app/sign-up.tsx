@@ -1,212 +1,123 @@
-import {
-  PILOT_TOWNS,
-  RegisterHouseholdInput,
-  type MeterType,
-  type PilotTown,
-} from '@kapitwatt/shared';
+import { RegisterHouseholdInput } from '@kapitwatt/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import {
-  Button,
-  Card,
-  Checkbox,
-  ErrorState,
-  Loading,
-  Row,
-  Screen,
-  Select,
-  SimulatedNote,
-  TextField,
-} from '@/components/ui';
-import { MOCK } from '@/lib/config';
-import { LocationPrompt } from '@/components/LocationPrompt';
-import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
+  EMPTY_DRAFT,
+  STEPS,
+  stepDone,
+  toSignUp,
+  type Draft,
+  type StepId,
+} from '@/components/onboarding/draft';
+import {
+  AccountStep,
+  HomeStep,
+  MeralcoStep,
+  MeterStep,
+  PrivacyStep,
+  ReviewStep,
+  StepHeader,
+} from '@/components/onboarding/Steps';
+import { Button, ErrorState, Loading, Screen, SimulatedNote } from '@/components/ui';
+import { errorCode } from '@/lib/api';
 import { useBarangays, useRegister } from '@/lib/queries';
 import { colors, text } from '@/theme';
 
-const CONSENT_TEXT =
-  'I agree to receive grid alerts from KapitWatt and to the collection of my meter photos, ' +
-  'meter readings and home location to verify my energy cuts. This data is personal data under ' +
-  'the Data Privacy Act of 2012 (RA 10173). It is stored privately, kept only for a limited time, ' +
-  'and results are shown per barangay, never per household.';
+/** Where a refused sign-up sends the household back to, and what it is told. */
+const REFUSALS: Record<string, { step: StepId; message: string }> = {
+  email_taken: {
+    step: 'account',
+    message: 'That email already has an account. Log in instead, or use another email.',
+  },
+  account_taken: {
+    step: 'meralco',
+    message: 'That Meralco account is already enrolled. Check the number, or log in.',
+  },
+  unknown_barangay: { step: 'home', message: 'That barangay is not in the pilot.' },
+};
 
-/** Santa Cruz town proper, used for an empty location in demo mode only. */
-const DEMO_LOCATION = { lat: 14.2788, lng: 121.4161 };
-
-const METER_OPTIONS = [
-  { value: 'standard', label: 'Regular meter (photos)' },
-  { value: 'ami', label: 'Smart meter' },
-] as const satisfies readonly { value: MeterType; label: string }[];
-
-/** Sign-up and opt-in (FR-APP-01 to 03). No consent, no account. Push token comes later. */
+/**
+ * Onboarding (FR-APP-01 to 03): account, privacy notice and consent, Meralco account, home, meter,
+ * review. The consent step comes before any personal data beyond the email, and cannot be skipped.
+ * Nothing is sent to the API until "Join the pilot".
+ */
 export default function SignUpScreen() {
   const barangays = useBarangays();
   const registerMutation = useRegister();
-
-  const [town, setTown] = useState<PilotTown | null>(null);
-  const [barangayId, setBarangayId] = useState<string | null>(null);
-  const [meterType, setMeterType] = useState<MeterType | null>(null);
-  const [meterSerial, setMeterSerial] = useState('');
-  const [billText, setBillText] = useState('');
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locating, setLocating] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [locationProblem, setLocationProblem] = useState<LocationProblem | null>(null);
-  const [consent, setConsent] = useState(false);
+  const [step, setStep] = useState<StepId>('account');
+  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [problem, setProblem] = useState<string | null>(null);
 
   if (barangays.isPending) return <Loading />;
   if (barangays.isError) return <ErrorState onRetry={() => void barangays.refetch()} />;
 
-  const townBarangays = barangays.data.filter((b) => b.municipality === town);
-  const form = {
-    barangayId,
-    meterType,
-    meterSerial: meterSerial.trim(),
-    billAvgKwhMonth: Number(billText),
-    lat: location?.lat,
-    lng: location?.lng,
-    consent,
+  const set = (changes: Partial<Draft>) => {
+    setProblem(null);
+    setDraft((d) => ({ ...d, ...changes }));
   };
-  // Demo only: while on mock data the button always works, and empty fields get sample values.
-  // Remove with the mock once the API is live; real sign-up must never skip consent.
-  const demoFilled = {
-    barangayId: form.barangayId ?? barangays.data[0]?.id,
-    meterType: form.meterType ?? 'standard',
-    meterSerial: form.meterSerial || 'DEMO-123456',
-    billAvgKwhMonth: form.billAvgKwhMonth > 0 ? form.billAvgKwhMonth : 720,
-    lat: form.lat ?? DEMO_LOCATION.lat,
-    lng: form.lng ?? DEMO_LOCATION.lng,
-    consent: true,
-  };
-  // Validate with the same Zod schema the API uses.
-  const parsed = RegisterHouseholdInput.safeParse(MOCK.account ? demoFilled : form);
-  // Plain-language list of what still blocks the button.
-  const missing = [
-    !barangayId && 'town and barangay',
-    !location && 'home location',
-    !meterType && 'meter type',
-    !meterSerial.trim() && 'meter serial',
-    !(Number(billText) > 0) && 'monthly kWh',
-    !consent && 'consent',
-  ].filter(Boolean);
+  const index = STEPS.indexOf(step);
+  const props = { draft, set };
 
-  const locate = async () => {
-    setLocationError(null);
-    setLocating(true);
-    try {
-      setLocation(await currentPosition());
-      setLocationProblem(null);
-    } catch (e) {
-      if (e instanceof LocationError) setLocationProblem(e.problem);
-      else setLocationError('Could not get your location. Try again outside or near a window.');
-    } finally {
-      setLocating(false);
-    }
+  const join = () => {
+    const parsed = RegisterHouseholdInput.safeParse(toSignUp(draft));
+    if (!parsed.success) return;
+    registerMutation.mutate(parsed.data, {
+      onSuccess: (res) => router.replace(res.household.needsRehearsal ? '/rehearsal' : '/'),
+      onError: (e) => {
+        const refusal = REFUSALS[errorCode(e) ?? ''];
+        if (refusal) setStep(refusal.step);
+        setProblem(
+          refusal?.message ?? 'Could not sign you up. Check your connection and try again.',
+        );
+      },
+    });
   };
 
   return (
     <Screen>
-      <Text style={styles.intro}>
-        Join the Laguna pilot. When the grid is short of power, we alert you and pay you for the
-        energy you save.
-      </Text>
+      <StepHeader step={step} />
+      {problem ? <Text style={styles.error}>{problem}</Text> : null}
 
-      <Card title="Where you live">
-        <Select
-          label="Town"
-          placeholder="Choose your town"
-          options={PILOT_TOWNS.map((t) => ({ value: t, label: t }))}
-          value={town}
-          onChange={(t) => {
-            setTown(t);
-            setBarangayId(null);
-          }}
-        />
-        <Select
-          label="Barangay"
-          placeholder={town ? 'Choose your barangay' : 'Choose a town first'}
-          disabled={!town}
-          options={townBarangays.map((b) => ({ value: b.id, label: b.name }))}
-          value={barangayId}
-          onChange={setBarangayId}
-        />
-        {location ? (
-          <Row label="Home location" value="Saved" strong />
-        ) : (
-          <>
-            <Text style={styles.body}>
-              Do this at home: meter photos are checked against this location.
-            </Text>
-            {locationProblem ? (
-              <LocationPrompt problem={locationProblem} onRetry={locate} />
-            ) : (
-              <Button
-                label="Use my current location"
-                variant="secondary"
-                loading={locating}
-                onPress={() => void locate()}
-              />
-            )}
-          </>
-        )}
-        {locationError ? <Text style={styles.error}>{locationError}</Text> : null}
-      </Card>
-
-      <Card title="Your meter">
-        <Select
-          label="Meter type"
-          placeholder="Choose your meter type"
-          options={METER_OPTIONS}
-          value={meterType}
-          onChange={setMeterType}
-        />
-        <TextField
-          label="Meter serial number"
-          hint="Printed on the meter. It must be visible in your meter photos."
-          autoCapitalize="characters"
-          autoCorrect={false}
-          value={meterSerial}
-          onChangeText={setMeterSerial}
-        />
-        <TextField
-          label="Average monthly use (kWh)"
-          hint="From your Meralco bill. It sets the most you can be paid for."
-          keyboardType="number-pad"
-          placeholder="e.g. 250"
-          value={billText}
-          onChangeText={setBillText}
-        />
-      </Card>
-
-      <Card title="Consent">
-        <Checkbox checked={consent} onChange={setConsent} label={CONSENT_TEXT} />
-      </Card>
-
-      {registerMutation.isError ? (
-        <Text style={styles.error}>
-          Could not sign you up. Check your connection and try again.
-        </Text>
+      {step === 'account' ? <AccountStep {...props} /> : null}
+      {step === 'privacy' ? <PrivacyStep {...props} /> : null}
+      {step === 'meralco' ? <MeralcoStep {...props} /> : null}
+      {step === 'home' ? <HomeStep {...props} barangays={barangays.data} /> : null}
+      {step === 'meter' ? <MeterStep {...props} /> : null}
+      {step === 'review' ? (
+        <ReviewStep {...props} barangays={barangays.data} onEdit={setStep} />
       ) : null}
 
-      {missing.length > 0 ? (
-        <Text style={styles.body}>
-          {MOCK.account
-            ? `Demo: you can join now. Empty fields (${missing.join(', ')}) use sample values.`
-            : `Still needed: ${missing.join(', ')}.`}
-        </Text>
+      {step === 'review' ? (
+        <Button
+          label="Join the pilot"
+          disabled={!stepDone('review', draft)}
+          loading={registerMutation.isPending}
+          onPress={join}
+        />
+      ) : (
+        <Button
+          label="Continue"
+          disabled={!stepDone(step, draft)}
+          onPress={() => setStep(STEPS[index + 1]!)}
+        />
+      )}
+      {step === 'privacy' && !stepDone('privacy', draft) ? (
+        <Text style={styles.body}>You can’t join without consent.</Text>
       ) : null}
       <Button
-        label="Join the pilot"
-        disabled={!parsed.success}
-        loading={registerMutation.isPending}
-        onPress={() => {
-          if (!parsed.success) return;
-          registerMutation.mutate(parsed.data, {
-            onSuccess: (res) => router.replace(res.household.needsRehearsal ? '/rehearsal' : '/'),
-          });
-        }}
+        label={index === 0 ? 'Cancel' : 'Back'}
+        variant="secondary"
+        disabled={registerMutation.isPending}
+        onPress={() => (index === 0 ? router.back() : setStep(STEPS[index - 1]!))}
       />
+      {step === 'account' ? (
+        <Button
+          label="I already have an account"
+          variant="secondary"
+          onPress={() => router.replace('/login')}
+        />
+      ) : null}
       <SimulatedNote>
         KapitWatt is a hackathon pilot. Households, alerts and reward rates are simulated.
       </SimulatedNote>
@@ -215,7 +126,6 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
-  intro: { ...text.body, color: colors.ink },
   body: { ...text.body, color: colors.muted },
   error: { ...text.body, color: colors.red },
 });

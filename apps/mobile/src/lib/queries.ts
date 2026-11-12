@@ -1,12 +1,14 @@
 import {
   POLL_INTERVAL_MS,
   type CreateCommitmentInput,
+  type LoginInput,
   type RegisterHouseholdInput,
   type SubmitReadingInput,
+  type UpdateProfileInput,
 } from '@kapitwatt/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as endpoints from './endpoints';
-import { registerForPush } from './push';
+import { forgetPush, registerForPush } from './push';
 
 /** One place for query keys so invalidation always hits the right cache entries. */
 export const queryKeys = {
@@ -80,6 +82,48 @@ export function useRegister() {
       void registerForPush();
       return qc.resetQueries();
     },
+  });
+}
+
+export function useLogin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: LoginInput) => endpoints.login(input),
+    onSuccess: () => {
+      void registerForPush();
+      return qc.resetQueries();
+    },
+  });
+}
+
+/** Signing out or deleting the account clears every cached answer about the household. */
+export function useLogout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => endpoints.logout(),
+    onSettled: () => {
+      forgetPush();
+      qc.clear();
+    },
+  });
+}
+
+export function useDeleteAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (password: string) => endpoints.deleteAccount(password),
+    onSuccess: () => {
+      forgetPush();
+      qc.clear();
+    },
+  });
+}
+
+export function useUpdateProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdateProfileInput) => endpoints.updateProfile(input),
+    onSuccess: (me) => qc.setQueryData(queryKeys.me, me),
   });
 }
 

@@ -13,6 +13,7 @@ import {
   type Commitment,
   type CreateCommitmentInput,
   type LeaderboardEntry,
+  type LoginInput,
   type MockAlertView,
   type MockHistoryItem,
   type MockResultCard,
@@ -20,6 +21,7 @@ import {
   type RegisterHouseholdInput,
   type SubmitReadingInput,
   type SubmitReadingResponse,
+  type UpdateProfileInput,
 } from '@kapitwatt/shared';
 import {
   notCommittedStatus,
@@ -120,6 +122,40 @@ export async function register(input: RegisterHouseholdInput): Promise<RegisterR
       );
   setAuthToken(res.token);
   return res;
+}
+
+/** Log in with email and password. Keeps the new token like sign-up does. */
+export async function login(input: LoginInput): Promise<RegisterResult> {
+  const res = MOCK.account
+    ? await mock.login(input)
+    : RegisterResult.parse(
+        await api('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
+      );
+  setAuthToken(res.token);
+  return res;
+}
+
+/** Log out here and on the server. The phone forgets the token even if the call fails. */
+export async function logout(): Promise<void> {
+  try {
+    if (MOCK.account) await mock.logout();
+    else await api('/auth/logout', { method: 'POST' });
+  } finally {
+    setAuthToken(null);
+  }
+}
+
+/** Correct the account holder name or service address, or turn grid alerts off and on. */
+export async function updateProfile(input: UpdateProfileInput): Promise<HouseholdMe> {
+  if (MOCK.account) return mock.updateProfile(input);
+  return HouseholdMe.parse(await api('/auth/me', { method: 'PATCH', body: JSON.stringify(input) }));
+}
+
+/** Withdraw consent: the server erases the household, its readings and its photos. */
+export async function deleteAccount(password: string): Promise<void> {
+  if (MOCK.account) await mock.deleteAccount(password);
+  else await api('/auth/me', { method: 'DELETE', body: JSON.stringify({ password }) });
+  setAuthToken(null);
 }
 
 /** Store or refresh this phone's Expo push token (FR-APP-05). The API answers 204. */

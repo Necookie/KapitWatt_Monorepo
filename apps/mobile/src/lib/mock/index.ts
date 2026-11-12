@@ -19,6 +19,8 @@ import {
   type Commitment,
   type HouseholdMe,
   type CreateCommitmentInput,
+  type LoginInput,
+  type UpdateProfileInput,
   type MockHistoryItem,
   type LeaderboardEntry,
   type MeterReading,
@@ -80,6 +82,13 @@ interface MockHousehold {
   baselineKw: number | null;
   /** Readings outside any event (the rehearsal). */
   rehearsal: MeterReading[];
+  email: string;
+  password: string;
+  accountNumber: string;
+  accountName: string;
+  serviceAddress: string;
+  optedIn: boolean;
+  consentAt: string;
 }
 
 /** A reading is stored with its offset from the window start, so fast-forward moves it along. */
@@ -115,6 +124,13 @@ function demoHousehold(): MockHousehold {
     lng: 121.4161,
     baselineKw: 1.9,
     rehearsal: [],
+    email: 'demo@example.com',
+    password: 'demo password',
+    accountNumber: '0123456789',
+    accountName: 'Demo Household',
+    serviceAddress: '1 Demo Street',
+    optedIn: true,
+    consentAt: iso(Date.now()),
   };
 }
 
@@ -164,8 +180,11 @@ function seedHistory(): MockHistoryItem[] {
 
 const alertId = () => fakeId(9000 + event.seq);
 
+/** The mock has one household; logging out keeps it so the same email can log back in. */
+let signedIn = MOCK_START_REGISTERED;
+
 function requireHousehold(): MockHousehold {
-  if (!household) throw new ApiError(401, { error: 'unauthorized' });
+  if (!household || !signedIn) throw new ApiError(401, { error: 'unauthorized' });
   return household;
 }
 
@@ -222,8 +241,47 @@ export async function register(input: RegisterHouseholdInput): Promise<RegisterR
     // Smart meters have interval history, so the baseline is known right away.
     baselineKw: input.meterType === 'ami' ? 1.9 : null,
     rehearsal: [],
+    email: input.email,
+    password: input.password,
+    accountNumber: input.accountNumber,
+    accountName: input.accountName,
+    serviceAddress: input.serviceAddress,
+    optedIn: true,
+    consentAt: iso(Date.now()),
   };
+  signedIn = true;
   return { token: 'mock-token', household: meOf(household) };
+}
+
+export async function login(input: LoginInput): Promise<RegisterResult> {
+  await delay(400);
+  if (!household || household.email !== input.email || household.password !== input.password) {
+    throw new ApiError(401, { error: 'invalid_credentials' });
+  }
+  signedIn = true;
+  return { token: 'mock-token', household: meOf(household) };
+}
+
+export async function logout(): Promise<void> {
+  await delay();
+  signedIn = false;
+}
+
+export async function updateProfile(input: UpdateProfileInput): Promise<HouseholdMe> {
+  await delay();
+  const h = requireHousehold();
+  if (input.accountName !== undefined) h.accountName = input.accountName;
+  if (input.serviceAddress !== undefined) h.serviceAddress = input.serviceAddress;
+  if (input.optedIn !== undefined) h.optedIn = input.optedIn;
+  return meOf(h);
+}
+
+export async function deleteAccount(password: string): Promise<void> {
+  await delay(400);
+  if (requireHousehold().password !== password) {
+    throw new ApiError(401, { error: 'invalid_credentials' });
+  }
+  mockResetAll();
 }
 
 export async function getMe(): Promise<HouseholdMe> {
@@ -248,9 +306,14 @@ function meOf(h: MockHousehold): HouseholdMe {
     rehearsalReadings: h.rehearsal.length,
     trustScore: 0.5,
     commitCapKw: commitCapKw(h),
-    optedIn: true,
+    optedIn: h.optedIn,
     points: totalPoints(),
     creditPhp: totalCreditPhp(),
+    email: h.email,
+    accountName: h.accountName,
+    accountNumberMasked: '•'.repeat(6) + h.accountNumber.slice(-4),
+    serviceAddress: h.serviceAddress,
+    consentAt: h.consentAt,
   };
 }
 
@@ -589,6 +652,7 @@ export function mockSendAlert() {
 /** Mock-only: forget the household and all events, back to sign-up. */
 export function mockResetAll() {
   household = MOCK_START_REGISTERED ? demoHousehold() : null;
+  signedIn = MOCK_START_REGISTERED;
   event = newEvent(event.seq + 1);
   history = seedHistory();
 }

@@ -32,6 +32,11 @@ let registered = false;
 /** True once the API holds this phone's push token, so alerts arrive as real pushes. */
 export const pushRegistered = () => registered;
 
+/** After log out or account deletion: the next household to sign in on this phone registers again. */
+export function forgetPush(): void {
+  registered = false;
+}
+
 /**
  * Safe to call any time: after sign-up and on every app start (tokens can change). Does nothing
  * without a household token, on an emulator, without permission or without a project id.
