@@ -60,3 +60,6 @@ pnpm test
 
 Architecture rules, domain rules, priorities and folder ownership are in [CLAUDE.md](./CLAUDE.md). Read it
 before you start, and point your AI agent at one folder.
+
+Product documents are in [docs/](./docs/README.md): the [PRD](./docs/prd/PRD.md), the
+[SRS](./docs/srs/SRS.md) and the [MVP scope and demo plan](./docs/mvp/MVP.md).
