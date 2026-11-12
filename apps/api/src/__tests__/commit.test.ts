@@ -20,6 +20,11 @@ const household: HouseholdProfileRow = {
   rehearsalReadings: 2,
   points: 0,
   creditPhp: 0,
+  email: null,
+  accountNumber: null,
+  accountName: null,
+  serviceAddress: null,
+  consentAt: null,
 };
 
 const alert: AlertRow = {
