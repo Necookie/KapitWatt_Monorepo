@@ -39,8 +39,22 @@ docs/          The full plan (PDF, source of truth), PRD, SRS, MVP
 
 Inside each app:
 
-- `apps/mobile/src/app/` and `apps/dashboard/src/app/`: Expo Router routes only. One file per screen.
-  Components go in `src/components/`, API client and helpers in `src/lib/`.
+- `apps/mobile/src/app/`: Expo Router routes only. One file per screen. Components go in
+  `src/components/`, API client and helpers in `src/lib/`.
+- `apps/dashboard/src/` is feature-driven. `src/app/` holds Expo Router routes only, each one line:
+  `export { <Page> as default } from '@/features/<page>'`. Each page lives in `src/features/<page>/`
+  (`live-load`, `send-alert`, `flagged`, `alert-log`, `simulator`, `analytics`, `town-detail`), with
+  nothing at its root but `index.ts`:
+  - `page/<Name>Page.tsx`: composition only (no inline components, helpers or derivation blocks).
+  - `components/`: one component per file, named after it. `hooks/`: one hook per file (`useX.ts`).
+    `utils/`: pure functions and constants (kebab-case files). `api/`: one query or mutation hook per
+    file, for queries only this page uses. `styles/`: only for standalone styles or CSS.
+  - Code used by more than one page goes in the shared folders: `components/` (`ui/` holds the older
+    compact primitives), `hooks/`, `utils/`, `layout/` (the app shell, itself split into `components/`,
+    `hooks/`, `utils/`), `styles/` and `api/` (client, HTTP, shared queries and query keys).
+  - A feature never imports from another feature, and shared code never imports a feature; when two
+    pages need the same thing, move it to a shared folder. Inside a feature use relative imports; for
+    shared code use `@/`.
 - `apps/api/src/routes/`: one Hono router per resource, kept thin (validate, call a service, respond).
   Business logic goes in `src/services/` (see its README for the planned files). Auth in `src/middleware/`.
 - `packages/shared/src/schemas/` (enums, entities, requests, sim) and `src/math/` (payout, baseline,

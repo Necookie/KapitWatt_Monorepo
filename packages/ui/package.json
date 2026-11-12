@@ -10,7 +10,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "generate:logo": "node scripts/generate-logo.mjs && prettier --write src/logo-paths.ts"
+    "generate:brand": "node scripts/generate-brand.mjs && prettier --write src/logo-paths.ts src/mascot-xml.ts"
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
