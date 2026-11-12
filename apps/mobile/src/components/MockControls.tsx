@@ -5,7 +5,7 @@ import { MOCK } from '@/lib/config';
 import { mockFastForward, mockPhase, mockResetAll, mockSendAlert } from '@/lib/mock';
 import { useRefreshAll } from '@/lib/queries';
 import { useServerNow } from '@/lib/serverTime';
-import { colors, radius, space, text } from '@/theme';
+import { colors, fonts, radius, space, text } from '@/theme';
 
 /** What the next press does, named after the real operator action it stands in for. */
 const NEXT_STEP: Record<ReturnType<typeof mockPhase>, string> = {
@@ -59,6 +59,6 @@ const styles = StyleSheet.create({
     gap: space.sm,
     marginTop: space.lg,
   },
-  heading: { ...text.caption, fontWeight: '700', color: colors.amber, letterSpacing: 1 },
+  heading: { ...text.caption, fontFamily: fonts.semibold, color: colors.amber, letterSpacing: 1 },
   body: { ...text.caption, color: colors.muted },
 });

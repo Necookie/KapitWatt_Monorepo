@@ -1,61 +1,106 @@
+import { Icon } from '@kapitwatt/icons';
+import { themes } from '@kapitwatt/styles';
+import { Text } from '@kapitwatt/ui';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { colors, radius, space, text } from '@/theme';
-import { EyeIcon } from './EyeIcon';
+import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { colors, radius, space } from '@/theme';
 
-/** A labelled text input. */
-export function TextField(props: TextInputProps & { label: string; hint?: string }) {
-  const { label, hint, style, ...input } = props;
+const t = themes.light;
+const c = t.color;
+
+/**
+ * A labelled text input with the same frame as a button: 56 px tall, 12 px corners (mockup page 1,
+ * Log in). White fill so it reads as tappable; 2 px primary border while focused, error border and
+ * message when `error` is set. Password fields (`secureTextEntry`) get a show/hide eye.
+ */
+export function TextField(
+  props: Omit<TextInputProps, 'style'> & {
+    label: string;
+    hint?: string;
+    error?: string;
+    /** Unit shown inside the field on the right, e.g. "kWh". */
+    suffix?: string;
+  },
+) {
+  const {
+    label,
+    hint,
+    error,
+    suffix,
+    secureTextEntry,
+    onFocus,
+    onBlur,
+    editable = true,
+    ...input
+  } = props;
+  const [focused, setFocused] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const strong = focused || !!error;
+
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        placeholderTextColor={colors.muted}
-        style={[styles.input, style]}
-        accessibilityLabel={label}
-        {...input}
-      />
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+      <Text variant="labelLarge" color={error ? 'error' : 'onSurfaceVariant'}>
+        {label}
+      </Text>
+      <View
+        style={[
+          styles.frame,
+          {
+            borderWidth: strong ? t.borderWidth.strong : t.borderWidth.hairline,
+            borderColor: error ? c.error : focused ? c.primary : c.outline,
+            // Keep the text still when the border thickens.
+            paddingLeft: strong ? 15 : 16,
+            backgroundColor: editable ? c.surfaceContainerLowest : c.surfaceContainerHigh,
+          },
+        ]}
+      >
+        <TextInput
+          {...input}
+          editable={editable}
+          secureTextEntry={secureTextEntry && !revealed}
+          accessibilityLabel={label}
+          placeholderTextColor={c.onSurfaceVariant}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          style={styles.input}
+        />
+        {suffix ? (
+          <Text color="onSurfaceVariant" style={styles.suffix}>
+            {suffix}
+          </Text>
+        ) : null}
+        {secureTextEntry ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? 'Hide password' : 'Show password'}
+            onPress={() => setRevealed((r) => !r)}
+            style={styles.eye}
+          >
+            <Icon name={revealed ? 'hide' : 'show'} color="onSurfaceVariant" />
+          </Pressable>
+        ) : null}
+      </View>
+      {error || hint ? (
+        <Text variant="bodyMedium" color={error ? 'error' : 'onSurfaceVariant'}>
+          {error ?? hint}
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 /**
- * A password input. Hidden by default; the eye on the right shows it and hides it again, so a
- * household can check what it typed on a small keyboard.
+ * A password input: a TextField that starts hidden, with the eye on the right to show it and hide
+ * it again, so a household can check what it typed on a small keyboard.
  */
-export function PasswordField(
-  props: Omit<TextInputProps, 'secureTextEntry'> & { label: string; hint?: string },
-) {
-  const { label, hint, style, ...input } = props;
-  const [shown, setShown] = useState(false);
-  return (
-    <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.passwordRow}>
-        <TextInput
-          placeholderTextColor={colors.muted}
-          style={[styles.input, styles.passwordInput, style]}
-          accessibilityLabel={label}
-          autoCapitalize="none"
-          autoCorrect={false}
-          {...input}
-          secureTextEntry={!shown}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={shown ? 'Hide password' : 'Show password'}
-          accessibilityState={{ selected: shown }}
-          hitSlop={space.sm}
-          onPress={() => setShown((s) => !s)}
-          style={styles.eye}
-        >
-          <EyeIcon crossed={shown} color={colors.muted} />
-        </Pressable>
-      </View>
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
-    </View>
-  );
+export function PasswordField(props: Omit<Parameters<typeof TextField>[0], 'secureTextEntry'>) {
+  return <TextField autoCapitalize="none" autoCorrect={false} {...props} secureTextEntry />;
 }
 
 /** A checkbox with a long label (used for consent). */
@@ -68,11 +113,13 @@ export function Checkbox(props: {
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: props.checked }}
+      accessibilityLabel={props.label}
+      hitSlop={space.sm}
       onPress={() => props.onChange(!props.checked)}
       style={styles.checkRow}
     >
       <View style={[styles.box, props.checked && styles.boxChecked]}>
-        {props.checked ? <Text style={styles.tick}>✓</Text> : null}
+        {props.checked ? <Icon name="check" size="sm" weight="bold" color="onPrimary" /> : null}
       </View>
       <Text style={styles.checkLabel}>{props.label}</Text>
     </Pressable>
@@ -80,27 +127,27 @@ export function Checkbox(props: {
 }
 
 const styles = StyleSheet.create({
-  field: { gap: space.xs },
-  label: { ...text.body, fontWeight: '700', color: colors.ink },
-  hint: { ...text.caption, color: colors.muted },
-  input: {
-    ...text.body,
-    color: colors.ink,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
+  field: { gap: 6, alignSelf: 'stretch' },
+  frame: {
+    height: t.size.controlLg,
     borderRadius: radius.md,
-    paddingHorizontal: space.md,
-    paddingVertical: space.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 4,
   },
-  passwordRow: { justifyContent: 'center' },
-  /** Room on the right so the text never runs under the eye. */
-  passwordInput: { paddingRight: 52 },
+  input: {
+    ...t.text.bodyLarge,
+    flex: 1,
+    minWidth: 0,
+    height: '100%',
+    color: c.onSurface,
+    paddingVertical: 0,
+  },
+  suffix: { paddingHorizontal: 12 },
   eye: {
-    position: 'absolute',
-    right: 0,
-    width: 48,
-    height: 48,
+    width: t.size.touchTarget,
+    height: t.size.touchTarget,
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -109,13 +156,12 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     marginTop: 2,
-    borderRadius: radius.sm,
+    borderRadius: radius.sm / 2,
     borderWidth: 2,
     borderColor: colors.teal,
     alignItems: 'center',
     justifyContent: 'center',
   },
   boxChecked: { backgroundColor: colors.teal },
-  tick: { color: colors.onDark, fontWeight: '700' },
-  checkLabel: { ...text.body, color: colors.ink, flex: 1 },
+  checkLabel: { flex: 1 },
 });

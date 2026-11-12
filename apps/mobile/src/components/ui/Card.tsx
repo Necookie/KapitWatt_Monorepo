@@ -1,36 +1,31 @@
+import { Card as DsCard, Stack, Text } from '@kapitwatt/ui';
 import type { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, space, text } from '@/theme';
 
+/** Grouped content with an optional title, drawn by `@kapitwatt/ui` (filled, flat, 12 px corners). */
 export function Card(props: { title?: string; children: ReactNode }) {
   return (
-    <View style={styles.card}>
-      {props.title ? <Text style={styles.title}>{props.title}</Text> : null}
-      {props.children}
-    </View>
+    <DsCard>
+      <Stack gap={2}>
+        {props.title ? <Text variant="titleLarge">{props.title}</Text> : null}
+        {props.children}
+      </Stack>
+    </DsCard>
   );
 }
 
 /** A label and its value on one line, e.g. "Commitment   1.0 kW". */
 export function Row(props: { label: string; value: string; strong?: boolean }) {
   return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{props.label}</Text>
-      <Text style={[styles.value, props.strong && styles.strong]}>{props.value}</Text>
-    </View>
+    <Stack direction="row" justify="space-between" gap={3}>
+      <Text color="onSurfaceVariant" style={{ flexShrink: 1 }}>
+        {props.label}
+      </Text>
+      <Text
+        variant={props.strong ? 'titleMedium' : 'bodyLarge'}
+        style={{ fontVariant: ['tabular-nums'] }}
+      >
+        {props.value}
+      </Text>
+    </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: space.lg,
-    gap: space.sm,
-  },
-  title: { ...text.title, color: colors.ink },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: space.md },
-  label: { ...text.body, color: colors.muted, flexShrink: 1 },
-  value: { ...text.body, color: colors.ink, fontVariant: ['tabular-nums'] },
-  strong: { fontWeight: '700' },
-});

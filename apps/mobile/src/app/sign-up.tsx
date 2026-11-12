@@ -1,7 +1,9 @@
 import { RegisterHouseholdInput } from '@kapitwatt/shared';
+import { Text } from '@kapitwatt/ui';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { BackHandler, StyleSheet, Text } from 'react-native';
+import { BackHandler, StyleSheet, View } from 'react-native';
+import { MascotHeader } from '@/components/mascot/MascotHeader';
 import {
   EMPTY_DRAFT,
   STEPS,
@@ -17,13 +19,15 @@ import {
   MeterStep,
   PrivacyStep,
   ReviewStep,
-  StepHeader,
+  SignUpTopBar,
+  STEP_MASCOT,
+  STEP_TITLE,
 } from '@/components/onboarding/Steps';
-import { Button, ErrorState, Loading, Screen, SimulatedNote } from '@/components/ui';
+import { Button, ErrorState, Loading, Screen } from '@/components/ui';
 import { describeError, errorCode } from '@/lib/api';
 import { startOver } from '@/lib/nav';
 import { useBarangays, useRegister } from '@/lib/queries';
-import { colors, text } from '@/theme';
+import { colors, space } from '@/theme';
 
 /** Refusals that belong to one step: the household is sent back there to fix it. */
 const REFUSALS: Record<string, { step: StepId; message: string }> = {
@@ -41,7 +45,7 @@ const REFUSALS: Record<string, { step: StepId; message: string }> = {
 /**
  * Onboarding (FR-APP-01 to 03): account, privacy notice and consent, Meralco account, home, meter,
  * review. The consent step comes before any personal data beyond the email, and cannot be skipped.
- * Nothing is sent to the API until "Join the pilot".
+ * Nothing is sent to the API until "Join the pilot". Layout: mockup sign-up, mascot option A.
  */
 export default function SignUpScreen() {
   const barangays = useBarangays();
@@ -71,6 +75,14 @@ export default function SignUpScreen() {
     setDraft((d) => ({ ...d, ...changes }));
   };
   const props = { draft, set };
+  const mascot = STEP_MASCOT[step];
+
+  const back = () => {
+    setProblem(null);
+    if (index > 0) setStep(STEPS[index - 1]!);
+    else if (router.canGoBack()) router.back();
+    else router.replace('/welcome');
+  };
 
   const join = () => {
     const parsed = RegisterHouseholdInput.safeParse(toSignUp(draft));
@@ -89,62 +101,63 @@ export default function SignUpScreen() {
   };
 
   return (
-    // Keyed by step so every step opens scrolled to the top.
-    <Screen key={step}>
-      <StepHeader step={step} />
-      {problem ? <Text style={styles.error}>{problem}</Text> : null}
+    <View style={styles.root}>
+      <SignUpTopBar step={step} onBack={back} disabled={registerMutation.isPending} />
+      {/* Keyed by step so every step opens scrolled to the top. */}
+      <Screen key={step} roomy>
+        <MascotHeader
+          label={STEP_TITLE[step]}
+          line={mascot.line}
+          pose={mascot.pose}
+          tone={mascot.tone}
+        />
+        {problem ? <Text color="error">{problem}</Text> : null}
 
-      {step === 'account' ? <AccountStep {...props} /> : null}
-      {step === 'privacy' ? <PrivacyStep {...props} /> : null}
-      {step === 'meralco' ? <MeralcoStep {...props} /> : null}
-      {step === 'home' ? <HomeStep {...props} barangays={barangays.data} /> : null}
-      {step === 'meter' ? <MeterStep {...props} /> : null}
-      {step === 'review' ? (
-        <ReviewStep {...props} barangays={barangays.data} onEdit={setStep} />
-      ) : null}
+        {step === 'account' ? <AccountStep {...props} /> : null}
+        {step === 'privacy' ? <PrivacyStep {...props} /> : null}
+        {step === 'meralco' ? <MeralcoStep {...props} /> : null}
+        {step === 'home' ? <HomeStep {...props} barangays={barangays.data} /> : null}
+        {step === 'meter' ? <MeterStep {...props} /> : null}
+        {step === 'review' ? (
+          <ReviewStep {...props} barangays={barangays.data} onEdit={setStep} />
+        ) : null}
 
-      {step === 'review' ? (
-        <Button
-          label="Join the pilot"
-          disabled={!stepDone('review', draft)}
-          loading={registerMutation.isPending}
-          onPress={join}
-        />
-      ) : (
-        <Button
-          label="Continue"
-          disabled={!stepDone(step, draft)}
-          onPress={() => setStep(STEPS[index + 1]!)}
-        />
-      )}
-      {step === 'privacy' && !stepDone('privacy', draft) ? (
-        <Text style={styles.body}>You can’t join without consent.</Text>
-      ) : null}
-      <Button
-        label={index === 0 ? 'Cancel' : 'Back'}
-        variant="secondary"
-        disabled={registerMutation.isPending}
-        onPress={() => {
-          if (index > 0) setStep(STEPS[index - 1]!);
-          else if (router.canGoBack()) router.back();
-          else router.replace('/welcome');
-        }}
-      />
-      {step === 'account' ? (
-        <Button
-          label="I already have an account"
-          variant="secondary"
-          onPress={() => router.replace('/login')}
-        />
-      ) : null}
-      <SimulatedNote>
-        KapitWatt is a hackathon pilot. Households, alerts and reward rates are simulated.
-      </SimulatedNote>
-    </Screen>
+        <View style={styles.actions}>
+          {step === 'review' ? (
+            <Button
+              label="Join the pilot"
+              disabled={!stepDone('review', draft)}
+              loading={registerMutation.isPending}
+              onPress={join}
+            />
+          ) : (
+            <Button
+              label="Continue"
+              disabled={!stepDone(step, draft)}
+              onPress={() => setStep(STEPS[index + 1]!)}
+            />
+          )}
+          {step === 'privacy' && !stepDone('privacy', draft) ? (
+            <Text variant="bodySmall" color="onSurfaceVariant" align="center">
+              Both are needed to join.
+            </Text>
+          ) : null}
+          {step === 'account' ? (
+            <View style={styles.loginRow}>
+              <Text variant="bodyMedium" color="onSurfaceVariant">
+                Have an account?
+              </Text>
+              <Button label="Log in" variant="text" onPress={() => router.replace('/login')} />
+            </View>
+          ) : null}
+        </View>
+      </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  body: { ...text.body, color: colors.muted },
-  error: { ...text.body, color: colors.red },
+  root: { flex: 1, backgroundColor: colors.background },
+  actions: { marginTop: 'auto', gap: space.xs },
+  loginRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
 });

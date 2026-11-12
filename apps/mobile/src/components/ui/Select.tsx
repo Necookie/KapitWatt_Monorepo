@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radius, space, text } from '@/theme';
+import { colors, fonts, radius, space, text } from '@/theme';
 
 /**
  * Dropdown: a field showing the current choice; tapping it opens a list of options in a sheet.
@@ -79,7 +79,7 @@ export function Select<T extends string>(props: {
 
 const styles = StyleSheet.create({
   field: { gap: space.xs },
-  label: { ...text.body, fontWeight: '700', color: colors.ink },
+  label: { ...text.body, fontFamily: fonts.semibold, color: colors.ink },
   input: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -115,6 +115,6 @@ const styles = StyleSheet.create({
   optionActive: { backgroundColor: colors.surface },
   optionPressed: { backgroundColor: colors.surface },
   optionLabel: { ...text.body, color: colors.ink, flex: 1 },
-  optionLabelActive: { fontWeight: '700' },
-  check: { ...text.body, color: colors.teal, fontWeight: '700' },
+  optionLabelActive: { fontFamily: fonts.semibold },
+  check: { ...text.body, color: colors.teal, fontFamily: fonts.semibold },
 });
