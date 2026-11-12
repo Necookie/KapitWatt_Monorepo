@@ -20,7 +20,7 @@ export default function CommitScreen() {
   if (me.isPending) return <Loading />;
   if (me.isError) return <ErrorState onRetry={() => void me.refetch()} />;
 
-  const cap = me.data.commitCapKw;
+  const cap = me.data.commitCapKw ?? 0;
   const selected = kw ?? Math.min(1, cap);
   const set = (next: number) => setKw(roundKw(Math.min(cap, Math.max(STEP_KW, next))));
 

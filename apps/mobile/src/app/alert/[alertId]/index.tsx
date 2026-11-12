@@ -40,7 +40,7 @@ export default function EventScreen() {
     phase,
     status: status.data,
     meterType: me.data.meterType,
-    commitCapKw: me.data.commitCapKw,
+    commitCapKw: me.data.commitCapKw ?? 0,
     now,
   });
   const commitment = status.data.commitment;

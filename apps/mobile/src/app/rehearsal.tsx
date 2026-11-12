@@ -78,7 +78,7 @@ export default function RehearsalScreen() {
         {baseline !== null ? (
           <>
             <Row label="Your usual usage" value={formatKw(baseline)} strong />
-            <Row label="Most you can commit" value={formatKw(me.data.commitCapKw)} />
+            <Row label="Most you can commit" value={formatKw(me.data.commitCapKw ?? 0)} />
           </>
         ) : (
           <Text style={styles.body}>

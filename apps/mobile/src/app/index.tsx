@@ -18,7 +18,7 @@ export default function HomeScreen() {
   if (alert.isPending || me.isPending) return <Loading />;
   if (alert.isError || me.isError) return <ErrorState onRetry={() => void refreshAll()} />;
 
-  const needsRehearsal = me.data.meterType === 'standard' && me.data.baselineKw === null;
+  const needsRehearsal = me.data.needsRehearsal;
 
   const view = alert.data;
 
@@ -62,7 +62,7 @@ export default function HomeScreen() {
       <Card title="Your household">
         <Row label="Barangay" value={`${me.data.barangayName}, ${me.data.municipality}`} />
         <Row label="Meter" value={me.data.meterType === 'ami' ? 'Smart meter' : 'Photo readings'} />
-        <Row label="Points" value={String(me.data.totalPoints)} strong />
+        <Row label="Points" value={String(me.data.points)} strong />
         <Button
           label="Leaderboard"
           variant="secondary"
