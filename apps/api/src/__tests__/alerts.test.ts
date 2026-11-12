@@ -181,6 +181,14 @@ describe('alert routes (before the database)', () => {
     message: 'test',
   };
 
+  it('rejects at-risk barangays that are not targeted', async () => {
+    const res = await call(
+      '/alerts',
+      json({ ...alertBody, targetBarangayIds: [B1], atRiskBarangayIds: [B2] }, op),
+    );
+    expect(res.status).toBe(400);
+  });
+
   it('rejects non-UUID ids', async () => {
     expect((await call('/alerts/not-a-uuid')).status).toBe(400);
     expect((await call('/alerts/not-a-uuid/totals')).status).toBe(400);
