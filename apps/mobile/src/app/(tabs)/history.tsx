@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AlertBadge } from '@/components/event/AlertBadge';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { ErrorState, Loading, Screen } from '@/components/ui';
-import { formatKw, formatKwh, formatPhp, formatWindow } from '@/lib/format';
+import { formatKw, formatKwh, formatWindow } from '@/lib/format';
 import { useHistory, useRefreshAll } from '@/lib/queries';
 import { radius, space } from '@/theme';
 
@@ -27,12 +27,11 @@ export default function HistoryScreen() {
     (t, i) =>
       i.result
         ? {
-            points: t.points + i.result.points,
-            php: t.php + i.result.creditPhp + i.result.bonusPhp,
+            verified: t.verified + (i.result.verifiedKwh > 0 ? 1 : 0),
             kwh: t.kwh + i.result.verifiedKwh,
           }
         : t,
-    { points: 0, php: 0, kwh: 0 },
+    { verified: 0, kwh: 0 },
   );
 
   return (
@@ -40,8 +39,8 @@ export default function HistoryScreen() {
       <Text variant="headlineSmall">History</Text>
 
       <View style={styles.tiles}>
-        <Tile label="Points" value={String(totals.points)} accent />
-        <Tile label="Earned" value={formatPhp(totals.php)} />
+        <Tile label="Verified cuts" value={String(totals.verified)} accent />
+        <Tile label="Events" value={String(items.length)} />
         <Tile label="Saved" value={formatKwh(totals.kwh)} />
       </View>
 
@@ -73,24 +72,22 @@ export default function HistoryScreen() {
             <View style={styles.cardBottom}>
               <View style={styles.flex}>
                 <Text variant="bodyMedium" color="onSurfaceVariant">
-                  {r
-                    ? `Committed ${formatKw(item.committedKw)} · verified ${formatKwh(r.verifiedKwh)}`
-                    : `Committed ${formatKw(item.committedKw)}`}
+                  {`Committed ${formatKw(item.committedKw)}`}
                 </Text>
                 <Text
                   variant="titleSmall"
                   color={!r ? 'onSurfaceVariant' : paid ? 'relief' : 'error'}
                 >
-                  {!r ? 'Waiting for results' : paid ? 'Verified' : 'No payout'}
+                  {!r ? 'Waiting for results' : paid ? 'Verified' : 'Not verified'}
                 </Text>
               </View>
               {r ? (
                 <View style={styles.amount}>
                   <Text variant="titleMedium" style={styles.tabular}>
-                    {formatPhp(r.creditPhp + r.bonusPhp)}
+                    {formatKwh(r.verifiedKwh)}
                   </Text>
-                  <Text variant="bodySmall" color="tertiary">
-                    {`${r.points} pts`}
+                  <Text variant="bodySmall" color="onSurfaceVariant">
+                    saved
                   </Text>
                 </View>
               ) : null}

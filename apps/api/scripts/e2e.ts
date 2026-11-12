@@ -1329,8 +1329,8 @@ async function phase7Review(
   );
   check(card.status === 'verified' && card.creditPhp === 8.06, 'result card shows the payment');
   check(
-    (await trustOf(ctx.householdId)) === Math.min(100, trustHeld + 15),
-    'trust: the flag penalty is undone and the clean event counted (+15)',
+    (await trustOf(ctx.householdId)) === Math.min(100, trustHeld + 20),
+    'trust: the flag penalty is undone and the clean event counted (+20)',
   );
 
   // --- Cancel.
@@ -1408,9 +1408,9 @@ async function phase7Review(
   const cId = HouseholdMe.parse(
     (await call('GET', '/auth/me', undefined, bearer(p5.cToken))).json,
   ).id;
-  await db`update households set trust_score = 20 where id = ${cId}`; // test fixture
+  await db`update households set trust_score = 0 where id = ${cId}`; // test fixture
   const meC = HouseholdMe.parse((await call('GET', '/auth/me', undefined, bearer(p5.cToken))).json);
-  check(meC.commitCapKw === 1.3, 'trust 20 lowers the cap from 1.9 to 1.3 kW');
+  check(meC.commitCapKw === 1.4, 'trust 0 lowers the cap from 1.9 to 1.4 kW');
   const w = AlertView.parse((await newAlert()).json);
   const over = await call(
     'POST',
@@ -1423,7 +1423,7 @@ async function phase7Review(
     'a cut above the trust-narrowed cap is 422',
   );
   check(
-    (await call('POST', '/commitments', { alertId: w.id, committedKw: 1.3 }, bearer(p5.cToken)))
+    (await call('POST', '/commitments', { alertId: w.id, committedKw: 1.4 }, bearer(p5.cToken)))
       .status === 201,
     'a cut at the cap is accepted',
   );

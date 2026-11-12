@@ -1,6 +1,6 @@
 import { capKw, COMMIT_STEP_KW, MAX_COMMIT_KW, TRUST } from '@kapitwatt/shared';
 
-/** Trust narrows the cap below neutral only: 50 (the start) keeps it, 0 halves it. */
+/** The score narrows the cap below the start only: 25 (the start) keeps it, 0 leaves 75% of it. */
 export const trustMultiplier = (trustScore: number): number =>
   Math.min(1, TRUST.capFloor + trustScore / 100);
 

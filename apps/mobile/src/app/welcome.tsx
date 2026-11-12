@@ -16,7 +16,7 @@ const MASCOT_GLOW = '#FFEDE8';
 const STEPS = [
   { name: 'Alert', detail: 'We tell you when' },
   { name: 'Cut', detail: 'Switch some off' },
-  { name: 'Reward', detail: 'Bill credit + points', reward: true },
+  { name: 'Reward', detail: 'Score + perks', reward: true },
 ] as const;
 
 /**
@@ -41,7 +41,8 @@ export default function WelcomeScreen() {
             {'Help the grid.\nEarn rewards.'}
           </Text>
           <Text color="onSurfaceVariant" align="center">
-            When Luzon runs short on power, cut a little and earn rewards.
+            When Luzon runs short on power, cut a little, raise your Contribution Score and unlock
+            perks.
           </Text>
         </View>
       </View>

@@ -39,11 +39,11 @@ export default function LeaderboardScreen() {
               {`${mine.name} (you)`}
             </Text>
             <Text variant="bodySmall" style={{ color: c.onPrimaryContainer }}>
-              {`${mine.municipality} · ${formatKwh(mine.verifiedKwh)}`}
+              {mine.municipality}
             </Text>
           </View>
           <Text variant="titleSmall" style={[styles.tabular, { color: c.onPrimaryContainer }]}>
-            {`${mine.points} pts`}
+            {formatKwh(mine.verifiedKwh)}
           </Text>
         </View>
       ) : null}
@@ -73,11 +73,11 @@ export default function LeaderboardScreen() {
                   {isMine ? `${row.name} (you)` : row.name}
                 </Text>
                 <Text variant="bodySmall" color="onSurfaceVariant">
-                  {`${row.municipality} · ${formatKwh(row.verifiedKwh)}`}
+                  {row.municipality}
                 </Text>
               </View>
               <Text variant="titleSmall" style={styles.tabular}>
-                {`${row.points} pts`}
+                {formatKwh(row.verifiedKwh)}
               </Text>
             </View>
           );

@@ -1,7 +1,12 @@
 import { Logo, Text } from '@kapitwatt/ui';
 import { Redirect, router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { AlertCard, BarangayTonight, QuietCard, RewardTiles } from '@/components/home/HomeCards';
+import {
+  AlertCard,
+  BarangayTonight,
+  ContributionCard,
+  QuietCard,
+} from '@/components/home/HomeCards';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { MockControls } from '@/components/MockControls';
 import { Button, ErrorState, Loading, Screen } from '@/components/ui';
@@ -13,7 +18,10 @@ import { space } from '@/theme';
 /** "Juan Dela Cruz" -> "Juan"; households from before names were collected get a neutral hello. */
 const firstName = (name: string | null) => name?.trim().split(/\s+/)[0] ?? null;
 
-/** Home (mockup "Home · red alert"): greeting, the alert if there is one, rewards, barangay. */
+/**
+ * Home (mockup "Home · red alert"): greeting, the alert if there is one, the Contribution Score
+ * with its perks, barangay.
+ */
 export default function HomeScreen() {
   const alert = useActiveAlert();
   const me = useMe();
@@ -83,7 +91,7 @@ export default function HomeScreen() {
         <QuietCard />
       )}
 
-      <RewardTiles points={h.points} creditPhp={h.creditPhp} />
+      <ContributionCard score={h.trustScore} />
 
       {view ? <BarangayTonight alertId={view.alert.id} barangayId={h.barangayId} /> : null}
 
