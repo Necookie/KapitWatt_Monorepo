@@ -208,6 +208,10 @@ async function phase1Households() {
     RegisterResult.parse(second.json).household.needsRehearsal === false,
     'smart meter skips rehearsal',
   );
+  check(
+    (RegisterResult.parse(second.json).household.commitCapKw ?? 0) > 0,
+    'a smart-meter sign-up can commit at once (simulated baseline in the demo)',
+  );
   const [first] = await db`select push_token from households where id = ${household.id}`;
   check(first?.push_token === null, 'push token moved to the newest household on that phone');
   const secondReg = RegisterResult.parse(second.json);
@@ -298,6 +302,8 @@ async function phase2Alerts(ctx: Awaited<ReturnType<typeof phase1Households>>) {
     (await call('GET', '/alerts/active', undefined, bearer(ctx.token))).json,
   );
   check(active.alert?.id === alert.id, 'GET /alerts/active shows the household its barangay alert');
+  const anonymous = ActiveAlertResponse.parse((await call('GET', '/alerts/active')).json);
+  check(anonymous.alert === null, 'a phone that is not signed in sees no alert');
 
   const log = AlertLogResponse.parse(
     (await call('GET', '/alerts?limit=5', undefined, OPERATOR)).json,
@@ -854,6 +860,11 @@ async function phase5Readings(
   check(
     before.status === 201 && beforeResult.checkStatus === 'pass',
     'before photo in its window passes',
+  );
+  const resent = await event('before', 1204.3, beforeBytes);
+  check(
+    resent.status === 201 && SubmitReadingResult.parse(resent.json).id === beforeResult.id,
+    'resending the same upload returns the stored reading',
   );
   const again = await event('before', 1204.4);
   check(

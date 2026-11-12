@@ -44,7 +44,8 @@ export const RegisterHouseholdInput = z.object({
   barangayId: z.uuid(),
   meterType: MeterType,
   meterSerial: z.string().trim().min(1).max(64),
-  billAvgKwhMonth: z.number().positive().max(10_000),
+  /** At least 1 kWh: the column keeps 2 decimals, so a tiny value would round to 0 and fail. */
+  billAvgKwhMonth: z.number().min(1).max(10_000),
   /** Registered address, used for the GPS distance check on photos. */
   lat: latitude,
   lng: longitude,

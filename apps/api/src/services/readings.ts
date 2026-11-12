@@ -1,14 +1,17 @@
 import {
+  findReadingByHash,
   getReadingCommitment,
   getReadingHousehold,
   getReadingPhotoKey,
   insertPhotoReading,
-  photoHashExists,
   setHouseholdBaseline,
   type Db,
+  type ReadingByHash,
   type ReadingHousehold,
 } from '@kapitwatt/db';
 import {
+  actualKwFromReadings,
+  COMMIT_STEP_KW,
   PHOTO_RULES,
   photoBaselineKw,
   REHEARSAL_MIN_MINUTES,
@@ -51,7 +54,7 @@ const gpsOf = (h: ReadingHousehold, input: SubmitReadingInput) =>
     ? null
     : { lat: input.lat, lng: input.lng, homeLat: h.lat, homeLng: h.lng };
 
-interface Prepared {
+export interface Prepared {
   commitmentId: string | null;
   capturedAt: Date;
   checkStatus: CheckStatus;
@@ -61,7 +64,11 @@ interface Prepared {
 }
 
 /** Rehearsal (photo households, at sign-up): two readings at least REHEARSAL_MIN_MINUTES apart. */
-function prepareRehearsal(h: ReadingHousehold, input: SubmitReadingInput, now: Date): Prepared {
+export function prepareRehearsal(
+  h: ReadingHousehold,
+  input: SubmitReadingInput,
+  now: Date,
+): Prepared {
   if (h.meterType === 'ami') {
     throw conflict('no_rehearsal_needed', 'Smart-meter households do not rehearse.');
   }
@@ -95,13 +102,21 @@ function prepareRehearsal(h: ReadingHousehold, input: SubmitReadingInput, now: D
       'That reading does not fit your first one. Check it and try again.',
     );
   }
+  const hours = first ? (now.getTime() - first.at.getTime()) / HOUR_MS : 0;
+  // A standard meter shows whole kWh, so after half an hour the reading often has not moved. A
+  // measured draw under one commit step would leave nothing to commit and no way to redo the
+  // rehearsal, so the second photo is refused instead (nothing stored) and can be taken again later.
+  // (The bill cap may still lower the baseline below a step for a very small household; that is a
+  // real outcome, not a misread, so it is not refused.)
+  if (first && actualKwFromReadings(first.kwh, input.readingKwh, hours) < COMMIT_STEP_KW) {
+    throw new AppError(
+      422,
+      'rehearsal_too_low',
+      'Your meter has barely moved since the first photo. Use power as usual, then take the second photo again in a while.',
+    );
+  }
   const baselineKw = first
-    ? photoBaselineKw(
-        first.kwh,
-        input.readingKwh,
-        (now.getTime() - first.at.getTime()) / HOUR_MS,
-        h.billAvgKwhMonth,
-      )
+    ? photoBaselineKw(first.kwh, input.readingKwh, hours, h.billAvgKwhMonth)
     : null;
   return { commitmentId: null, capturedAt: now, checkStatus, flags, baselineKw };
 }
@@ -170,8 +185,18 @@ export async function submitReading(
   const household = await getReadingHousehold(db, householdId);
   if (!household) throw notFound('Household');
   const photoHash = await sha256Hex(photo);
-  if (await photoHashExists(db, photoHash)) {
-    throw conflict('duplicate_photo', 'This photo was already used. Take a new one.');
+  const existing = await findReadingByHash(db, photoHash);
+  if (existing) {
+    if (!isSameUpload(existing, householdId, input)) {
+      throw conflict('duplicate_photo', 'This photo was already used. Take a new one.');
+    }
+    return {
+      id: existing.id,
+      kind: existing.kind,
+      checkStatus: existing.checkStatus,
+      flags: existing.flags,
+      baselineKw: existing.kind === 'rehearsal' ? household.baselineKw : null,
+    };
   }
 
   const prepared =
@@ -215,6 +240,25 @@ export async function submitReading(
     flags: prepared.flags,
     baselineKw: prepared.baselineKw,
   };
+}
+
+/**
+ * A photo that is already stored is either reused (refused) or the same phone resending the same
+ * upload because its first response was lost: same household, same kind, same alert. The resend is
+ * answered with what was stored, so the app moves on instead of being told to retake a photo it
+ * already sent.
+ */
+export function isSameUpload(
+  existing: Pick<ReadingByHash, 'householdId' | 'kind' | 'alertId'>,
+  householdId: string,
+  input: Pick<SubmitReadingInput, 'kind' | 'alertId'>,
+): boolean {
+  const alertId = input.kind === 'rehearsal' ? null : (input.alertId ?? null);
+  return (
+    existing.householdId === householdId &&
+    existing.kind === input.kind &&
+    existing.alertId === alertId
+  );
 }
 
 /** Operator review: the photo bytes of a reading, from the private bucket. */

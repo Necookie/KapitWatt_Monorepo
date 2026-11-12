@@ -123,22 +123,30 @@ export async function getAlertView(db: Db, id: string, isDemo: boolean): Promise
   return toAlertView(alert);
 }
 
+/** Who is asking for the active alert: a signed-in household, the operator, or a phone not signed in. */
+export type ActiveAlertViewer = { householdId: string } | 'operator' | 'public';
+
 /**
- * FR-APP-06: the alert a household should see (one that targets its barangay), or for the
- * dashboard (no household) the newest open alert.
+ * FR-APP-06: the alert a household should see (one that targets its barangay). Only opted-in
+ * households get alerts, so a household that turned them off sees none, and neither does a phone
+ * that is not signed in (no barangay, no consent yet). The operator gets the newest open alert,
+ * scheduled ones included.
  */
 export async function activeAlert(
   db: Db,
-  householdId: string | null,
+  viewer: ActiveAlertViewer,
   isDemo: boolean,
 ): Promise<AlertView | null> {
-  let barangayId: string | null = null;
-  if (householdId) {
-    const profile = await getHouseholdProfile(db, householdId);
+  if (viewer === 'public') return null;
+  let alert;
+  if (viewer === 'operator') {
+    alert = await findOpenAlert(db, null, isDemo, true);
+  } else {
+    const profile = await getHouseholdProfile(db, viewer.householdId);
     if (!profile) throw notFound('Household');
-    barangayId = profile.barangayId;
+    if (!profile.optedIn) return null;
+    alert = await findOpenAlert(db, profile.barangayId, isDemo);
   }
-  const alert = await findOpenAlert(db, barangayId, isDemo);
   return alert ? toAlertView(alert) : null;
 }
 

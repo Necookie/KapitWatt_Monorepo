@@ -100,9 +100,34 @@ export async function getReadingCommitment(
   };
 }
 
-export async function photoHashExists(db: Db, hash: string): Promise<boolean> {
-  const [r] = await db`select 1 from meter_readings where photo_hash = ${hash}`;
-  return r !== undefined;
+export interface ReadingByHash {
+  id: string;
+  householdId: string;
+  kind: ReadingKind;
+  /** null for the rehearsal. */
+  alertId: string | null;
+  checkStatus: CheckStatus;
+  flags: ReadingFlag[];
+}
+
+/**
+ * The reading that already holds this photo, if any. The caller tells a reused photo (refused)
+ * from a phone resending the same upload after a lost response (answered with the stored result).
+ */
+export async function findReadingByHash(db: Db, hash: string): Promise<ReadingByHash | null> {
+  const [r] = await db`
+    select m.id, m.household_id, m.kind, c.alert_id, m.check_status, m.flags
+    from meter_readings m left join commitments c on c.id = m.commitment_id
+    where m.photo_hash = ${hash}`;
+  if (!r) return null;
+  return {
+    id: r.id as string,
+    householdId: r.household_id as string,
+    kind: r.kind as ReadingKind,
+    alertId: (r.alert_id as string | null) ?? null,
+    checkStatus: r.check_status as CheckStatus,
+    flags: (r.flags as ReadingFlag[]) ?? [],
+  };
 }
 
 export interface NewPhotoReading {

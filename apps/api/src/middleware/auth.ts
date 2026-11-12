@@ -43,6 +43,13 @@ async function authenticateHousehold(c: Context<AppEnv>, token: string | null): 
   c.set('actor', 'household');
 }
 
+/** True when the request carries the right operator key. For routes that only change what they show. */
+export async function hasOperatorKey(c: Context<AppEnv>): Promise<boolean> {
+  const given = c.req.header('x-operator-key');
+  if (!given || !isStrongKey(c.env.OPERATOR_KEY)) return false;
+  return safeEqual(given, c.env.OPERATOR_KEY);
+}
+
 /**
  * Operator (dashboard) auth: one shared key for the demo, compared in constant time. A weak or missing
  * key on the server turns these routes off rather than leaving them guessable.
