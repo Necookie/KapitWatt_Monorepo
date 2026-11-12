@@ -75,6 +75,9 @@ export const AlertView = z.object({
   windowEnd: z.iso.datetime(),
   targetKw: z.number(),
   targetBarangayIds: z.array(z.uuid()),
+  /** Targets marked as at risk of a brownout (simulated). Always sent by the API; optional so older
+   *  fixtures still type-check. */
+  atRiskBarangayIds: z.array(z.uuid()).optional(),
   message: z.string(),
   /** Derived from server time: active (commits open), window_open, settling, settled, cancelled. */
   status: AlertStatus,
