@@ -27,6 +27,10 @@ packages/
   shared/      Zod schemas, types, constants, baseline + payout + check math   @kapitwatt/shared
   db/          Postgres schema, migrations, query helpers                   @kapitwatt/db
   sim/         Laguna seed data + event runner (demo only)                  @kapitwatt/sim
+  tokens/      Design tokens: colour roles, type scale, spacing, shape      @kapitwatt/tokens
+  styles/      Theme (tokens as RN styles), ThemeProvider, font sources     @kapitwatt/styles
+  hooks/       useTheme, useStyles, useWindowClass, useCountdown, fonts     @kapitwatt/hooks
+  ui/          UI primitives for both apps (React Native + RN web)         @kapitwatt/ui
   config/      Shared tsconfig base                                         @kapitwatt/config
   assets/      Logo, app icons, mascot, Albert Sans (see its README)        @kapitwatt/assets
 docs/          The full plan (PDF, source of truth), PRD, SRS, MVP
