@@ -59,7 +59,7 @@ export default function AlertLogScreen() {
         </Txt>
       ),
     },
-    { key: 'targets', header: 'Targets', flex: 1.2, render: (a) => <Txt>{reach(a)}</Txt> },
+    { key: 'targets', header: 'Targets', flex: 1.8, render: (a) => <Txt>{reach(a)}</Txt> },
     {
       key: 'targetKw',
       header: 'Target',
@@ -70,7 +70,7 @@ export default function AlertLogScreen() {
     {
       key: 'message',
       header: 'Message',
-      flex: 2,
+      flex: 1.6,
       render: (a) => (
         <Txt size="sm" tone="muted" numberOfLines={1}>
           {a.message}

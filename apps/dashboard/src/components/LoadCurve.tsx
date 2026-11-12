@@ -57,8 +57,9 @@ export function LoadCurve({
   // One scale for both lines: relief below the baseline, with headroom under the deeper one.
   const deepest = Math.max(forecastKw, measured ? deliveredKw : 0, 1) * 1.2;
   const y = (reliefKw: number) => TOP + (reliefKw / deepest) * (BOTTOM - TOP);
+  // Only the drop is drawn in a series colour: outside the window the load is the baseline.
   const step = (reliefKw: number) =>
-    `M0,${TOP} L${xs},${TOP} L${xs},${y(reliefKw)} L${xe},${y(reliefKw)} L${xe},${TOP} L${W},${TOP}`;
+    `M${xs},${TOP} L${xs},${y(reliefKw)} L${xe},${y(reliefKw)} L${xe},${TOP}`;
 
   /** A level as the operator reads it: a load when the baseline is known, else a drop. */
   const level = (reliefKw: number) =>
