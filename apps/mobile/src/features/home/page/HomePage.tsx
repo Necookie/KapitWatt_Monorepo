@@ -1,25 +1,21 @@
 import { Redirect } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
-import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { MockControls } from '@/components/MockControls';
-import { Button, ErrorState, Loading } from '@/components/ui';
+import { ErrorState, Loading } from '@/components/ui';
 import { ApiError, describeError } from '@/api/http';
 import { TabScreen } from '@/layout/components/TabScreen';
-import { space } from '@/styles/theme';
-import { AlertCard } from '../components/AlertCard';
 import { BarangayTonight } from '../components/BarangayTonight';
-import { ContributionCard } from '../components/ContributionCard';
-import { QuietCard } from '../components/QuietCard';
+import { LightCard } from '../components/LightCard';
+import { NextStepCard } from '../components/NextStepCard';
 import { useHome } from '../hooks/useHome';
 
 /**
  * Home, the first tab: the night band with the household's place, a greeting and the grid's state,
- * then on the sheet the practice run if it is still due, the alert if there is one, the
- * Contribution Score with its perks, and the barangay tonight.
+ * then on the sheet the one thing to do next (it follows the event: commit, photos, result; the
+ * practice run before the first alert; nothing on a quiet night), the barangay tonight during an
+ * alert, and the household's light (Contribution Score, levels and perks).
  */
 export default function HomePage() {
-  const { alert, me, refreshAll, risk, title, place, logInAgain, startPractice, openAlert } =
-    useHome();
+  const { alert, me, refreshAll, risk, title, place, logInAgain, nextStep } = useHome();
 
   // Not signed in: the API answers 401 without a household token.
   if (me.error instanceof ApiError && me.error.status === 401) return <Redirect href="/welcome" />;
@@ -43,39 +39,14 @@ export default function HomePage() {
         />
       ) : (
         <>
-          {me.data.needsRehearsal ? (
-            <View style={styles.block}>
-              <MascotHeader
-                label="Practice run"
-                line="Take two practice photos before your first alert."
-              />
-              <Button label="Start practice" onPress={startPractice} />
-            </View>
-          ) : null}
-
-          {view ? (
-            <AlertCard
-              level={view.alert.level}
-              windowStart={view.alert.windowStart}
-              windowEnd={view.alert.windowEnd}
-              risk={risk}
-              onOpen={() => openAlert(view.alert.id)}
-            />
-          ) : (
-            <QuietCard />
-          )}
-
-          <ContributionCard score={me.data.trustScore} />
+          <NextStepCard step={nextStep} risk={risk} />
           {view ? (
             <BarangayTonight alertId={view.alert.id} barangayId={me.data.barangayId} />
           ) : null}
+          <LightCard score={me.data.trustScore} />
           <MockControls />
         </>
       )}
     </TabScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  block: { gap: space.md },
-});

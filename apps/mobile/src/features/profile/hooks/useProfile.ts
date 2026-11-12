@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { describeError } from '@/api/http';
 import { startOver } from '@/utils/nav';
+import { dateLabel } from '../utils/date-label';
 import { useDeleteAccount, useHistory, useLogout, useMe, useUpdateProfile } from '@/api/queries';
 
 /**
@@ -26,6 +27,9 @@ export function useProfile() {
   // The band: the household's name over its barangay.
   const title = me.data?.accountName ?? 'Household';
   const place = me.data ? `${me.data.barangayName}, ${me.data.municipality}` : undefined;
+  const consentDetail = me.data?.consentAt
+    ? `Consent given ${dateLabel(me.data.consentAt)}`
+    : 'Consent not recorded';
   const edit = UpdateProfileInput.safeParse({ accountName: name, serviceAddress: address });
   const saveError = update.isError
     ? describeError(update.error, {}, 'Could not save your changes. Try again.')
@@ -78,6 +82,7 @@ export function useProfile() {
     setPassword,
     title,
     place,
+    consentDetail,
     savedKwh,
     canSave: edit.success,
     saveError,

@@ -1,24 +1,28 @@
 import { themes } from '@kapitwatt/styles';
+import { Button } from '@kapitwatt/ui';
 import { Redirect } from 'expo-router';
 import { StyleSheet, Switch, View } from 'react-native';
+import { radius } from '@kapitwatt/tokens';
 import { ErrorState, Loading } from '@/components/ui';
 import { ApiError } from '@/api/http';
 import { TabScreen } from '@/layout/components/TabScreen';
-import { radius } from '@/styles/theme';
 import { AccountEditor } from '../components/AccountEditor';
 import { DeleteAccountPanel } from '../components/DeleteAccountPanel';
 import { ListRow } from '../components/ListRow';
 import { Avatar } from '../components/Avatar';
+import { MeralcoStub } from '../components/MeralcoStub';
+import { MeterPlate } from '../components/MeterPlate';
 import { ProfileStats } from '../components/ProfileStats';
 import { Section } from '../components/Section';
 import { useProfile } from '../hooks/useProfile';
-import { dateLabel } from '../utils/date-label';
 
 const c = themes.light.color;
 
 /**
  * Profile, the last tab: the household in the night band (initials, name, barangay), then on the
- * sheet its figures, the account and settings, and logging out or deleting the account.
+ * sheet its figures, its Meralco account as a bill stub (Edit corrects the name and address) and
+ * its meter on the faceplate from sign-up, the alerts switch, and its data and privacy (Data
+ * Privacy Act): the consent given, the notice, and withdrawing consent by deleting the account.
  */
 export default function ProfilePage() {
   const p = useProfile();
@@ -40,42 +44,43 @@ export default function ProfilePage() {
       ) : (
         <>
           <ProfileStats score={me.data.trustScore} savedKwh={p.savedKwh} />
-          <Section title="Account">
-            <ListRow icon="profile" label="Email" detail={me.data.email ?? 'Not set'} />
-            <ListRow
-              icon="locked"
-              label="Meralco account"
-              detail={me.data.accountNumberMasked ?? 'Not set'}
-            />
+          <Section title="Your household" plain>
             {p.editing ? (
-              <AccountEditor
-                name={p.name}
-                address={p.address}
-                onChangeName={p.setName}
-                onChangeAddress={p.setAddress}
-                error={p.saveError}
-                canSave={p.canSave}
-                saving={update.isPending}
-                onSave={p.save}
-                onCancel={p.cancelEdit}
-              />
+              <View style={styles.card}>
+                <AccountEditor
+                  name={p.name}
+                  address={p.address}
+                  onChangeName={p.setName}
+                  onChangeAddress={p.setAddress}
+                  error={p.saveError}
+                  canSave={p.canSave}
+                  saving={update.isPending}
+                  onSave={p.save}
+                  onCancel={p.cancelEdit}
+                />
+              </View>
             ) : (
-              <ListRow
-                icon="home"
-                label="Name and service address"
-                detail={me.data.serviceAddress ?? 'Not set'}
-                onPress={p.startEdit}
+              <MeralcoStub
+                masked={me.data.accountNumberMasked}
+                holder={me.data.accountName}
+                address={me.data.serviceAddress}
+                email={me.data.email}
+                onEdit={p.startEdit}
               />
             )}
-            <ListRow
-              icon={me.data.meterType === 'ami' ? 'smartMeter' : 'meter'}
-              label={me.data.meterType === 'ami' ? 'Smart meter' : 'Regular meter'}
-              detail={`${me.data.meterSerial} · ${me.data.billAvgKwhMonth} kWh a month`}
-              last
+            <MeterPlate
+              type={me.data.meterType}
+              serial={me.data.meterSerial}
+              billKwhMonth={me.data.billAvgKwhMonth}
             />
           </Section>
 
-          <Section title="Settings">
+          <Section title="Your data and privacy">
+            <ListRow
+              icon={me.data.consentAt ? 'check' : 'close'}
+              label="Data use"
+              detail={p.consentDetail}
+            />
             <ListRow
               icon="notifications"
               label="Grid alerts"
@@ -95,27 +100,7 @@ export default function ProfilePage() {
                 />
               }
             />
-            <ListRow
-              icon="info"
-              label="Privacy notice"
-              detail={
-                me.data.consentAt
-                  ? `Consent given ${dateLabel(me.data.consentAt)}`
-                  : 'Consent not recorded'
-              }
-              onPress={p.openPrivacy}
-              last
-            />
-          </Section>
-
-          <View style={styles.card}>
-            <ListRow
-              icon="signOut"
-              label={logout.isPending ? 'Logging out…' : 'Log out'}
-              tone="primary"
-              onPress={p.logOut}
-              last={!p.deleting}
-            />
+            <ListRow icon="info" label="Read the privacy notice" onPress={p.openPrivacy} />
             {p.deleting ? (
               <DeleteAccountPanel
                 password={p.password}
@@ -129,12 +114,21 @@ export default function ProfilePage() {
               <ListRow
                 icon="close"
                 label="Delete account and data"
+                detail="Withdraws your consent"
                 tone="error"
                 onPress={p.startDelete}
                 last
               />
             )}
-          </View>
+          </Section>
+
+          <Button
+            variant="outlined"
+            size="lg"
+            fullWidth
+            label={logout.isPending ? 'Logging out…' : 'Log out'}
+            onPress={p.logOut}
+          />
         </>
       )}
     </TabScreen>
@@ -142,11 +136,5 @@ export default function ProfilePage() {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: radius.lg,
-    backgroundColor: c.surfaceContainerLowest,
-    borderWidth: 1,
-    borderColor: c.outlineVariant,
-    overflow: 'hidden',
-  },
+  card: { borderRadius: radius.lg, backgroundColor: c.surfaceContainerLow, overflow: 'hidden' },
 });

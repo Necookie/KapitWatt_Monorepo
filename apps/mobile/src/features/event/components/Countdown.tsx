@@ -1,20 +1,15 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { formatDuration } from '@/utils/format';
-import { useServerNow } from '@/utils/server-time';
-import { colors, text } from '@/styles/theme';
+import { useCountdown } from '@kapitwatt/hooks';
+import { Text } from '@kapitwatt/ui';
+import { View } from 'react-native';
+import { serverOffsetMs } from '@/utils/server-time';
 
-/** Counts down to `at` on the server clock. */
+/** Counts down to `at` on the server clock (the design system's countdown, given the server offset). */
 export function Countdown(props: { label: string; at: string }) {
-  const now = useServerNow();
+  const left = useCountdown(props.at, serverOffsetMs());
   return (
     <View>
-      <Text style={styles.label}>{props.label}</Text>
-      <Text style={styles.figure}>{formatDuration(new Date(props.at).getTime() - now)}</Text>
+      <Text color="onSurfaceVariant">{props.label}</Text>
+      <Text variant="dataLarge">{left.label}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  label: { ...text.body, color: colors.muted },
-  figure: { ...text.figure, color: colors.ink },
-});

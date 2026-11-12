@@ -53,8 +53,13 @@ Inside each app:
     file, for queries only this page uses. `styles/`: only for standalone styles or CSS.
   - Code used by more than one page goes in the shared folders: `components/` (`ui/` holds the older
     compact primitives), `hooks/`, `utils/`, `layout/` (the app shell, itself split into `components/`,
-    `hooks/`, `utils/`), `styles/` (the theme) and `api/` (client, HTTP, shared queries and query keys;
-    on mobile also the mock and push registration).
+    `hooks/`, `utils/`), `styles/` (dashboard only: its theme and global styles) and `api/` (client,
+    HTTP, shared queries and query keys; on mobile also the mock and push registration).
+  - Both apps build on the shared packages: `@kapitwatt/ui` for Text, Button, TextField,
+    SegmentedButtons, Chip, Card, ProgressBar and the rest; colour roles from `@kapitwatt/styles`;
+    spacing, radii and fonts from `@kapitwatt/tokens`; hooks such as `useCountdown` from
+    `@kapitwatt/hooks`. An app's own `components/ui/` adds only what the shared set lacks (mobile:
+    Screen, the keyboard reveal on TextField, Checkbox, Select, loading and error states).
   - Mobile shared components include `mascot/` (the living Alitaptap), `night/` (the sky, moon, street
     and the sheet positions welcome, sign-up and login share), `capture/` (the in-app meter camera)
     and `privacy/`.

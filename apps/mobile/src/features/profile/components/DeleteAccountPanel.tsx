@@ -1,8 +1,8 @@
 import { themes } from '@kapitwatt/styles';
-import { Text } from '@kapitwatt/ui';
+import { Button, Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { Button, PasswordField } from '@/components/ui';
-import { space } from '@/styles/theme';
+import { space } from '@kapitwatt/tokens';
+import { PasswordField } from '@/components/ui';
 
 const c = themes.light.color;
 
@@ -34,20 +34,28 @@ export function DeleteAccountPanel(props: {
       />
       {props.error !== null ? <Text color="error">{props.error}</Text> : null}
       <Button
+        size="lg"
+        fullWidth
         label="Delete my account"
         disabled={props.password.length === 0}
         loading={props.deleting}
         onPress={props.onDelete}
       />
-      <Button label="Keep my account" variant="secondary" onPress={props.onKeep} />
+      <Button
+        variant="outlined"
+        size="lg"
+        fullWidth
+        label="Keep my account"
+        onPress={props.onKeep}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   editor: {
-    gap: space.md,
-    padding: space.lg,
+    gap: space[3],
+    padding: space[4],
     borderBottomWidth: 1,
     borderBottomColor: c.outlineVariant,
   },

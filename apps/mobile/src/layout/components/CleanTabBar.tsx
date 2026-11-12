@@ -4,7 +4,7 @@ import { Text } from '@kapitwatt/ui';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fonts } from '@/styles/theme';
+import { fontFamily } from '@kapitwatt/tokens';
 import { TabLantern } from './TabLantern';
 
 const c = themes.light.color;
@@ -69,5 +69,5 @@ const styles = StyleSheet.create({
   },
   // Room at the top for the active tab's lantern.
   tab: { flex: 1, alignItems: 'center', gap: 4, paddingTop: 16, minHeight: 60 },
-  labelOn: { fontFamily: fonts.semibold },
+  labelOn: { fontFamily: fontFamily.semibold },
 });

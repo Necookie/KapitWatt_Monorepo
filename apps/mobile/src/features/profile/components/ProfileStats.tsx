@@ -1,8 +1,8 @@
 import { contributionStanding } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
 import { StyleSheet, View } from 'react-native';
+import { radius, space } from '@kapitwatt/tokens';
 import { formatKwh } from '@/utils/format';
-import { radius, space } from '@/styles/theme';
 import { Stat } from './Stat';
 
 const c = themes.light.color;
@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: radius.lg,
     backgroundColor: c.surfaceContainerLow,
-    paddingVertical: space.md,
+    paddingVertical: space[3],
   },
   divider: { width: 1, alignSelf: 'stretch', backgroundColor: c.outlineVariant },
 });

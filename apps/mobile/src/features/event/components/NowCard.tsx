@@ -1,11 +1,11 @@
-import { Text } from '@kapitwatt/ui';
+import { Button, Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
+import { space } from '@kapitwatt/tokens';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
-import { Button } from '@/components/ui';
+
 import { formatKw } from '@/utils/format';
-import { space } from '@/styles/theme';
-import type { EventMood } from '../utils/event-mood';
-import type { NowAction, NowCard as NowCardContent } from '../utils/event-steps';
+import type { EventMood } from '@/utils/event-mood';
+import type { NowAction, NowCard as NowCardContent } from '@/utils/event-steps';
 
 /** The mascot saying the one thing to do now, the live reduction when shown, and its action. */
 export function NowCard(props: {
@@ -31,6 +31,8 @@ export function NowCard(props: {
       ) : null}
       {card.action ? (
         <Button
+          size="lg"
+          fullWidth
           label={card.action.label}
           onPress={() => card.action && props.onAction(card.action.kind)}
         />
@@ -40,6 +42,6 @@ export function NowCard(props: {
 }
 
 const styles = StyleSheet.create({
-  now: { gap: space.md },
+  now: { gap: space[3] },
   tabular: { fontVariant: ['tabular-nums'] },
 });

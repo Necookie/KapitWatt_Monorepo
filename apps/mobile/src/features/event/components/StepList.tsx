@@ -2,8 +2,8 @@ import { Icon } from '@kapitwatt/icons';
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import type { Step, StepState } from '../utils/event-steps';
-import { fonts, radius, space } from '@/styles/theme';
+import { fontFamily, radius, space } from '@kapitwatt/tokens';
+import type { Step, StepState } from '@/utils/event-steps';
 
 const c = themes.light.color;
 
@@ -81,10 +81,10 @@ const styles = StyleSheet.create({
   panel: {
     borderRadius: radius.lg,
     backgroundColor: c.surfaceContainerLow,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.xs,
+    paddingHorizontal: space[4],
+    paddingVertical: space[1],
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3] },
   divider: { borderBottomWidth: 1, borderBottomColor: c.outlineVariant },
   marker: {
     width: 24,
@@ -95,6 +95,6 @@ const styles = StyleSheet.create({
   },
   ring: { borderWidth: 2 },
   dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.primary },
-  strong: { fontFamily: fonts.semibold },
-  side: { fontFamily: fonts.semibold, fontVariant: ['tabular-nums'] },
+  strong: { fontFamily: fontFamily.semibold },
+  side: { fontFamily: fontFamily.semibold, fontVariant: ['tabular-nums'] },
 });

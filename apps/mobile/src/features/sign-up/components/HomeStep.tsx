@@ -1,13 +1,13 @@
 import { Icon } from '@kapitwatt/icons';
 import { PILOT_TOWNS, type Barangay } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
-import { Text } from '@kapitwatt/ui';
+import { Button, Text } from '@kapitwatt/ui';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { radius, space } from '@kapitwatt/tokens';
 import { LocationPrompt } from '@/components/LocationPrompt';
-import { Button, Select } from '@/components/ui';
+import { Select } from '@/components/ui';
 import { currentPosition, LocationError, type LocationProblem } from '@/utils/location';
-import { radius, space } from '@/styles/theme';
 import type { StepProps } from '../utils/draft';
 
 const c = themes.light.color;
@@ -74,8 +74,11 @@ export function HomeStep({ draft, set, barangays }: StepProps & { barangays: Bar
           <LocationPrompt problem={problem} onRetry={locate} />
         ) : (
           <Button
+            variant="outlined"
+            size="lg"
+            fullWidth
             label="Use my current location"
-            variant="secondary"
+
             loading={locating}
             onPress={() => void locate()}
           />
@@ -99,13 +102,13 @@ const styles = StyleSheet.create({
     backgroundColor: c.reliefContainer,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
-    paddingLeft: space.lg,
-    paddingRight: space.xs,
+    gap: space[3],
+    paddingLeft: space[4],
+    paddingRight: space[1],
   },
   updateButton: {
     height: 48,
-    paddingHorizontal: space.md,
+    paddingHorizontal: space[3],
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',

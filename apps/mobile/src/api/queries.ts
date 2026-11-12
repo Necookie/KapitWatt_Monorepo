@@ -43,11 +43,13 @@ export const useAlertTotals = (id: string) =>
     refetchInterval: POLL_INTERVAL_MS,
   });
 
-export const useMyEventStatus = (id: string) =>
+/** `enabled: false` leaves it idle (Home asks only while there is an alert). */
+export const useMyEventStatus = (id: string, options: { enabled?: boolean } = {}) =>
   useQuery({
     queryKey: queryKeys.myStatus(id),
     queryFn: () => endpoints.getMyEventStatus(id),
     refetchInterval: POLL_INTERVAL_MS,
+    enabled: options.enabled ?? true,
   });
 
 export const useResult = (id: string) =>

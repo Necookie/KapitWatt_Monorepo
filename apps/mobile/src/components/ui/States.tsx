@@ -1,11 +1,14 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { colors, space, text } from '@/styles/theme';
-import { Button } from '@/components/ui/Button';
+import { Button, Text } from '@kapitwatt/ui';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { space } from '@kapitwatt/tokens';
+import { themes } from '@kapitwatt/styles';
+
+const c = themes.light.color;
 
 export function Loading() {
   return (
     <View style={styles.center}>
-      <ActivityIndicator color={colors.teal} size="large" />
+      <ActivityIndicator color={c.primary} size="large" />
     </View>
   );
 }
@@ -18,13 +21,23 @@ export function ErrorState(props: {
 }) {
   return (
     <View style={styles.center}>
-      <Text style={styles.title}>Something went wrong</Text>
-      <Text style={styles.body}>{props.message ?? 'Check your connection, then try again.'}</Text>
+      <Text variant="titleLarge" style={styles.title}>
+        Something went wrong
+      </Text>
+      <Text variant="bodyLarge" style={styles.body}>
+        {props.message ?? 'Check your connection, then try again.'}
+      </Text>
       {props.onRetry ? (
-        <Button label="Try again" variant="secondary" onPress={props.onRetry} />
+        <Button variant="outlined" size="lg" fullWidth label="Try again" onPress={props.onRetry} />
       ) : null}
       {props.action ? (
-        <Button label={props.action.label} variant="secondary" onPress={props.action.onPress} />
+        <Button
+          variant="outlined"
+          size="lg"
+          fullWidth
+          label={props.action.label}
+          onPress={props.action.onPress}
+        />
       ) : null}
     </View>
   );
@@ -32,18 +45,22 @@ export function ErrorState(props: {
 
 /** Plain statement of what is simulated or a placeholder (FR-APP-17, NFR-U1). */
 export function SimulatedNote(props: { children: string }) {
-  return <Text style={styles.note}>{props.children}</Text>;
+  return (
+    <Text variant="bodyMedium" style={styles.note}>
+      {props.children}
+    </Text>
+  );
 }
 
 const styles = StyleSheet.create({
   center: {
     flex: 1,
-    padding: space.xl,
-    gap: space.md,
+    padding: space[6],
+    gap: space[3],
     justifyContent: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: c.surface,
   },
-  title: { ...text.title, color: colors.ink },
-  body: { ...text.body, color: colors.muted },
-  note: { ...text.caption, color: colors.muted, fontStyle: 'italic' },
+  title: { color: c.onSurface },
+  body: { color: c.onSurfaceVariant },
+  note: { color: c.onSurfaceVariant, fontStyle: 'italic' },
 });

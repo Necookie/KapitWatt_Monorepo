@@ -1,18 +1,18 @@
 import { Icon } from '@kapitwatt/icons';
 import type { MeterReading, ReadingFlag, ReadingKind } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
-import { Text } from '@kapitwatt/ui';
+import { Button, Text } from '@kapitwatt/ui';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fontFamily, radius, space, withAlpha } from '@kapitwatt/tokens';
 import { LocationPrompt } from '@/components/LocationPrompt';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
-import { Button } from '@/components/ui';
+
 import { describeError } from '@/api/http';
 import { currentPosition, LocationError, type LocationProblem } from '@/utils/location';
 import { useSubmitReading } from '@/api/queries';
-import { fonts, radius, space } from '@/styles/theme';
 
 const c = themes.light.color;
 
@@ -70,7 +70,12 @@ export function MeterCapture(props: {
           <MascotHeader label="Camera needed" line="KapitWatt takes the meter photo itself." />
           <Text color="onSurfaceVariant">Photos from your gallery are not accepted.</Text>
           <View style={styles.bottom}>
-            <Button label="Allow camera" onPress={() => void requestPermission()} />
+            <Button
+              size="lg"
+              fullWidth
+              label="Allow camera"
+              onPress={() => void requestPermission()}
+            />
           </View>
         </View>
       </View>
@@ -87,7 +92,7 @@ export function MeterCapture(props: {
             onPress={props.onClose}
             style={styles.iconButton}
           >
-            <Icon name="close" color="#FFFFFF" />
+            <Icon name="close" color="inverseOnSurface" />
           </Pressable>
           <View style={styles.cameraTitle}>
             <Text variant="titleMedium" style={styles.onDark}>
@@ -179,8 +184,9 @@ export function MeterCapture(props: {
               Make sure the numbers are sharp.
             </Text>
             <Button
-              label="Retake"
               variant="text"
+              label="Retake"
+
               disabled={busy}
               onPress={() => setPhotoUri(null)}
             />
@@ -224,6 +230,8 @@ export function MeterCapture(props: {
 
         <View style={styles.bottom}>
           <Button
+            size="lg"
+            fullWidth
             label="Send reading"
             disabled={!validReading}
             loading={busy}
@@ -281,7 +289,7 @@ function Submitted(props: { reading: MeterReading; onDone: () => void }) {
             </Text>
           ))}
       <View style={styles.bottom}>
-        <Button label="Done" onPress={props.onDone} />
+        <Button size="lg" fullWidth label="Done" onPress={props.onDone} />
       </View>
     </View>
   );
@@ -310,7 +318,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   dark: { flex: 1, backgroundColor: DARK },
   light: { flex: 1, backgroundColor: c.surface },
-  onDark: { color: '#FFFFFF' },
+  // Over the camera (dark, under a scrim): the inverse roles.
+  onDark: { color: c.inverseOnSurface },
   onDarkMuted: { color: c.outlineVariant },
   iconButton: {
     width: 48,
@@ -323,14 +332,14 @@ const styles = StyleSheet.create({
   cameraTitle: { flex: 1, alignItems: 'center' },
   viewfinder: {
     flex: 1,
-    marginHorizontal: space.lg,
+    marginHorizontal: space[4],
     borderRadius: 20,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
   frame: { width: '78%', aspectRatio: 3 / 4 },
-  corner: { position: 'absolute', width: CORNER, height: CORNER, borderColor: '#FFFFFF' },
+  corner: { position: 'absolute', width: CORNER, height: CORNER, borderColor: c.inverseOnSurface },
   cornerTL: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 20 },
   cornerTR: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 20 },
   cornerBL: {
@@ -349,11 +358,11 @@ const styles = StyleSheet.create({
   },
   hint: {
     position: 'absolute',
-    bottom: space.lg,
+    bottom: space[4],
     paddingHorizontal: 14,
-    paddingVertical: space.sm,
-    borderRadius: radius.pill,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    paddingVertical: space[2],
+    borderRadius: radius.full,
+    backgroundColor: withAlpha(c.scrim, 0.45),
   },
   shutterRow: { height: 140, alignItems: 'center', justifyContent: 'center' },
   shutter: {
@@ -361,25 +370,25 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderColor: c.inverseOnSurface,
     padding: 4,
   },
   shutterDim: { opacity: 0.6 },
-  shutterInner: { flex: 1, borderRadius: 32, backgroundColor: '#FFFFFF' },
+  shutterInner: { flex: 1, borderRadius: 32, backgroundColor: c.inverseOnSurface },
   topBar: { height: 56, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 4 },
   body: {
     flex: 1,
-    paddingHorizontal: space.xl,
-    paddingTop: space.sm,
-    paddingBottom: space.xl,
-    gap: space.xl,
+    paddingHorizontal: space[6],
+    paddingTop: space[2],
+    paddingBottom: space[6],
+    gap: space[6],
   },
   bottom: { marginTop: 'auto' },
   photoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.lg,
-    padding: space.md,
+    gap: space[4],
+    padding: space[3],
     borderRadius: radius.lg,
     backgroundColor: c.surfaceContainerLow,
   },
@@ -399,13 +408,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingLeft: 15,
-    paddingRight: space.lg,
-    gap: space.sm,
+    paddingRight: space[4],
+    gap: space[2],
   },
   readingInput: {
     flex: 1,
     height: '100%',
-    fontFamily: fonts.semibold,
+    fontFamily: fontFamily.semibold,
     fontSize: 32,
     color: c.onSurface,
     fontVariant: ['tabular-nums'],
@@ -415,8 +424,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    paddingHorizontal: space[4],
+    paddingVertical: space[3],
     borderRadius: radius.md,
     backgroundColor: c.primaryContainer,
   },

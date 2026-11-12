@@ -1,11 +1,10 @@
 import { themes } from '@kapitwatt/styles';
-import { withAlpha } from '@kapitwatt/tokens';
+import { space, withAlpha } from '@kapitwatt/tokens';
 import { Text } from '@kapitwatt/ui';
 import { useRef, type ReactNode } from 'react';
 import { Animated, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skyline } from '@/components/night/Skyline';
-import { space } from '@/styles/theme';
 import { GridStatus } from './GridStatus';
 
 const c = themes.light.color;
@@ -35,7 +34,7 @@ export function NightBand(props: { overline?: string; title: string; leading?: R
   // The street's windows stay lit here (0 = no cut).
   const lit = useRef(new Animated.Value(0)).current;
   return (
-    <View style={[styles.band, { paddingTop: insets.top + space.lg }]}>
+    <View style={[styles.band, { paddingTop: insets.top + space[4] }]}>
       <View style={styles.night} />
       {STARS.map(([x, y, size], i) => (
         <View
@@ -77,9 +76,9 @@ const styles = StyleSheet.create({
   band: {
     backgroundColor: c.brand,
     overflow: 'hidden',
-    paddingHorizontal: space.xl,
+    paddingHorizontal: space[6],
     paddingBottom: BAND_OVERLAP + STREET_ROOM,
-    gap: space.md,
+    gap: space[3],
   },
   night: {
     position: 'absolute',
@@ -96,6 +95,6 @@ const styles = StyleSheet.create({
   },
   // The street stands on the sheet's edge (not under it), so whole rooftops and windows show.
   street: { position: 'absolute', left: 0, right: 0, bottom: BAND_OVERLAP },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
   words: { flex: 1, gap: 2 },
 });

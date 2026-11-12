@@ -1,8 +1,8 @@
 import { themes } from '@kapitwatt/styles';
-import { Text } from '@kapitwatt/ui';
+import { Button, Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { Button, TextField } from '@/components/ui';
-import { space } from '@/styles/theme';
+import { space } from '@kapitwatt/tokens';
+import { TextField } from '@/components/ui';
 
 const c = themes.light.color;
 
@@ -36,20 +36,22 @@ export function AccountEditor(props: {
       />
       {props.error !== null ? <Text color="error">{props.error}</Text> : null}
       <Button
+        size="lg"
+        fullWidth
         label="Save"
         disabled={!props.canSave}
         loading={props.saving}
         onPress={props.onSave}
       />
-      <Button label="Cancel" variant="secondary" onPress={props.onCancel} />
+      <Button variant="outlined" size="lg" fullWidth label="Cancel" onPress={props.onCancel} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   editor: {
-    gap: space.md,
-    padding: space.lg,
+    gap: space[3],
+    padding: space[4],
     borderBottomWidth: 1,
     borderBottomColor: c.outlineVariant,
   },

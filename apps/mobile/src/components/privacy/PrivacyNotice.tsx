@@ -1,6 +1,10 @@
 import type { IconName } from '@kapitwatt/icons';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, space, text } from '@/styles/theme';
+import { StyleSheet, View } from 'react-native';
+import { fontFamily, space } from '@kapitwatt/tokens';
+import { themes } from '@kapitwatt/styles';
+import { Text } from '@kapitwatt/ui';
+
+const c = themes.light.color;
 
 /**
  * The privacy notice, shown before any personal data is asked for at sign-up and again from the
@@ -60,14 +64,18 @@ const SECTIONS: { title: string; body: string }[] = [
 export function PrivacyNotice() {
   return (
     <View style={styles.gap}>
-      <Text style={styles.lead}>
+      <Text variant="bodyLarge" style={styles.lead}>
         KapitWatt handles your personal data under the Data Privacy Act of 2012 (Republic Act
         10173).
       </Text>
       {SECTIONS.map((s) => (
         <View key={s.title} style={styles.section}>
-          <Text style={styles.heading}>{s.title}</Text>
-          <Text style={styles.body}>{s.body}</Text>
+          <Text variant="bodyLarge" style={styles.heading}>
+            {s.title}
+          </Text>
+          <Text variant="bodyLarge" style={styles.body}>
+            {s.body}
+          </Text>
         </View>
       ))}
     </View>
@@ -75,9 +83,9 @@ export function PrivacyNotice() {
 }
 
 const styles = StyleSheet.create({
-  gap: { gap: space.md },
-  section: { gap: space.xs },
-  lead: { ...text.body, color: colors.ink },
-  heading: { ...text.body, fontFamily: fonts.semibold, color: colors.ink },
-  body: { ...text.body, color: colors.muted },
+  gap: { gap: space[3] },
+  section: { gap: space[1] },
+  lead: { color: c.onSurface },
+  heading: { fontFamily: fontFamily.semibold, color: c.onSurface },
+  body: { color: c.onSurfaceVariant },
 });

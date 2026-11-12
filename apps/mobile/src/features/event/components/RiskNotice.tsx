@@ -2,8 +2,8 @@ import { Icon } from '@kapitwatt/icons';
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
+import { radius, space } from '@kapitwatt/tokens';
 import type { BrownoutRisk } from '@/utils/brownout';
-import { radius, space } from '@/styles/theme';
 
 const c = themes.light.color;
 
@@ -33,8 +33,8 @@ const styles = StyleSheet.create({
   risk: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.sm,
-    padding: space.md,
+    gap: space[2],
+    padding: space[3],
     borderRadius: radius.md,
     backgroundColor: c.errorContainer,
   },

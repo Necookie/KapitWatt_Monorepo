@@ -1,10 +1,9 @@
 import { themes } from '@kapitwatt/styles';
-import { withAlpha } from '@kapitwatt/tokens';
+import { fontFamily, radius, withAlpha } from '@kapitwatt/tokens';
 import { Text } from '@kapitwatt/ui';
 import { useRef, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { useReveal, type RevealTarget } from '@/components/ui';
-import { fonts, radius } from '@/styles/theme';
 
 const t = themes.light;
 const c = t.color;
@@ -77,7 +76,7 @@ const styles = StyleSheet.create({
   marks: { flexDirection: 'row', justifyContent: 'space-between' },
   mark: { color: withAlpha(c.onBrand, 0.6), letterSpacing: 1 },
   input: {
-    fontFamily: fonts.semibold,
+    fontFamily: fontFamily.semibold,
     fontSize: 24,
     letterSpacing: 4,
     color: c.onBrand,

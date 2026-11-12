@@ -1,7 +1,7 @@
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { radius, space } from '@/styles/theme';
+import { radius, space } from '@kapitwatt/tokens';
 
 const c = themes.light.color;
 
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    padding: space.lg,
+    padding: space[4],
     borderRadius: radius.lg,
   },
   stepNow: { borderWidth: 2, borderColor: c.primary, backgroundColor: c.surfaceContainerLowest },

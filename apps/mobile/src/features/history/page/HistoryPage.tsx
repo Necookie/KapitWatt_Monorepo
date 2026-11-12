@@ -1,16 +1,17 @@
-import { StyleSheet, View } from 'react-native';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { ErrorState, Loading } from '@/components/ui';
 import { TabScreen } from '@/layout/components/TabScreen';
-import { formatKwh } from '@/utils/format';
-import { space } from '@/styles/theme';
-import { HistoryCard } from '../components/HistoryCard';
-import { Tile } from '../components/Tile';
+import { MonthSection } from '../components/MonthSection';
+import { NightsCard } from '../components/NightsCard';
 import { useEventHistory } from '../hooks/useEventHistory';
 
-/** Past events and their results (FR-APP-16; mockup "History"). */
+/**
+ * History, the lantern log: the nights the household helped as lanterns on a string with what they
+ * saved and the score they added, then every past night by month. A night opens its receipt (or
+ * the event, while it waits for results).
+ */
 export default function HistoryPage() {
-  const { history, refreshAll, items, totals, openItem } = useEventHistory();
+  const { history, refreshAll, items, totals, string, months, openItem } = useEventHistory();
 
   return (
     <TabScreen title="History" overline="Your grid events" onRefresh={refreshAll}>
@@ -18,27 +19,21 @@ export default function HistoryPage() {
         <Loading />
       ) : history.isError ? (
         <ErrorState onRetry={() => void history.refetch()} />
+      ) : items.length === 0 ? (
+        <MascotHeader label="No events yet" line="Your past grid events will show up here." />
       ) : (
         <>
-          <View style={styles.tiles}>
-            <Tile label="Verified cuts" value={String(totals.verified)} accent />
-            <Tile label="Events" value={String(items.length)} />
-            <Tile label="Saved" value={formatKwh(totals.kwh)} />
-          </View>
-
-          {items.length === 0 ? (
-            <MascotHeader label="No events yet" line="Your past grid events will show up here." />
-          ) : null}
-
-          {items.map((item) => (
-            <HistoryCard key={item.alert.id} item={item} onOpen={() => openItem(item)} />
+          <NightsCard
+            helped={totals.helped}
+            kwh={totals.kwh}
+            score={totals.score}
+            string={string}
+          />
+          {months.map((g) => (
+            <MonthSection key={g.month} month={g.month} items={g.items} onOpen={openItem} />
           ))}
         </>
       )}
     </TabScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  tiles: { flexDirection: 'row', gap: space.sm },
-});

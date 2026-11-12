@@ -1,11 +1,12 @@
 import { useBrandFonts } from '@kapitwatt/hooks';
-import { ThemeProvider } from '@kapitwatt/styles';
+import { ThemeProvider, themes } from '@kapitwatt/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAlertWatcher } from '@/layout/hooks/useAlertWatcher';
 import { ApiError } from '@/api/http';
-import { colors, text } from '@/styles/theme';
+
+const c = themes.light.color;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,11 +37,11 @@ export default function RootLayout() {
           screenOptions={{
             // Mockups: a light top bar with only the back arrow; each screen has its own heading.
             headerTitle: '',
-            headerStyle: { backgroundColor: colors.background },
-            headerTintColor: colors.ink,
+            headerStyle: { backgroundColor: c.surface },
+            headerTintColor: c.onSurface,
             headerShadowVisible: false,
-            headerTitleStyle: { fontFamily: text.title.fontFamily },
-            contentStyle: { backgroundColor: colors.background },
+            headerTitleStyle: { fontFamily: themes.light.text.titleLarge.fontFamily },
+            contentStyle: { backgroundColor: c.surface },
           }}
         >
           {/* Home, History, Leaderboard and Profile, behind the clean bottom bar. */}

@@ -1,12 +1,15 @@
 import { themes } from '@kapitwatt/styles';
 import { Mascot, Text, type MascotPose } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { fonts } from '@/styles/theme';
+import { fontFamily, palette } from '@kapitwatt/tokens';
 
 const c = themes.light.color;
 
-/** Glow behind the mascot: the warm tone from the mascot artwork itself. */
-const BADGE = '#FFEDE8';
+/**
+ * Glow behind the mascot: the halo's peach in the mascot artwork itself (palette orange 95; no
+ * colour role matches it exactly).
+ */
+const BADGE = palette.orange[95];
 
 const TONES = {
   /** Guidance on a normal step. */
@@ -77,6 +80,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     transform: [{ rotate: '45deg' }],
   },
-  label: { fontFamily: fonts.semibold, letterSpacing: 0.5, marginBottom: 2 },
+  label: { fontFamily: fontFamily.semibold, letterSpacing: 0.5, marginBottom: 2 },
   line: { fontSize: 20, lineHeight: 26 },
 });

@@ -10,8 +10,11 @@ import {
   type NativeSyntheticEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, space } from '@/styles/theme';
+import { space } from '@kapitwatt/tokens';
+import { themes } from '@kapitwatt/styles';
 import { RevealContext, type RevealTarget } from './reveal';
+
+const c = themes.light.color;
 
 /** Room kept between a revealed field and the edge of what is visible (px). */
 const REVEAL_MARGIN = 24;
@@ -107,8 +110,8 @@ export function Screen(props: {
           contentContainerStyle={[
             styles.content,
             props.roomy && styles.roomy,
-            props.noHeader && { paddingTop: insets.top + space.xxl },
-            { paddingBottom: space.xl + insets.bottom },
+            props.noHeader && { paddingTop: insets.top + space[8] },
+            { paddingBottom: space[6] + insets.bottom },
           ]}
           refreshControl={
             onRefresh ? (
@@ -118,8 +121,8 @@ export function Screen(props: {
                   setPulling(true);
                   void onRefresh().finally(() => setPulling(false));
                 }}
-                tintColor={colors.teal}
-                colors={[colors.teal]}
+                tintColor={c.primary}
+                colors={[c.primary]}
               />
             ) : undefined
           }
@@ -132,7 +135,7 @@ export function Screen(props: {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
-  content: { flexGrow: 1, padding: space.lg, gap: space.lg },
-  roomy: { paddingHorizontal: space.xl, paddingTop: space.sm, gap: space.xl },
+  root: { flex: 1, backgroundColor: c.surface },
+  content: { flexGrow: 1, padding: space[4], gap: space[4] },
+  roomy: { paddingHorizontal: space[6], paddingTop: space[2], gap: space[6] },
 });

@@ -1,7 +1,7 @@
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
+import { space } from '@kapitwatt/tokens';
 import { TextField } from '@/components/ui';
-import { space } from '@/styles/theme';
 import type { StepProps } from '../utils/draft';
 import { MeterCard } from './MeterCard';
 import { SerialPlate } from './SerialPlate';
@@ -38,7 +38,7 @@ export function MeterStep({ draft, set }: StepProps) {
       />
       <TextField
         label="Monthly use"
-        hint="On your bill"
+        supportingText="On your bill"
         keyboardType="number-pad"
         placeholder="250"
         suffix="kWh"
@@ -52,5 +52,5 @@ export function MeterStep({ draft, set }: StepProps) {
 const styles = StyleSheet.create({
   fields: { gap: 20 },
   fieldWithCheck: { gap: 6 },
-  meterRow: { flexDirection: 'row', gap: space.md },
+  meterRow: { flexDirection: 'row', gap: space[3] },
 });

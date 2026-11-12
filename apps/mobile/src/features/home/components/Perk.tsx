@@ -1,7 +1,7 @@
 import { Icon } from '@kapitwatt/icons';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { space } from '@/styles/theme';
+import { space } from '@kapitwatt/tokens';
 import { ink } from '../utils/ink';
 
 export function Perk(props: { line: string }) {
@@ -17,5 +17,5 @@ export function Perk(props: { line: string }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, gap: 4 },
-  perk: { flexDirection: 'row', alignItems: 'flex-start', gap: space.sm },
+  perk: { flexDirection: 'row', alignItems: 'flex-start', gap: space[2] },
 });

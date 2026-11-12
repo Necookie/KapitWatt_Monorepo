@@ -1,15 +1,15 @@
 import { TRUST } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
-import { Logo } from '@kapitwatt/ui';
+import { Button, Logo } from '@kapitwatt/ui';
 import { StatusBar } from 'expo-status-bar';
 import { Animated, ScrollView, StyleSheet, View } from 'react-native';
-import { Button } from '@/components/ui';
+import { space } from '@kapitwatt/tokens';
+
 import { Fireflies } from '@/components/night/Fireflies';
 import { MoonMascot } from '@/components/night/Moon';
 import { NightSky } from '@/components/night/NightSky';
 import { Skyline } from '@/components/night/Skyline';
 import { greeting } from '@/utils/greeting';
-import { space } from '@/styles/theme';
 import { Body } from '../components/Body';
 import { FitPicture } from '../components/FitPicture';
 import { HoldLantern } from '../components/HoldLantern';
@@ -34,7 +34,7 @@ export default function WelcomePage() {
     <View style={styles.root}>
       <StatusBar style="light" />
       <NightSky />
-      <View style={[styles.top, { paddingTop: insets.top + space.md }]}>
+      <View style={[styles.top, { paddingTop: insets.top + space[3] }]}>
         <Logo height={24} color="onBrand" />
       </View>
 
@@ -109,12 +109,12 @@ export default function WelcomePage() {
 
       <View
         ref={sheetRise.sheet}
-        style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]}
+        style={[styles.sheet, { paddingBottom: insets.bottom + space[4] }]}
       >
-        <Button label="Join the pilot" onPress={join} />
-        <Button label="I already have an account" variant="text" align="center" onPress={logIn} />
+        <Button size="lg" fullWidth label="Join the pilot" onPress={join} />
+        <Button variant="text" label="I already have an account" align="center" onPress={logIn} />
       </View>
-      {/* Join or log in: the sheet rises to where the next page's sheet starts. */}
+      {/* Join or log in: the white sheet rises to fill the screen before the next page opens. */}
       {sheetRise.visible ? (
         <Animated.View
           pointerEvents="none"
@@ -134,11 +134,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: space.xl,
+    paddingHorizontal: space[6],
   },
   scene: { flex: 1 },
   pager: { flex: 1 },
-  street: { gap: space.md },
+  street: { gap: space[3] },
   rising: {
     position: 'absolute',
     left: 0,
@@ -149,9 +149,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
   },
   sheet: {
-    gap: space.xs,
-    paddingTop: space.lg,
-    paddingHorizontal: space.xl,
+    gap: space[1],
+    paddingTop: space[4],
+    paddingHorizontal: space[6],
     backgroundColor: c.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,

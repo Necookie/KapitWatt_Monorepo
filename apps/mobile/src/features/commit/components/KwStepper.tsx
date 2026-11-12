@@ -1,8 +1,8 @@
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
+import { fontFamily, space } from '@kapitwatt/tokens';
 import { formatKw } from '@/utils/format';
-import { fonts, space } from '@/styles/theme';
 import { STEP_KW } from '../utils/commit-step';
 import { RoundButton } from './RoundButton';
 
@@ -40,11 +40,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: space.sm,
+    paddingVertical: space[2],
   },
   figure: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   figureNumber: {
-    fontFamily: fonts.semibold,
+    fontFamily: fontFamily.semibold,
     fontSize: 64,
     lineHeight: 72,
     color: c.onSurface,

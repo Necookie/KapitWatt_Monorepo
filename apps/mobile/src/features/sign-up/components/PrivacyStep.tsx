@@ -1,6 +1,7 @@
 import { Icon } from '@kapitwatt/icons';
 import { themes } from '@kapitwatt/styles';
-import { Text } from '@kapitwatt/ui';
+import { radius, space } from '@kapitwatt/tokens';
+import { Button, Text } from '@kapitwatt/ui';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -8,8 +9,7 @@ import {
   DATA_CONSENT_LABEL,
   PRIVACY_SUMMARY,
 } from '@/components/privacy/PrivacyNotice';
-import { Button, Checkbox } from '@/components/ui';
-import { radius, space } from '@/styles/theme';
+import { Checkbox } from '@/components/ui';
 import type { StepProps } from '../utils/draft';
 
 const c = themes.light.color;
@@ -27,8 +27,9 @@ export function PrivacyStep({ draft, set }: StepProps) {
           </View>
         ))}
         <Button
-          label="Read the full notice"
           variant="text"
+          label="Read the full notice"
+
           onPress={() => router.push('/privacy')}
         />
       </View>
@@ -53,9 +54,9 @@ const styles = StyleSheet.create({
   panel: {
     backgroundColor: c.surfaceContainerLow,
     borderRadius: radius.lg,
-    padding: space.lg,
+    padding: space[4],
     gap: 14,
   },
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
-  consents: { gap: space.md },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  consents: { gap: space[3] },
 });
