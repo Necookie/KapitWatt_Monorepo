@@ -1,4 +1,4 @@
-import { DEFAULT_WINDOW_HOURS, type AlertLevel } from '@kapitwatt/shared';
+import { brownoutCopy, DEFAULT_WINDOW_HOURS, type AlertLevel } from '@kapitwatt/shared';
 import { clock } from '@/utils/format';
 
 /** The operator can type the target in either unit (PRD: "kW or MW of relief wanted"). */
@@ -34,8 +34,17 @@ export function inMinutes(minutes: number): Date {
 }
 
 /** The message households get, written from the level and window; the operator can edit it. */
-export function defaultMessage(level: AlertLevel, start: Date, end: Date): string {
+export function defaultMessage(
+  level: AlertLevel,
+  start: Date,
+  end: Date,
+  /** Demo: towns marked at risk of a brownout (simulated), as one phrase. */
+  riskPlace = '',
+): string {
   const window = `${clock(start.toISOString())} to ${clock(end.toISOString())}`;
+  if (riskPlace) {
+    return `${level === 'red' ? 'Red' : 'Yellow'} alert: ${brownoutCopy.atRisk(riskPlace)}. Please cut your load from ${window} to help avoid it. Open KapitWatt to commit a cut and earn bill credit.`;
+  }
   return level === 'red'
     ? `Red alert on the Luzon grid. Brownouts are possible. Please cut your load from ${window}. Open KapitWatt to commit a cut and earn bill credit.`
     : `Yellow alert on the Luzon grid. Supply is tight. Please cut your load from ${window} if you can. Open KapitWatt to commit a cut and earn bill credit.`;
