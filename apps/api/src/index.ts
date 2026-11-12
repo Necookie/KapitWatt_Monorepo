@@ -1,3 +1,4 @@
+import { createDb, dbHealth } from '@kapitwatt/db';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { AppEnv } from './env';
@@ -13,7 +14,16 @@ const app = new Hono<AppEnv>();
 
 app.use('*', cors());
 
+// Liveness only: does not touch the database.
 app.get('/health', (c) => c.json({ ok: true, env: c.env.APP_ENV }));
+
+app.use('*', async (c, next) => {
+  c.set('db', createDb(c.env.DATABASE_URL));
+  await next();
+});
+
+// Readiness: proves the Worker can reach Neon and shows which migrations are applied.
+app.get('/health/db', async (c) => c.json({ ok: true, ...(await dbHealth(c.var.db)) }));
 
 app.route('/auth', auth);
 app.route('/barangays', barangays);

@@ -1,4 +1,5 @@
 # Copy to .dev.vars (gitignored). Local secrets for `wrangler dev`.
-DATABASE_URL=postgres://user:password@host/kapitwatt
+# DATABASE_URL is NOT set here: `pnpm dev:api` reads it from the repo root
+# .env.local, which `neon env pull` writes.
 SIM_KEY=change-me
 OPERATOR_KEY=change-me

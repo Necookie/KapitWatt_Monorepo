@@ -1,24 +1,26 @@
 /**
- * @kapitwatt/db: Postgres schema, migrations and query helpers.
+ * @kapitwatt/db: Postgres (Neon) schema, migrations and query helpers.
  *
- * Only this package and apps/api may touch Postgres. The Neon-or-Supabase choice
- * is still open, so no driver is installed yet. Whoever owns this package:
+ * Only this package and apps/api may touch Postgres, and this is the only place
+ * a database driver is imported.
  *
- *   1. Pick the provider and add its driver here (and nowhere else).
- *   2. Implement `createDb` below.
- *   3. Add query helpers under src/queries/, one file per table, returning the
- *      entity types from @kapitwatt/shared.
- *
- * Schema: ../migrations/0001_init.sql
+ * Driver: @neondatabase/serverless over HTTP, which is what Neon recommends for
+ * Cloudflare Workers without Hyperdrive. Each query is one HTTPS request, so
+ * there is no connection to open, pool or close inside a Worker request.
+ *   - App traffic uses the pooled DATABASE_URL.
+ *   - Migrations use the direct DATABASE_URL_UNPOOLED (see scripts/migrate.ts).
+ *   - Multi-statement atomic writes (settlement): db.transaction([...]).
+ * If the team later adds Cloudflare Hyperdrive, swap this file to `pg` and
+ * nothing outside this package changes.
  */
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 
-export interface Db {
-  /** Tagged-template or parameterised query; shape depends on the driver chosen. */
-  query<T = unknown>(sql: string, params?: readonly unknown[]): Promise<T[]>;
+export type Db = NeonQueryFunction<false, false>;
+
+export function createDb(databaseUrl: string): Db {
+  if (!databaseUrl) throw new Error('@kapitwatt/db: DATABASE_URL is not set');
+  return neon(databaseUrl);
 }
 
-export function createDb(_databaseUrl: string): Db {
-  throw new Error(
-    '@kapitwatt/db: no Postgres driver chosen yet (Neon or Supabase). See src/index.ts.',
-  );
-}
+export * from './queries/health';
+export * from './queries/barangays';

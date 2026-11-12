@@ -35,3 +35,4 @@ Thumbs.db
 
 # local Claude Code settings
 .claude/settings.local.json
+.neon

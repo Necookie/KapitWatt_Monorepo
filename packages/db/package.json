@@ -9,12 +9,19 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate": "tsx --env-file-if-exists=../../.env.local scripts/migrate.ts",
+    "smoke": "tsx --env-file-if-exists=../../.env.local scripts/smoke.ts"
   },
   "dependencies": {
-    "@kapitwatt/shared": "workspace:*"
+    "@kapitwatt/shared": "workspace:*",
+    "@neondatabase/serverless": "^1.2.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.3"
   }
 }

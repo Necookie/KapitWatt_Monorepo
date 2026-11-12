@@ -26,12 +26,16 @@ smart-meter data or from meter photos taken in the app.
 
 ## Getting started
 
-Needs Node 22+ and pnpm 12.
+Needs Node 22+, pnpm 12 and the Neon CLI (`npm i -g neon`, then `neon login`).
 
 ```bash
 pnpm install
 
 # API (http://localhost:8787)
+# Database (Neon): link the project once, which also pulls DATABASE_URL into .env.local
+neon link            # pick the team's org and project, branch "production"
+pnpm db:migrate      # only needed when there are new migrations
+
 cp apps/api/.dev.vars.example apps/api/.dev.vars
 pnpm dev:api
 

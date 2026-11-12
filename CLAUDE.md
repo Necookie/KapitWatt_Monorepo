@@ -51,6 +51,10 @@ pnpm dev:dashboard           # expo start --web
 pnpm typecheck               # tsc --noEmit in every package
 pnpm test                    # vitest in shared and sim
 pnpm format                  # prettier
+pnpm build                   # typecheck all + bundle API (dry run) + export dashboard
+neon env pull                # write the linked Neon branch's DATABASE_URL(s) to .env.local
+pnpm db:migrate              # apply packages/db/migrations/*.sql (direct connection)
+pnpm db:smoke                # insert, read back, delete one row through the app's driver
 pnpm --filter @kapitwatt/dashboard build   # expo export -> apps/dashboard/dist
 pnpm --filter @kapitwatt/api deploy        # wrangler deploy
 ```
@@ -70,7 +74,8 @@ Adding dependencies:
 2. **The simulator never inserts rows.** It calls the same service functions real households hit, through
    the `SimPort` interface in `packages/sim/src/runner.ts`, so the demo exercises real code paths. It acts
    as a service account for simulated rows only.
-3. **Only `apps/api` and `packages/db` touch Postgres.** The Neon-or-Supabase choice stays in `packages/db`.
+3. **Only `apps/api` and `packages/db` touch Postgres.** The driver is imported in `packages/db` only.
+   Routes get a handle as `c.var.db` and pass it to query helpers in `packages/db/src/queries/`.
 4. **Push is sent only from the API**, through Expo Push, to opted-in tokens in targeted barangays.
 5. **Internal packages export TypeScript source** (`main: ./src/index.ts`) with `workspace:*` deps. No
    build step.
@@ -209,12 +214,28 @@ Simulated households are flagged `is_simulated`; reset deletes those rows only.
 
 ## Open decisions (do not decide these silently; ask)
 
-- **Database:** Neon or Supabase. No driver is installed yet; `packages/db/src/index.ts` is a stub.
+- (Decided: the database is **Neon**. See "Database" below.)
 - **Photo storage:** Cloudflare R2 or Supabase Storage (private bucket either way).
 - **Barangay names:** must come from the PSA list. `packages/sim/src/data/laguna.ts` uses obviously fake
   placeholder names until someone fills in three real ones per town.
 - **Liliw franchise coverage** and **Laguna smart-meter coverage:** to confirm with Meralco.
 - **Lint:** no ESLint config yet; Prettier only.
+
+## Database (Neon)
+
+- Linked with the Neon CLI (`neon`, not `neonctl`): the gitignored `.neon` file pins the org, project and
+  branch (`production`). `neon.ts` at the root declares Neon services; Postgres only for now.
+- `neon env pull` (or `neon deploy`) writes `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct)
+  into the root `.env.local`. Never commit it. `pnpm dev:api` loads it automatically.
+- **App traffic uses the pooled `DATABASE_URL`** through `@neondatabase/serverless` over HTTP (Neon's
+  recommendation for Workers without Hyperdrive). One HTTPS request per query, nothing to pool or close.
+  For atomic multi-statement writes such as settlement, use `db.transaction([...])`.
+- **Migrations use the direct `DATABASE_URL_UNPOOLED`** via `pnpm db:migrate`. Add a new numbered file in
+  `packages/db/migrations/`; never edit an applied one, never run ad hoc DDL. Applied files are recorded in
+  the `schema_migrations` table.
+- For risky schema changes, branch first: `neon checkout dev-<name> --create`, migrate there, then apply
+  to `production`.
+- `GET /health/db` shows the connected database and applied migrations.
 
 ## Deploy targets
 
