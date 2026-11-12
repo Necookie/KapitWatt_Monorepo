@@ -11,6 +11,7 @@ import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { MockControls } from '@/components/MockControls';
 import { Button, ErrorState, Loading, Screen } from '@/components/ui';
 import { ApiError, describeError } from '@/lib/api';
+import { useBrownoutRisk } from '@/lib/brownout';
 import { startOver } from '@/lib/nav';
 import { useActiveAlert, useLogout, useMe, useRefreshAll } from '@/lib/queries';
 import { space } from '@/theme';
@@ -26,6 +27,7 @@ export default function HomeScreen() {
   const alert = useActiveAlert();
   const me = useMe();
   const refreshAll = useRefreshAll();
+  const risk = useBrownoutRisk(alert.data?.alert, me.data?.barangayId);
   const logout = useLogout();
 
   // Not signed in: the API answers 401 without a household token.
@@ -83,6 +85,7 @@ export default function HomeScreen() {
           level={view.alert.level}
           windowStart={view.alert.windowStart}
           windowEnd={view.alert.windowEnd}
+          risk={risk}
           onOpen={() =>
             router.push({ pathname: '/alert/[alertId]', params: { alertId: view.alert.id } })
           }
