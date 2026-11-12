@@ -44,3 +44,18 @@ export const PILOT_TOWNS = [
 ] as const;
 export type PilotTown = (typeof PILOT_TOWNS)[number];
 export const HUB_TOWN: PilotTown = 'Santa Cruz';
+
+/**
+ * The 21 sampled pilot barangays, 3 per town. Names are from the PSA's PSGC list
+ * (fetched November 2026). Which 3 per town is our own sample, not a Meralco
+ * selection: swap freely, then run `pnpm db:seed`.
+ */
+export const PILOT_BARANGAYS: Record<PilotTown, readonly [string, string, string]> = {
+  'Santa Cruz': ['Bagumbayan', 'Calios', 'Patimbao'],
+  Pila: ['Bagong Pook', 'Pansol', 'Santa Clara Norte'],
+  Victoria: ['Masapang', 'Nanhaya', 'San Roque'],
+  Nagcarlan: ['Banago', 'Calumpang', 'Poblacion I'],
+  Liliw: ['Bayate', 'Laguan', 'Rizal'],
+  Majayjay: ['Botocan', 'Olla', 'Origuel'],
+  Magdalena: ['Buenavista', 'Poblacion', 'Sabang'],
+};

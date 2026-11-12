@@ -17,7 +17,8 @@
     "format:check": "prettier --check .",
     "build": "pnpm -r typecheck && pnpm --filter @kapitwatt/api build && pnpm --filter @kapitwatt/dashboard build",
     "db:migrate": "pnpm --filter @kapitwatt/db migrate",
-    "db:smoke": "pnpm --filter @kapitwatt/db smoke"
+    "db:smoke": "pnpm --filter @kapitwatt/db smoke",
+    "db:seed": "pnpm --filter @kapitwatt/db seed"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

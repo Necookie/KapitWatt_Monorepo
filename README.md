@@ -35,6 +35,7 @@ pnpm install
 # Database (Neon): link the project once, which also pulls DATABASE_URL into .env.local
 neon link            # pick the team's org and project, branch "production"
 pnpm db:migrate      # only needed when there are new migrations
+pnpm db:seed         # pilot barangays; already loaded on the shared database
 
 cp apps/api/.dev.vars.example apps/api/.dev.vars
 pnpm dev:api

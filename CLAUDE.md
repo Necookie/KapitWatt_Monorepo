@@ -54,6 +54,7 @@ pnpm format                  # prettier
 pnpm build                   # typecheck all + bundle API (dry run) + export dashboard
 neon env pull                # write the linked Neon branch's DATABASE_URL(s) to .env.local
 pnpm db:migrate              # apply packages/db/migrations/*.sql (direct connection)
+pnpm db:seed                 # load the 21 pilot barangays (reference data, safe to re-run)
 pnpm db:smoke                # insert, read back, delete one row through the app's driver
 pnpm --filter @kapitwatt/dashboard build   # expo export -> apps/dashboard/dist
 pnpm --filter @kapitwatt/api deploy        # wrangler deploy
@@ -216,8 +217,8 @@ Simulated households are flagged `is_simulated`; reset deletes those rows only.
 
 - (Decided: the database is **Neon**. See "Database" below.)
 - **Photo storage:** Cloudflare R2 or Supabase Storage (private bucket either way).
-- **Barangay names:** must come from the PSA list. `packages/sim/src/data/laguna.ts` uses obviously fake
-  placeholder names until someone fills in three real ones per town.
+- **Which barangays:** the 21 names in `PILOT_BARANGAYS` (`packages/shared/src/constants.ts`) are real PSA
+  names, but which 3 per town is our own sample. Change them there, then run `pnpm db:seed`.
 - **Liliw franchise coverage** and **Laguna smart-meter coverage:** to confirm with Meralco.
 - **Lint:** no ESLint config yet; Prettier only.
 

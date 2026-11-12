@@ -1,4 +1,4 @@
-import type { Barangay } from '@kapitwatt/shared';
+import { PILOT_BARANGAYS, type Barangay } from '@kapitwatt/shared';
 import type { Db } from '../index';
 
 /** Towns and barangays for the sign-up picker and the alert form. */
@@ -13,6 +13,28 @@ export async function listBarangays(db: Db): Promise<Barangay[]> {
     municipality: r.municipality as string,
     feederId: (r.feeder_id as string | null) ?? null,
   }));
+}
+
+/**
+ * Loads the pilot barangays (reference data, not simulated rows). One request,
+ * idempotent: existing (municipality, name) pairs are left alone.
+ * Returns how many rows were newly inserted.
+ */
+export async function seedPilotBarangays(db: Db): Promise<number> {
+  const names: string[] = [];
+  const towns: string[] = [];
+  for (const [town, barangays] of Object.entries(PILOT_BARANGAYS)) {
+    for (const name of barangays) {
+      names.push(name);
+      towns.push(town);
+    }
+  }
+  const inserted = await db`
+    insert into barangays (name, municipality)
+    select * from unnest(${names}::text[], ${towns}::text[])
+    on conflict (municipality, name) do nothing
+    returning id`;
+  return inserted.length;
 }
 
 export async function insertBarangay(
