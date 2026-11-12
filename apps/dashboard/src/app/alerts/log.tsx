@@ -96,7 +96,7 @@ export default function AlertLogScreen() {
     <>
       <PageHeader
         title="Alert log"
-        subtitle={`Every alert sent to the Laguna pilot, newest first. Refreshes every ${POLL_INTERVAL_MS / 1000} seconds.`}
+        subtitle={`The latest 100 alerts sent to the Laguna pilot, newest first. Refreshes every ${POLL_INTERVAL_MS / 1000} seconds.`}
       />
       {log.error ? <Notice tone="critical">{errorMessage(log.error)}</Notice> : null}
       <Card padded={false}>

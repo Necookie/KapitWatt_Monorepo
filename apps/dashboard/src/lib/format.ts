@@ -14,7 +14,7 @@ export function kw(value: number): string {
 /** A load in the unit an operator would say it in: kW below 1 MW, MW from there up. */
 export function power(valueKw: number): string {
   if (Math.abs(valueKw) < 1000) return `${kw(valueKw)} kW`;
-  return `${(valueKw / 1000).toLocaleString(LOCALE, { maximumFractionDigits: 2 })} MW`;
+  return `${(valueKw / 1000).toLocaleString(LOCALE, { maximumFractionDigits: 3 })} MW`;
 }
 
 /** A meter register reading, to the one decimal a household types. */

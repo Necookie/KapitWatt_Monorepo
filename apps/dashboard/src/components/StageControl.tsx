@@ -28,6 +28,9 @@ export function StageControl({ alert, status }: { alert: DashboardAlert; status:
   const { params } = useSimParams();
   const sim = useSimStatus();
   const hasSimulated = (sim.data?.simulatedHouseholds ?? 0) > 0;
+  // Ending the window before the count is known would skip the simulated readings, and a
+  // settled alert cannot be reopened. If the simulator cannot be reached there are none to wait for.
+  const simKnown = sim.data !== undefined || sim.isError;
 
   const open = useAction(() => client.fastForward(alert.id, 'window_start'));
   // The fake meter feed reports once the window has ended. Real phones send their own photos.
@@ -99,7 +102,7 @@ export function StageControl({ alert, status }: { alert: DashboardAlert; status:
               <Button
                 label="End window"
                 busy={end.isPending}
-                disabled={working}
+                disabled={working || !simKnown}
                 onPress={() => end.mutate(undefined)}
               />
             ) : null}
@@ -108,7 +111,7 @@ export function StageControl({ alert, status }: { alert: DashboardAlert; status:
                 kind="primary"
                 label="Measure (fast-forward)"
                 busy={measure.isPending}
-                disabled={committing || working}
+                disabled={committing || working || !simKnown}
                 onPress={() => measure.mutate(undefined)}
               />
             ) : null}

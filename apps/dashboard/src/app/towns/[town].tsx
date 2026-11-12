@@ -1,6 +1,7 @@
 import type { BarangayTotals } from '@kapitwatt/shared';
 import { Link, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { UpdateTargetsInput } from '@kapitwatt/shared';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { TargetMeter } from '@/components/charts';
 import { DataTable, type Column } from '@/components/DataTable';
@@ -31,13 +32,15 @@ export default function TownScreen() {
   const changed = (town?.barangays ?? []).filter(
     (b) => draft?.[b.barangayId] !== undefined && Number(typed(b)) !== b.targetKw,
   );
-  const invalid = changed.some((b) => typed(b).trim() === '' || !(Number(typed(b)) >= 0));
-  const save = useAction(() =>
-    client.updateTargets(
-      alert.data!.id,
-      changed.map((b) => ({ barangayId: b.barangayId, targetKw: Number(typed(b)) })),
-    ),
-  );
+  const wanted = changed.map((b) => ({ barangayId: b.barangayId, targetKw: Number(typed(b)) }));
+  // The same limits the API applies, so Save never sends a request that must fail.
+  const invalid =
+    changed.some((b) => typed(b).trim() === '') ||
+    (wanted.length > 0 && !UpdateTargetsInput.safeParse({ targets: wanted }).success);
+  // A draft belongs to one alert: typed targets must never be saved against the next one.
+  const alertId = alert.data?.id;
+  useEffect(() => setDraft(null), [alertId]);
+  const save = useAction(() => client.updateTargets(alert.data!.id, wanted));
   const stopEditing = () => {
     save.reset();
     setDraft(null);
@@ -231,7 +234,7 @@ export default function TownScreen() {
           {draft ? (
             <Notice tone={invalid ? 'warning' : 'neutral'}>
               {invalid
-                ? 'Enter a target of 0 kW or more for each barangay.'
+                ? 'Enter a target from 0 to 1,000,000 kW for each barangay.'
                 : `An override changes that barangay's share only. The alert asks for ${kw(
                     totals.data?.targetKw ?? 0,
                   )} kW in all; the barangay targets would add up to ${kw(

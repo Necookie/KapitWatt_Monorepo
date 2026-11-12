@@ -48,11 +48,13 @@ export function useSimStatus() {
  * FR-DASH-07: the stage controls and the simulator exist in the demo environment only.
  * The API answers 404 on /sim/status outside it, so that is what switches them off here.
  * Any other failure (a missing key, a dropped connection) leaves them on and shows its own error.
+ * Until the first answer arrives they stay off, so they never flash up outside the demo.
  */
 export function useDemoControls(): boolean {
   const sim = useSimStatus();
   if (sim.error instanceof ApiError && sim.error.status === 404) return false;
-  return sim.data?.enabled !== false;
+  if (sim.data) return sim.data.enabled;
+  return sim.isError;
 }
 
 /** Refetch everything on screen straight after an action instead of waiting for the next poll. */

@@ -142,7 +142,8 @@ const liveClient: DashboardClient = {
     // fixed yet, so both a bare list and { readings } are read.
     const body = await api<unknown>('/readings/flagged');
     const rows = Array.isArray(body) ? body : (body as { readings?: unknown } | null)?.readings;
-    return FlaggedReading.array().parse(rows ?? []);
+    // Any other shape fails here rather than reading as an empty queue.
+    return FlaggedReading.array().parse(rows);
   },
   async reviewReading(readingId, decision) {
     await api(`/readings/${readingId}/review`, json({ decision } satisfies ReviewReadingInput));

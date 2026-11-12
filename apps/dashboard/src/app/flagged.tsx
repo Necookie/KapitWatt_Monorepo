@@ -161,7 +161,7 @@ export default function FlaggedScreen() {
         title="Flagged readings"
         subtitle="Meter photo readings that failed a rule check. A person approves or rejects each one."
         actions={
-          flagged.data ? (
+          flagged.data && !flagged.error ? (
             <Tag
               label={rows.length === 0 ? 'Nothing waiting' : `${rows.length} waiting`}
               tone={rows.length === 0 ? 'good' : 'warning'}
@@ -186,7 +186,11 @@ export default function FlaggedScreen() {
           rows={rows}
           rowKey={(r) => r.id}
           empty={
-            flagged.isLoading ? 'Loading flagged readings.' : 'No readings are waiting for review.'
+            flagged.isLoading
+              ? 'Loading flagged readings.'
+              : flagged.error
+                ? 'The review list could not be loaded.'
+                : 'No readings are waiting for review.'
           }
         />
       </Card>
