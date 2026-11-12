@@ -67,7 +67,8 @@ pnpm db:migrate              # apply packages/db/migrations/*.sql (direct connec
 pnpm db:seed                 # load the 21 pilot barangays (reference data, safe to re-run)
 pnpm db:smoke                # insert, read back, delete one row through the app's driver
 pnpm --filter @kapitwatt/dashboard build   # expo export -> apps/dashboard/dist
-pnpm deploy:api              # wrangler deploy, then upload DATABASE_URL, SIM_KEY, OPERATOR_KEY
+pnpm deploy:api              # preflight, then wrangler deploy with its secrets (from main)
+pnpm --filter @kapitwatt/api smoke:live   # read-only checks of the deployed API
 ```
 
 Run `pnpm typecheck` and `pnpm test` before calling a task done.
@@ -266,8 +267,11 @@ Simulated households are flagged `is_simulated`; reset deletes those rows only.
 
 Live API: https://kapitwatt-api.dheyn-main.workers.dev (use as `EXPO_PUBLIC_API_URL` on phones).
 
-- API: `pnpm deploy:api` runs `wrangler deploy` to Cloudflare Workers, then uploads `DATABASE_URL`,
-  `SIM_KEY`, `OPERATOR_KEY` (and `EXPO_ACCESS_TOKEN` if set) from Doppler with `wrangler secret bulk`.
+- API: `pnpm deploy:api` (from `main`, clean tree) checks the Doppler secrets, the Cloudflare login and the
+  R2 photo bucket, then runs `wrangler deploy --secrets-file`: the version and its secrets (`DATABASE_URL`,
+  `SIM_KEY`, `OPERATOR_KEY`, `EXPO_ACCESS_TOKEN` if set) go up together. Then run
+  `doppler run -- pnpm --filter @kapitwatt/api smoke:live`. Cloudflare access: `npx wrangler login`, or a
+  `CLOUDFLARE_API_TOKEN` in Doppler.
 - Dashboard: `expo export --platform web`, then Cloudflare Pages serving `apps/dashboard/dist`.
 - Mobile: EAS build, Android APK. Expo Go during development. Push needs real phones; test it by hour 8 to 12.
 
