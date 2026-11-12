@@ -1,3 +1,4 @@
+import { Icon } from '@kapitwatt/icons';
 import {
   ACCOUNT_NUMBER_DIGITS,
   PASSWORD_MIN_LENGTH,
@@ -5,107 +6,156 @@ import {
   type Barangay,
   type MeterType,
 } from '@kapitwatt/shared';
-import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { themes } from '@kapitwatt/styles';
+import { Text } from '@kapitwatt/ui';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocationPrompt } from '@/components/LocationPrompt';
+import type { MascotPose } from '@/components/mascot/poses';
 import {
   ALERTS_CONSENT_LABEL,
   DATA_CONSENT_LABEL,
-  PrivacyNotice,
+  PRIVACY_SUMMARY,
 } from '@/components/privacy/PrivacyNotice';
-import {
-  Button,
-  Card,
-  Checkbox,
-  PasswordField,
-  Row,
-  Select,
-  SimulatedNote,
-  TextField,
-} from '@/components/ui';
+import { Button, Checkbox, Select, TextField } from '@/components/ui';
 import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
-import { colors, fonts, space, text } from '@/theme';
+import { radius, space } from '@/theme';
 import { fieldOk, STEP_TITLE, STEPS, type StepId, type StepProps } from './draft';
 
-/** One card per onboarding step. The sign-up screen decides which one shows and when to move on. */
+/**
+ * The onboarding steps, laid out as in the mockups (sign-up, mascot option A): the mascot talks in
+ * the header, each step keeps only the fields and the few hints people need.
+ * The sign-up screen decides which step shows and when to move on.
+ */
 
-const METER_OPTIONS = [
-  { value: 'standard', label: 'Regular meter (photos)' },
-  { value: 'ami', label: 'Smart meter' },
-] as const satisfies readonly { value: MeterType; label: string }[];
+const c = themes.light.color;
 
-const METER_LABEL: Record<MeterType, string> = {
-  standard: 'Regular meter (photos)',
-  ami: 'Smart meter',
+/** What the mascot says on each step. The label is the step's name; the line is the heading. */
+export const STEP_MASCOT: Record<
+  StepId,
+  { line: string; pose: MascotPose; tone: 'primary' | 'reward' }
+> = {
+  account: { line: 'Hi! First, set up your login.', pose: 'neutral', tone: 'primary' },
+  privacy: { line: 'Your data stays safe with us.', pose: 'neutral', tone: 'primary' },
+  meralco: { line: 'Grab your bill. It has everything we need.', pose: 'neutral', tone: 'primary' },
+  home: { line: "Where's home? Pick your barangay.", pose: 'neutral', tone: 'primary' },
+  meter: { line: 'Check your meter. Which kind is it?', pose: 'neutral', tone: 'primary' },
+  review: { line: 'Almost there! Check your details.', pose: 'reward', tone: 'reward' },
 };
 
-/** "Step 2 of 6" with a thin progress bar. */
-export function StepHeader(props: { step: StepId }) {
+export { STEP_TITLE };
+
+const METER_LABEL: Record<MeterType, string> = { standard: 'Regular', ami: 'Smart' };
+
+/** Back arrow, "3 of 6" and a segmented progress bar. Replaces the stack header on sign-up. */
+export function SignUpTopBar(props: { step: StepId; onBack: () => void; disabled?: boolean }) {
+  const insets = useSafeAreaInsets();
   const index = STEPS.indexOf(props.step);
   return (
-    <View style={styles.header}>
-      <Text style={styles.caption}>
-        Step {index + 1} of {STEPS.length}
-      </Text>
-      <Text style={styles.title}>{STEP_TITLE[props.step]}</Text>
-      <View style={styles.track}>
-        <View style={[styles.fill, { width: `${((index + 1) / STEPS.length) * 100}%` }]} />
+    <View style={[styles.topBar, { paddingTop: insets.top }]}>
+      <View style={styles.topRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={index === 0 ? 'Cancel sign-up' : 'Back to the previous step'}
+          disabled={props.disabled}
+          onPress={props.onBack}
+          style={styles.iconButton}
+        >
+          <Icon name="back" />
+        </Pressable>
+        <Text variant="labelLarge" color="onSurfaceVariant">
+          {index + 1} of {STEPS.length}
+        </Text>
+      </View>
+      <View
+        style={styles.segments}
+        accessibilityRole="progressbar"
+        accessibilityLabel={`Step ${index + 1} of ${STEPS.length}`}
+        accessibilityValue={{ min: 1, max: STEPS.length, now: index + 1 }}
+      >
+        {STEPS.map((s, i) => (
+          <View
+            key={s}
+            style={[styles.segment, { backgroundColor: i <= index ? c.primary : c.outlineVariant }]}
+          />
+        ))}
       </View>
     </View>
   );
 }
 
-/** Shown under a field only once the household has typed something wrong into it. */
-function Problem(props: { show: boolean; children: string }) {
-  return props.show ? <Text style={styles.error}>{props.children}</Text> : null;
+/** A rule shown as it is met: grey circle while not yet, green tick once it holds. */
+function LiveCheck(props: { ok: boolean; children: string }) {
+  return (
+    <View style={styles.check}>
+      <Icon
+        name={props.ok ? 'check' : 'pending'}
+        size="sm"
+        weight={props.ok ? 'bold' : 'regular'}
+        color={props.ok ? 'relief' : 'onSurfaceVariant'}
+      />
+      <Text variant="bodyMedium" color={props.ok ? 'relief' : 'onSurfaceVariant'}>
+        {props.children}
+      </Text>
+    </View>
+  );
 }
 
 export function AccountStep({ draft, set }: StepProps) {
+  const emailWrong = draft.email.length > 0 && !fieldOk('email', draft.email);
   return (
-    <Card>
-      <Text style={styles.body}>You will use this email and password to log in.</Text>
+    <View style={styles.fields}>
       <TextField
         label="Email"
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete="email"
+        textContentType="emailAddress"
+        error={emailWrong ? 'Enter a valid email address.' : undefined}
         value={draft.email}
         onChangeText={(email) => set({ email })}
       />
-      <Problem show={draft.email.length > 0 && !fieldOk('email', draft.email)}>
-        Enter a valid email address.
-      </Problem>
-      <PasswordField
-        label="Password"
-        hint={`At least ${PASSWORD_MIN_LENGTH} characters.`}
-        autoComplete="new-password"
-        value={draft.password}
-        onChangeText={(password) => set({ password })}
-      />
-      <Problem show={draft.password.length > 0 && !fieldOk('password', draft.password)}>
-        {`Use at least ${PASSWORD_MIN_LENGTH} characters.`}
-      </Problem>
-      <PasswordField
-        label="Confirm password"
-        autoComplete="new-password"
-        value={draft.confirmPassword}
-        onChangeText={(confirmPassword) => set({ confirmPassword })}
-      />
-      <Problem show={draft.confirmPassword.length > 0 && draft.confirmPassword !== draft.password}>
-        The two passwords do not match.
-      </Problem>
-    </Card>
+      <View style={styles.fieldWithCheck}>
+        <TextField
+          label="Password"
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          value={draft.password}
+          onChangeText={(password) => set({ password })}
+        />
+        <LiveCheck ok={fieldOk('password', draft.password)}>
+          {`${PASSWORD_MIN_LENGTH} characters or more`}
+        </LiveCheck>
+      </View>
+    </View>
   );
 }
 
 export function PrivacyStep({ draft, set }: StepProps) {
   return (
     <>
-      <Card>
-        <PrivacyNotice />
-      </Card>
-      <Card title="Your consent">
+      <View style={styles.panel}>
+        {PRIVACY_SUMMARY.map((row) => (
+          <View key={row.icon} style={styles.summaryRow}>
+            <Icon name={row.icon} color="primary" />
+            <Text variant="bodyMedium" style={styles.flex}>
+              {row.text}
+            </Text>
+          </View>
+        ))}
+        <Button
+          label="Read the full notice"
+          variant="text"
+          onPress={() => router.push('/privacy')}
+        />
+      </View>
+      <View style={styles.consents}>
         <Checkbox
           checked={draft.consent}
           onChange={(consent) => set({ consent })}
@@ -116,37 +166,28 @@ export function PrivacyStep({ draft, set }: StepProps) {
           onChange={(alertsConsent) => set({ alertsConsent })}
           label={ALERTS_CONSENT_LABEL}
         />
-        <Text style={styles.body}>
-          You cannot join without both. Nothing you type is stored until you tap “Join the pilot” on
-          the last step.
-        </Text>
-      </Card>
+      </View>
     </>
   );
 }
 
 export function MeralcoStep({ draft, set }: StepProps) {
+  const numberWrong =
+    draft.accountNumber.length > 0 && !fieldOk('accountNumber', draft.accountNumber);
   return (
-    <Card>
-      <Text style={styles.body}>
-        These are on your Meralco bill. Your reward is credited to this account.
-      </Text>
+    <View style={styles.fields}>
       <TextField
-        label="Customer Account Number (CAN)"
-        hint={`The ${ACCOUNT_NUMBER_DIGITS}-digit account number on your bill.`}
+        label="Account number (CAN)"
+        hint="On your bill"
+        error={numberWrong ? `The account number has ${ACCOUNT_NUMBER_DIGITS} digits.` : undefined}
         keyboardType="number-pad"
         maxLength={ACCOUNT_NUMBER_DIGITS}
+        suffix={`${draft.accountNumber.length}/${ACCOUNT_NUMBER_DIGITS}`}
         value={draft.accountNumber}
         onChangeText={(value) => set({ accountNumber: value.replace(/\D/g, '') })}
       />
-      <Problem
-        show={draft.accountNumber.length > 0 && !fieldOk('accountNumber', draft.accountNumber)}
-      >
-        {`The account number has ${ACCOUNT_NUMBER_DIGITS} digits.`}
-      </Problem>
       <TextField
-        label="Account holder’s name"
-        hint="The registered name, exactly as printed on the bill."
+        label="Account holder"
         autoCapitalize="words"
         autoCorrect={false}
         value={draft.accountName}
@@ -154,15 +195,12 @@ export function MeralcoStep({ draft, set }: StepProps) {
       />
       <TextField
         label="Service address"
-        hint="House number and street where the electricity is supplied. Town and barangay come next."
+        placeholder="House no. and street"
         autoCapitalize="words"
         value={draft.serviceAddress}
         onChangeText={(serviceAddress) => set({ serviceAddress })}
       />
-      <SimulatedNote>
-        These details are not checked against Meralco records in this pilot.
-      </SimulatedNote>
-    </Card>
+    </View>
   );
 }
 
@@ -187,7 +225,7 @@ export function HomeStep({ draft, set, barangays }: StepProps & { barangays: Bar
   };
 
   return (
-    <Card>
+    <View style={styles.fields}>
       <Select
         label="Town"
         placeholder="Choose your town"
@@ -203,57 +241,158 @@ export function HomeStep({ draft, set, barangays }: StepProps & { barangays: Bar
         value={draft.barangayId}
         onChange={(barangayId) => set({ barangayId })}
       />
-      {draft.location ? (
-        <Row label="Home location" value="Saved" strong />
-      ) : (
-        <>
-          <Text style={styles.body}>
-            Do this at home: meter photos are checked against this location.
-          </Text>
-          {problem ? (
-            <LocationPrompt problem={problem} onRetry={locate} />
-          ) : (
-            <Button
-              label="Use my current location"
-              variant="secondary"
-              loading={locating}
+      <View style={styles.fieldWithCheck}>
+        <Text variant="labelLarge" color="onSurfaceVariant">
+          Home location
+        </Text>
+        {draft.location ? (
+          <View style={styles.saved}>
+            <Icon name="check" weight="bold" color="onReliefContainer" />
+            <Text variant="titleMedium" style={[styles.flex, { color: c.onReliefContainer }]}>
+              Saved
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Update home location"
               onPress={() => void locate()}
-            />
-          )}
-        </>
-      )}
-      {locationError ? <Text style={styles.error}>{locationError}</Text> : null}
-    </Card>
+              style={styles.updateButton}
+            >
+              <Text variant="titleSmall" style={{ color: c.onReliefContainer }}>
+                {locating ? 'Updating…' : 'Update'}
+              </Text>
+            </Pressable>
+          </View>
+        ) : problem ? (
+          <LocationPrompt problem={problem} onRetry={locate} />
+        ) : (
+          <Button
+            label="Use my current location"
+            variant="secondary"
+            loading={locating}
+            onPress={() => void locate()}
+          />
+        )}
+        <Text variant="bodyMedium" color="onSurfaceVariant">
+          Save it while you are at home.
+        </Text>
+        {locationError ? <Text color="error">{locationError}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
+function MeterCard(props: {
+  title: string;
+  detail: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected: props.selected }}
+      accessibilityLabel={`${props.title} meter, ${props.detail}`}
+      onPress={props.onPress}
+      style={[styles.meterCard, props.selected ? styles.meterCardOn : styles.meterCardOff]}
+    >
+      <Text
+        variant="titleMedium"
+        style={{ color: props.selected ? c.onPrimaryContainer : c.onSurface }}
+      >
+        {props.title}
+      </Text>
+      <Text
+        variant="bodyMedium"
+        style={{ color: props.selected ? c.onPrimaryContainer : c.onSurfaceVariant }}
+      >
+        {props.detail}
+      </Text>
+    </Pressable>
   );
 }
 
 export function MeterStep({ draft, set }: StepProps) {
   return (
-    <Card>
-      <Select
-        label="Meter type"
-        placeholder="Choose your meter type"
-        options={METER_OPTIONS}
-        value={draft.meterType}
-        onChange={(meterType) => set({ meterType })}
-      />
+    <View style={styles.fields}>
+      <View style={styles.fieldWithCheck}>
+        <Text variant="labelLarge" color="onSurfaceVariant">
+          Meter type
+        </Text>
+        <View style={styles.meterRow} accessibilityRole="radiogroup">
+          <MeterCard
+            title="Regular"
+            detail="2 photos per event"
+            selected={draft.meterType === 'standard'}
+            onPress={() => set({ meterType: 'standard' })}
+          />
+          <MeterCard
+            title="Smart"
+            detail="No photos"
+            selected={draft.meterType === 'ami'}
+            onPress={() => set({ meterType: 'ami' })}
+          />
+        </View>
+      </View>
       <TextField
-        label="Meter serial number"
-        hint="Printed on the meter. It must be visible in your meter photos."
+        label="Serial number"
+        hint="Printed on the meter"
         autoCapitalize="characters"
         autoCorrect={false}
         value={draft.meterSerial}
         onChangeText={(meterSerial) => set({ meterSerial })}
       />
       <TextField
-        label="Average monthly use (kWh)"
-        hint="From your Meralco bill. It sets the most you can be paid for."
+        label="Monthly use"
+        hint="On your bill"
         keyboardType="number-pad"
-        placeholder="e.g. 250"
+        placeholder="250"
+        suffix="kWh"
         value={draft.billText}
         onChangeText={(billText) => set({ billText })}
       />
-    </Card>
+    </View>
+  );
+}
+
+function ReviewRow(props: {
+  label: string;
+  lines: string[];
+  good?: string;
+  onEdit: () => void;
+  last?: boolean;
+}) {
+  return (
+    <View style={[styles.reviewRow, !props.last && styles.reviewDivider]}>
+      <View style={styles.flex}>
+        <Text variant="labelMedium" color="onSurfaceVariant">
+          {props.label}
+        </Text>
+        {props.lines.map((line, i) => (
+          <Text
+            key={i}
+            variant={i === 0 ? 'bodyLarge' : 'bodyMedium'}
+            color={i === 0 ? 'onSurface' : 'onSurfaceVariant'}
+          >
+            {line}
+          </Text>
+        ))}
+        {props.good ? (
+          <Text variant="titleSmall" color="relief">
+            {props.good}
+          </Text>
+        ) : null}
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Edit ${props.label.toLowerCase()}`}
+        onPress={props.onEdit}
+        style={styles.updateButton}
+      >
+        <Text variant="titleSmall" color="primary">
+          Edit
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -263,71 +402,107 @@ export function ReviewStep(
 ) {
   const { draft, barangays, onEdit } = props;
   const barangay = barangays.find((b) => b.id === draft.barangayId);
-  const masked = '•'.repeat(ACCOUNT_NUMBER_DIGITS - 4) + draft.accountNumber.slice(-4);
+  const masked = '••••' + draft.accountNumber.slice(-4);
   return (
-    <>
-      <Section title="Login" onEdit={() => onEdit('account')}>
-        <Row label="Email" value={draft.email.trim().toLowerCase()} />
-      </Section>
-      <Section title="Meralco account" onEdit={() => onEdit('meralco')}>
-        <Row label="Account number" value={masked} />
-        <Row label="Account holder" value={draft.accountName.trim()} />
-        <Row label="Service address" value={draft.serviceAddress.trim()} />
-      </Section>
-      <Section title="Where you live" onEdit={() => onEdit('home')}>
-        <Row
-          label="Barangay"
-          value={barangay ? `${barangay.name}, ${barangay.municipality}` : ''}
-        />
-        <Row label="Home location" value={draft.location ? 'Saved' : 'Missing'} />
-      </Section>
-      <Section title="Your meter" onEdit={() => onEdit('meter')}>
-        <Row label="Meter type" value={draft.meterType ? METER_LABEL[draft.meterType] : ''} />
-        <Row label="Serial number" value={draft.meterSerial.trim()} />
-        <Row label="Monthly use" value={`${draft.billText} kWh`} />
-      </Section>
-      <Section title="Consent" onEdit={() => onEdit('privacy')}>
-        <Row label="Personal data" value={draft.consent ? 'Given' : 'Missing'} />
-        <Row label="Grid alerts" value={draft.alertsConsent ? 'Given' : 'Missing'} />
-      </Section>
-    </>
-  );
-}
-
-function Section(props: { title: string; onEdit: () => void; children: ReactNode }) {
-  return (
-    <Card>
-      <View style={styles.sectionHead}>
-        <Text style={styles.sectionTitle}>{props.title}</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Edit ${props.title}`}
-          hitSlop={space.md}
-          onPress={props.onEdit}
-        >
-          <Text style={styles.link}>Edit</Text>
-        </Pressable>
-      </View>
-      {props.children}
-    </Card>
+    <View style={[styles.panel, styles.reviewPanel]}>
+      <ReviewRow
+        label="Login"
+        lines={[draft.email.trim().toLowerCase()]}
+        onEdit={() => onEdit('account')}
+      />
+      <ReviewRow
+        label="Meralco account"
+        lines={[`${draft.accountName.trim()} · ${masked}`, draft.serviceAddress.trim()]}
+        onEdit={() => onEdit('meralco')}
+      />
+      <ReviewRow
+        label="Where you live"
+        lines={[barangay ? `${barangay.name}, ${barangay.municipality}` : 'Barangay missing']}
+        good={draft.location ? 'Home location saved' : undefined}
+        onEdit={() => onEdit('home')}
+      />
+      <ReviewRow
+        label="Meter"
+        lines={[
+          `${draft.meterType ? METER_LABEL[draft.meterType] : ''} · ${draft.meterSerial.trim()}`,
+          `${draft.billText} kWh a month`,
+        ]}
+        onEdit={() => onEdit('meter')}
+      />
+      <ReviewRow
+        label="Consent"
+        lines={[]}
+        good={draft.consent && draft.alertsConsent ? 'Data and alerts: given' : undefined}
+        onEdit={() => onEdit('privacy')}
+        last
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { gap: space.xs },
-  caption: { ...text.caption, color: colors.muted },
-  title: { ...text.headline, color: colors.ink },
-  track: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-    marginTop: space.xs,
+  flex: { flex: 1 },
+  topBar: { backgroundColor: c.surface, paddingBottom: space.sm, gap: space.xs },
+  topRow: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: space.xs,
+    paddingRight: 20,
   },
-  fill: { height: 6, backgroundColor: colors.teal },
-  body: { ...text.body, color: colors.muted },
-  error: { ...text.caption, color: colors.red },
-  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionTitle: { ...text.title, color: colors.ink },
-  link: { ...text.body, fontFamily: fonts.semibold, color: colors.teal },
+  iconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segments: { flexDirection: 'row', gap: space.xs, paddingHorizontal: space.xl },
+  segment: { flex: 1, height: 4, borderRadius: 2 },
+  fields: { gap: 20 },
+  fieldWithCheck: { gap: 6 },
+  check: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  panel: {
+    backgroundColor: c.surfaceContainerLow,
+    borderRadius: radius.lg,
+    padding: space.lg,
+    gap: 14,
+  },
+  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  consents: { gap: space.md },
+  saved: {
+    height: 56,
+    borderRadius: radius.md,
+    backgroundColor: c.reliefContainer,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingLeft: space.lg,
+    paddingRight: space.xs,
+  },
+  updateButton: {
+    height: 48,
+    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  meterRow: { flexDirection: 'row', gap: space.md },
+  meterCard: { flex: 1, borderRadius: radius.md, padding: 14, gap: space.xs },
+  meterCardOn: { borderWidth: 2, borderColor: c.primary, backgroundColor: c.primaryContainer },
+  meterCardOff: {
+    borderWidth: 1,
+    borderColor: c.outline,
+    backgroundColor: c.surfaceContainerLowest,
+    margin: 1,
+  },
+  reviewPanel: { paddingVertical: space.xs, gap: 0 },
+  reviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingVertical: space.md,
+  },
+  reviewDivider: { borderBottomWidth: 1, borderBottomColor: c.outlineVariant },
 });

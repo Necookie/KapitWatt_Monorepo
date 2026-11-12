@@ -1,3 +1,4 @@
+import type { IconName } from '@kapitwatt/icons';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, space, text } from '@/theme';
 
@@ -7,10 +8,18 @@ import { colors, fonts, space, text } from '@/theme';
  * Retention and the list of recipients are pilot placeholders, like the reward rates.
  */
 
-export const DATA_CONSENT_LABEL =
-  'I consent to the collection and use of my personal data as described in this notice.';
-export const ALERTS_CONSENT_LABEL =
-  'I agree to receive grid alerts from KapitWatt by push notification.';
+/** Consent labels at sign-up. Short on purpose; the full notice is one tap away. */
+export const DATA_CONSENT_LABEL = 'I agree to the use of my data as described';
+export const ALERTS_CONSENT_LABEL = 'Send me grid alerts';
+
+/** The notice in five lines, for the sign-up step. Each maps to a section of the full notice. */
+export const PRIVACY_SUMMARY: { icon: IconName; text: string }[] = [
+  { icon: 'meterPhoto', text: 'We keep your meter readings and photos.' },
+  { icon: 'verified', text: 'Only to check your cut and pay you.' },
+  { icon: 'profile', text: 'Only Meralco staff see them. Results are per barangay.' },
+  { icon: 'time', text: 'Photos are deleted after a while.' },
+  { icon: 'locked', text: 'Delete your account and data any time.' },
+];
 
 const SECTIONS: { title: string; body: string }[] = [
   {

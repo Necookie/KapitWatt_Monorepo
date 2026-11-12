@@ -8,7 +8,6 @@ import { RegisterHouseholdInput, type MeterType, type PilotTown } from '@kapitwa
 export interface Draft {
   email: string;
   password: string;
-  confirmPassword: string;
   consent: boolean;
   alertsConsent: boolean;
   accountNumber: string;
@@ -25,7 +24,6 @@ export interface Draft {
 export const EMPTY_DRAFT: Draft = {
   email: '',
   password: '',
-  confirmPassword: '',
   consent: false,
   alertsConsent: false,
   accountNumber: '',
@@ -86,11 +84,8 @@ export function toSignUp(d: Draft) {
 export function stepDone(step: StepId, d: Draft): boolean {
   switch (step) {
     case 'account':
-      return (
-        fieldOk('email', d.email) &&
-        fieldOk('password', d.password) &&
-        d.password === d.confirmPassword
-      );
+      // No confirm field: the show/hide eye lets the household check what it typed.
+      return fieldOk('email', d.email) && fieldOk('password', d.password);
     case 'privacy':
       return d.consent && d.alertsConsent;
     case 'meralco':

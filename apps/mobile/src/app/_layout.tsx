@@ -43,7 +43,8 @@ export default function RootLayout() {
         >
           {/* Mockup page 2: no top bar on the first screen; the logo opens it. */}
           <Stack.Screen name="welcome" options={{ headerShown: false }} />
-          <Stack.Screen name="sign-up" options={{ headerTitle: 'Join the pilot' }} />
+          {/* Mockup sign-up (mascot option A): the screen draws its own top bar with progress. */}
+          <Stack.Screen name="sign-up" options={{ headerShown: false }} />
           {/* Mockup page 1: a light top bar with only the back arrow; the screen has its heading. */}
           <Stack.Screen
             name="login"
