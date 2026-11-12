@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { COMMIT_STEP_KW, MAX_COMMIT_KW } from '../constants';
+import {
+  ACCOUNT_NUMBER_DIGITS,
+  COMMIT_STEP_KW,
+  MAX_COMMIT_KW,
+  PASSWORD_MIN_LENGTH,
+} from '../constants';
 import { Barangay } from './entities';
 import { AlertLevel, AlertStatus, MeterType, ReadingKind } from './enums';
 
@@ -13,7 +18,29 @@ const expoPushToken = z
   .regex(/^Expo(nent)?PushToken\[[^\]]+\]$/, 'must be an Expo push token');
 const longitude = z.number().min(-180).max(180);
 
+/** Login email: trimmed and lower-cased, so one address is one account. */
+const email = z.string().trim().toLowerCase().max(254).pipe(z.email('must be an email address'));
+/** Long enough to resist guessing; the upper bound keeps hashing cheap. */
+const password = z.string().min(PASSWORD_MIN_LENGTH).max(128);
+/** Meralco Customer Account Number. Format only: nothing is checked against Meralco in the pilot. */
+const accountNumber = z
+  .string()
+  .trim()
+  .regex(
+    new RegExp(`^[0-9]{${ACCOUNT_NUMBER_DIGITS}}$`),
+    `must be ${ACCOUNT_NUMBER_DIGITS} digits`,
+  );
+const accountName = z.string().trim().min(2).max(120);
+const serviceAddress = z.string().trim().min(5).max(200);
+
 export const RegisterHouseholdInput = z.object({
+  /** The household's login. */
+  email,
+  password,
+  /** The Meralco account the bill credit goes to: CAN, registered holder, service address. */
+  accountNumber,
+  accountName,
+  serviceAddress,
   barangayId: z.uuid(),
   meterType: MeterType,
   meterSerial: z.string().trim().min(1).max(64),
@@ -21,11 +48,31 @@ export const RegisterHouseholdInput = z.object({
   /** Registered address, used for the GPS distance check on photos. */
   lat: latitude,
   lng: longitude,
-  /** Consent to alerts and data use (Data Privacy Act 2012). Must be true to register. */
+  /** Consent to the collection and use of personal data (Data Privacy Act 2012). Must be true. */
   consent: z.literal(true),
+  /** Separate consent to receive grid alerts. Must be true to join; can be turned off later. */
+  alertsConsent: z.literal(true),
   pushToken: expoPushToken.optional(),
 });
 export type RegisterHouseholdInput = z.infer<typeof RegisterHouseholdInput>;
+
+export const LoginInput = z.object({ email, password: z.string().min(1).max(128) });
+export type LoginInput = z.infer<typeof LoginInput>;
+
+/** PATCH /auth/me: correct the account details, or turn grid alerts off and on. */
+export const UpdateProfileInput = z
+  .object({
+    accountName: accountName.optional(),
+    serviceAddress: serviceAddress.optional(),
+    /** false opts the household out: no more alerts or events until it is turned back on. */
+    optedIn: z.boolean().optional(),
+  })
+  .refine((p) => Object.values(p).some((v) => v !== undefined), { message: 'nothing to update' });
+export type UpdateProfileInput = z.infer<typeof UpdateProfileInput>;
+
+/** DELETE /auth/me: withdraw consent and erase the household. The password confirms it. */
+export const DeleteAccountInput = z.object({ password: z.string().min(1).max(128) });
+export type DeleteAccountInput = z.infer<typeof DeleteAccountInput>;
 
 export const UpdatePushTokenInput = z.object({
   pushToken: expoPushToken,

@@ -52,6 +52,11 @@ export const TRUST = {
   capFloor: 0.5,
 } as const;
 
+/** A Meralco Customer Account Number (CAN) is this many digits. */
+export const ACCOUNT_NUMBER_DIGITS = 10;
+/** Shortest password the household login accepts. */
+export const PASSWORD_MIN_LENGTH = 8;
+
 export const COMMIT_PRESETS_KW = [0.5, 1, 1.5, 2] as const;
 /** The stepper moves in 0.1 kW, the precision kW is kept to. */
 export const COMMIT_STEP_KW = 0.1;

@@ -50,10 +50,18 @@ export const HouseholdMe = z.object({
   optedIn: z.boolean(),
   points: z.number().int(),
   creditPhp: z.number(),
+  /** Login and Meralco account details. Null for households that signed up before they existed. */
+  email: z.string().nullable(),
+  accountName: z.string().nullable(),
+  /** Only the last four digits are ever sent back, e.g. "••••••1234". */
+  accountNumberMasked: z.string().nullable(),
+  serviceAddress: z.string().nullable(),
+  /** When the household consented under the Data Privacy Act 2012. */
+  consentAt: z.iso.datetime().nullable(),
 });
 export type HouseholdMe = z.infer<typeof HouseholdMe>;
 
-/** Returned once by POST /auth/register. Store the token in secure storage; it is never shown again. */
+/** Returned by POST /auth/register and POST /auth/login. Store the token in secure storage; it is never shown again. */
 export const RegisterResult = z.object({
   token: z.string(),
   household: HouseholdMe,
