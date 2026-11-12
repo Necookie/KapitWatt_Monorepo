@@ -1,0 +1,36 @@
+name: Mirror main to Meralco
+
+# One-way copy of main (and tags) to the organisers' repository.
+# Never push to msmeralco/TeamCodeBearers directly, or this job will start failing.
+on:
+  push:
+    branches: [main]
+    tags: ['*']
+  workflow_dispatch:
+
+concurrency:
+  group: mirror-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    # Do not run inside the mirrored copy.
+    if: github.repository == 'Necookie/KapitWatt_Monorepo'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push to msmeralco/TeamCodeBearers
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          if [ -z "$MIRROR_TOKEN" ]; then
+            echo "::error::MIRROR_TOKEN secret is not set. Add it with: gh secret set MIRROR_TOKEN"
+            exit 1
+          fi
+          git push "https://x-access-token:${MIRROR_TOKEN}@github.com/msmeralco/TeamCodeBearers.git" \
+            "HEAD:${GITHUB_REF}"
