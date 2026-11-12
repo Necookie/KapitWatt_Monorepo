@@ -15,6 +15,8 @@ import {
   AlertTargetsResponse,
   AlertTotals,
   AlertView,
+  CommitmentView,
+  HistoryResponse,
   ApiErrorBody,
   HouseholdMe,
   RegisterResult,
@@ -147,7 +149,13 @@ async function phase1Households() {
   const [first] = await db`select push_token from households where id = ${household.id}`;
   check(first?.push_token === null, 'push token moved to the newest household on that phone');
   const secondId = RegisterResult.parse(second.json).household.id;
-  return { token, barangayId: barangay.id, pushHouseholdId: secondId };
+  return {
+    token,
+    householdId: household.id,
+    barangayId: barangay.id,
+    pushHouseholdId: secondId,
+    quietIds: [...quiet],
+  };
 }
 
 async function phase2Alerts(ctx: Awaited<ReturnType<typeof phase1Households>>) {
@@ -278,6 +286,113 @@ async function phase2Alerts(ctx: Awaited<ReturnType<typeof phase1Households>>) {
     console.log(
       '  note push token not cleared within 15 s (check the Worker log for push_dispatched)',
     );
+  return { alertId: alert.id, alertBody };
+}
+
+async function phase3Commitments(
+  ctx: Awaited<ReturnType<typeof phase1Households>>,
+  p2: Awaited<ReturnType<typeof phase2Alerts>>,
+) {
+  console.log('phase 3: commitments');
+  const auth = bearer(ctx.token);
+  const commit = (alertId: string, committedKw: number) =>
+    call('POST', '/commitments', { alertId, committedKw }, auth);
+
+  const early = await commit(p2.alertId, 1);
+  check(
+    early.status === 409 && errorCode(early.json) === 'needs_rehearsal',
+    'no commit before the rehearsal',
+  );
+
+  // Test fixture: the rehearsal endpoint arrives in phase 5, so set the baseline directly.
+  await db`update households set baseline_kw = 1.9 where id = ${ctx.householdId}`;
+  const me = HouseholdMe.parse((await call('GET', '/auth/me', undefined, auth)).json);
+  check(me.commitCapKw === 1.2, 'commit cap is 1.2 kW (baseline 1.9, bill cap 1.25)');
+
+  const none = await call('GET', `/commitments/by-alert/${p2.alertId}`, undefined, auth);
+  check(
+    none.status === 404 && errorCode(none.json) === 'not_committed',
+    'by-alert is 404 before committing',
+  );
+
+  const tooMuch = await commit(p2.alertId, 1.3);
+  check(tooMuch.status === 422 && errorCode(tooMuch.json) === 'above_cap', 'above the cap is 422');
+  const notStep = await commit(p2.alertId, 1.05);
+  check(notStep.status === 400, 'a cut that is not a 0.1 kW step is 400');
+
+  const ok = await commit(p2.alertId, 1);
+  check(ok.status === 201, 'POST /commitments returns 201');
+  const view = CommitmentView.parse(ok.json);
+  check(
+    view.path === 'photo' && view.baselineKw === 1.9 && view.status === 'committed',
+    'path from meter type, baseline snapshotted',
+  );
+  check(
+    view.deadlines?.beforeClosesAt && view.readings.before === null,
+    'photo deadlines, no readings yet',
+  );
+  check(
+    view.barangay.targetKw === 4 && view.barangay.deliveredKw === 0,
+    'barangay progress uses the override',
+  );
+
+  const again = await commit(p2.alertId, 1);
+  check(
+    again.status === 409 && errorCode(again.json) === 'already_committed',
+    'second commit is 409',
+  );
+
+  const totals = AlertTotals.parse((await call('GET', `/alerts/${p2.alertId}/totals`)).json);
+  check(
+    totals.committedKw === 1 && totals.committedHouseholds === 1,
+    'live total shows 1 kW committed',
+  );
+
+  const byAlert = await call('GET', `/commitments/by-alert/${p2.alertId}`, undefined, auth);
+  check(
+    byAlert.status === 200 && CommitmentView.parse(byAlert.json).id === view.id,
+    'by-alert returns it',
+  );
+
+  const hist = HistoryResponse.parse(
+    (await call('GET', '/commitments/history', undefined, auth)).json,
+  );
+  check(
+    hist.history.some((h) => h.alertId === p2.alertId),
+    'history lists the event',
+  );
+
+  // Rules that need other alerts: a different barangay, and a window that already started.
+  const other = ctx.quietIds.find((id) => id !== ctx.barangayId);
+  check(other, 'a second quiet barangay exists');
+  const elsewhere = AlertView.parse(
+    (await call('POST', '/alerts', { ...p2.alertBody, targetBarangayIds: [other] }, OPERATOR)).json,
+  );
+  const notMine = await commit(elsewhere.id, 1);
+  check(
+    notMine.status === 403 && errorCode(notMine.json) === 'not_targeted',
+    'alert for another barangay is 403',
+  );
+
+  const started = AlertView.parse(
+    (
+      await call(
+        'POST',
+        '/alerts',
+        {
+          ...p2.alertBody,
+          windowStart: new Date(Date.now() - 60_000).toISOString(),
+          windowEnd: new Date(Date.now() + 3_600_000).toISOString(),
+        },
+        OPERATOR,
+      )
+    ).json,
+  );
+  const late = await commit(started.id, 1);
+  check(
+    late.status === 409 && errorCode(late.json) === 'window_closed',
+    'commit after window start is 409',
+  );
 }
 
 async function cleanup() {
@@ -290,7 +405,8 @@ async function cleanup() {
 
 try {
   const ctx = await phase1Households();
-  await phase2Alerts(ctx);
+  const p2 = await phase2Alerts(ctx);
+  await phase3Commitments(ctx, p2);
   console.log(`\nall ${passed} checks passed`);
 } catch (err) {
   console.error(err instanceof Error ? err.message : err);

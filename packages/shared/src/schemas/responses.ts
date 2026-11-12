@@ -194,6 +194,10 @@ export const HistoryItem = z.object({
 });
 export type HistoryItem = z.infer<typeof HistoryItem>;
 
+/** GET /commitments/history: this household's events, newest first. */
+export const HistoryResponse = z.object({ history: z.array(HistoryItem) });
+export type HistoryResponse = z.infer<typeof HistoryResponse>;
+
 /** Barangay ranking: aggregates only, never household rows. */
 export const LeaderboardRow = z.object({
   barangayId: z.uuid(),
