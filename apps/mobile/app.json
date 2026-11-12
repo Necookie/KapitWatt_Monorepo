@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "KapitWatt",
+    "slug": "kapitwatt",
+    "scheme": "kapitwatt",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.codebearers.kapitwatt",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F2A43",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-notifications",
+      "expo-camera",
+      "expo-location"
+    ]
+  }
+}

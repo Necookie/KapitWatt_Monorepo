@@ -1,0 +1,23 @@
+{
+  "name": "kapitwatt",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KapitWatt: residential demand response for Meralco (IDOL Hackathon 2026, team CodeBearers)",
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:api": "pnpm --filter @kapitwatt/api dev",
+    "dev:mobile": "pnpm --filter @kapitwatt/mobile start",
+    "dev:dashboard": "pnpm --filter @kapitwatt/dashboard web",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.0",
+    "typescript": "~6.0.3"
+  }
+}

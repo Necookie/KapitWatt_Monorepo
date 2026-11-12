@@ -1,0 +1,46 @@
+/**
+ * Reward constants. ALL PLACEHOLDERS for tuning; in practice the rate is set by
+ * Meralco and the ERC. Change them here only, never inline elsewhere.
+ */
+export const REWARD = {
+  /** Flat rate per verified kWh (illustrative ILP gap: PHP 20.40 generator - PHP 12.00 grid). */
+  ratePhpPerKwh: 8.4,
+  /** Smart-meter households earn the full rate; photo households a lower one. */
+  pathMultiplier: { ami: 1.0, photo: 0.6 },
+  /** Extra share of a household's own credit when its barangay hits 100% of target. */
+  barangayBonusRate: 0.2,
+  pointsPerKwh: 100,
+  /** cap_kw = peakFactor x (bill_avg_kwh_month / hoursPerMonth) */
+  peakFactor: 2,
+  hoursPerMonth: 720,
+} as const;
+
+/** Fixed photo windows. Late or missing photo = no payout, no resubmission. */
+export const PHOTO_RULES = {
+  /** Before photo: within this many minutes after window start. */
+  beforeDeadlineMin: 15,
+  /** After photo: within this many minutes after window end. */
+  afterDeadlineMin: 30,
+} as const;
+
+/** Settlement runs at window end plus this many minutes. */
+export const SETTLEMENT_DELAY_MIN = 30;
+
+export const COMMIT_PRESETS_KW = [0.5, 1, 1.5, 2] as const;
+export const DEFAULT_WINDOW_HOURS = 2;
+
+/** Dashboard live totals use short polling. */
+export const POLL_INTERVAL_MS = 2000;
+
+/** Meralco franchise towns in the Laguna pilot. Santa Cruz is the hub (team phones live here). */
+export const PILOT_TOWNS = [
+  'Santa Cruz',
+  'Pila',
+  'Victoria',
+  'Nagcarlan',
+  'Liliw',
+  'Majayjay',
+  'Magdalena',
+] as const;
+export type PilotTown = (typeof PILOT_TOWNS)[number];
+export const HUB_TOWN: PilotTown = 'Santa Cruz';

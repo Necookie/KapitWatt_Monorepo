@@ -1,0 +1,24 @@
+{
+  "name": "@kapitwatt/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "latest",
+    "@kapitwatt/db": "workspace:*",
+    "@kapitwatt/shared": "workspace:*",
+    "@kapitwatt/sim": "workspace:*",
+    "hono": "^4.13.18",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261112.1",
+    "typescript": "~6.0.3",
+    "wrangler": "^4.160.1"
+  }
+}

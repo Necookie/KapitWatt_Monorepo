@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kapitwatt-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    // "demo" enables the /sim/* routes. Anything else turns them off.
+    "APP_ENV": "demo",
+  },
+  // Secrets (never commit): DATABASE_URL, SIM_KEY, OPERATOR_KEY.
+  //   local:  copy .dev.vars.example to .dev.vars
+  //   deploy: wrangler secret put <NAME>
+  //
+  // Photo storage is undecided (R2 or Supabase Storage). If R2:
+  // "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "kapitwatt-meter-photos" }]
+}
