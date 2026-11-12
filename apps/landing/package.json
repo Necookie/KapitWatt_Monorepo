@@ -1,0 +1,22 @@
+{
+  "name": "@kapitwatt/landing",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "get.kapitwatt.dhekode.com: the household app's download page. One static page built from the design tokens.",
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kapitwatt/icons": "workspace:*",
+    "@kapitwatt/tokens": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/qrcode": "^1.5.6",
+    "qrcode": "1.5.4",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3"
+  }
+}

@@ -40,3 +40,6 @@ Thumbs.db
 # Python (packages/assets/source)
 __pycache__/
 .venv/
+
+# Office lock files (an open Excel or Word file)
+~$*
