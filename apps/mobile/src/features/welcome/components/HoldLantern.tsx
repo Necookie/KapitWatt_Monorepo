@@ -1,15 +1,10 @@
-import { themes } from '@kapitwatt/styles';
-import { withAlpha } from '@kapitwatt/tokens';
-import { Text } from '@kapitwatt/ui';
 import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { Animated, Easing, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, StyleSheet } from 'react-native';
 import { MoonMascot } from '@/components/night/Moon';
 import { SIZE } from '../utils/hold-ring';
-import { FitPicture } from './FitPicture';
+import { MoonPicture } from './MoonPicture';
 import { ProgressRing } from './ProgressRing';
-
-const c = themes.light.color;
 
 /** How long a full hold takes. */
 const HOLD_MS = 1600;
@@ -91,48 +86,40 @@ export function HoldLantern({ cut, onDone }: { cut: Animated.Value; onDone: () =
         : 'Press and hold';
 
   return (
-    <View style={styles.wrap}>
-      {/* The ring shrinks to fit a short screen; the hint under it keeps its size. */}
-      <FitPicture>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Try a cut: press and hold the mascot"
-          accessibilityState={{ checked: state === 'done' }}
-          accessibilityActions={[{ name: 'activate' }]}
-          onAccessibilityAction={() => state !== 'done' && finish()}
-          onPressIn={start}
-          onPressOut={release}
-          style={styles.ring}
+    <MoonPicture hint={hint}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Try a cut: press and hold the mascot"
+        accessibilityState={{ checked: state === 'done' }}
+        accessibilityActions={[{ name: 'activate' }]}
+        onAccessibilityAction={() => state !== 'done' && finish()}
+        onPressIn={start}
+        onPressOut={release}
+        style={styles.ring}
+      >
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              transform: [
+                { scale: breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) },
+              ],
+            },
+          ]}
         >
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                transform: [
-                  { scale: breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] }) },
-                ],
-              },
-            ]}
-          >
-            <ProgressRing cut={cut} />
-          </Animated.View>
-          <MoonMascot
-            pose={state === 'done' ? 'dimmed' : 'neutral'}
-            halo={false}
-            pokeable={false}
-            excited={state === 'holding'}
-          />
-        </Pressable>
-      </FitPicture>
-      <Text variant="labelLarge" style={styles.hint} accessibilityLiveRegion="polite">
-        {hint}
-      </Text>
-    </View>
+          <ProgressRing cut={cut} />
+        </Animated.View>
+        <MoonMascot
+          pose={state === 'done' ? 'dimmed' : 'neutral'}
+          halo={false}
+          pokeable={false}
+          excited={state === 'holding'}
+        />
+      </Pressable>
+    </MoonPicture>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 12 },
   ring: { width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center' },
-  hint: { color: withAlpha(c.onBrand, 0.78) },
 });

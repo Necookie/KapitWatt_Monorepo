@@ -36,6 +36,17 @@ export function Screen(props: {
   roomy?: boolean;
   /** No top bar above this screen: pad for the status bar and leave room at the top. */
   noHeader?: boolean;
+  /**
+   * Off for a Screen inside a sheet that moves (login): the avoider measures itself from its
+   * parent, not the window, so there the page pads for the keyboard itself.
+   */
+  avoidKeyboard?: boolean;
+  /**
+   * How far this Screen's top is from the window's top, when it is not at the top (a sheet under a
+   * header drawn by the page, as on sign-up): the avoider measures from its parent, so it needs
+   * this to pad by the keyboard's real overlap.
+   */
+  keyboardOffset?: number;
 }) {
   const insets = useSafeAreaInsets();
   const { onRefresh } = props;
@@ -99,7 +110,12 @@ export function Screen(props: {
 
   return (
     <RevealContext.Provider value={focus}>
-      <KeyboardAvoidingView behavior="padding" style={styles.root}>
+      <KeyboardAvoidingView
+        behavior="padding"
+        enabled={props.avoidKeyboard ?? true}
+        keyboardVerticalOffset={props.keyboardOffset ?? 0}
+        style={styles.root}
+      >
         <ScrollView
           ref={scroll}
           style={styles.root}

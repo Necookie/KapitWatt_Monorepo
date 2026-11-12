@@ -28,7 +28,7 @@ export function useLoginForm() {
   const [inside, setInside] = useState(false);
   const [cheer, setCheer] = useState(0);
   const [wince, setWince] = useState(0);
-  const sheetTop = useKeyboardLift(loginSheetTop(insets.top), KEYBOARD_LIFT);
+  const lift = useKeyboardLift(loginSheetTop(insets.top), KEYBOARD_LIFT);
   const passwordInput = useRef<ComponentRef<typeof TextInput>>(null);
 
   const filled = email.trim() !== '' && password !== '';
@@ -74,7 +74,8 @@ export function useLoginForm() {
 
   return {
     insetTop: insets.top,
-    sheetTop,
+    sheetTop: lift.top,
+    keyboard: lift.keyboard,
     passwordInput,
     email,
     password,

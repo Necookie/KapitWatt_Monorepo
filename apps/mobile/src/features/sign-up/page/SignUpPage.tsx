@@ -57,6 +57,7 @@ export default function SignUpPage() {
     advance,
     back,
     join,
+    keyboardOffset,
   } = useSignUp();
 
   return (
@@ -79,7 +80,7 @@ export default function SignUpPage() {
           <ErrorState onRetry={() => void barangays.refetch()} />
         ) : (
           // Keyed by step so every step opens scrolled to the top.
-          <Screen key={step} roomy>
+          <Screen key={step} roomy keyboardOffset={keyboardOffset}>
             <StepHeading
               ref={mascotBox}
               label={STEP_TITLE[step]}
