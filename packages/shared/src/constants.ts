@@ -32,6 +32,8 @@ export const COMMIT_STEP_KW = 0.1;
 /** Largest single commitment, whatever the baseline says. Placeholder. */
 export const MAX_COMMIT_KW = 5;
 export const DEFAULT_WINDOW_HOURS = 2;
+/** Longest alert window the operator can send. Placeholder (NGCP alerts run about 2 hours). */
+export const MAX_WINDOW_HOURS = 6;
 
 /** GPS check: a photo must be taken within this many metres of the registered address. Placeholder. */
 export const GPS_MAX_DISTANCE_M = 200;

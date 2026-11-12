@@ -77,6 +77,27 @@ export const AlertView = z.object({
 });
 export type AlertView = z.infer<typeof AlertView>;
 
+/** GET /alerts/active: the alert a household should be looking at, or null. */
+export const ActiveAlertResponse = z.object({ alert: AlertView.nullable() });
+export type ActiveAlertResponse = z.infer<typeof ActiveAlertResponse>;
+
+/** GET /alerts (operator): the alert log, newest first. */
+export const AlertLogResponse = z.object({ alerts: z.array(AlertView) });
+export type AlertLogResponse = z.infer<typeof AlertLogResponse>;
+
+export const AlertTarget = z.object({
+  barangayId: z.uuid(),
+  name: z.string(),
+  municipality: z.string(),
+  targetKw: z.number(),
+  isOverride: z.boolean(),
+});
+export type AlertTarget = z.infer<typeof AlertTarget>;
+
+/** PUT /alerts/:id/targets (operator): every target of the alert after the override. */
+export const AlertTargetsResponse = z.object({ targets: z.array(AlertTarget) });
+export type AlertTargetsResponse = z.infer<typeof AlertTargetsResponse>;
+
 export const ReadingSummary = z.object({
   id: z.uuid(),
   kind: ReadingKind,

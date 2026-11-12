@@ -21,14 +21,27 @@ function bearer(c: Context<AppEnv>): string | null {
  * so the lookup is by hash equality. Unknown and malformed tokens get the same 401.
  */
 export const householdAuth = createMiddleware<AppEnv>(async (c, next) => {
-  const token = bearer(c);
+  await authenticateHousehold(c, bearer(c));
+  await next();
+});
+
+/**
+ * For routes anyone may call but households see personalised (GET /alerts/active). No header: the
+ * caller is anonymous. A header that is present must be valid; a bad token is a 401, never silently
+ * ignored.
+ */
+export const optionalHouseholdAuth = createMiddleware<AppEnv>(async (c, next) => {
+  if (c.req.header('authorization') !== undefined) await authenticateHousehold(c, bearer(c));
+  await next();
+});
+
+async function authenticateHousehold(c: Context<AppEnv>, token: string | null): Promise<void> {
   if (!token || !HOUSEHOLD_TOKEN_PATTERN.test(token)) throw unauthorized();
   const household = await findHouseholdByTokenHash(c.var.db, await sha256Hex(token));
   if (!household) throw unauthorized();
   c.set('householdId', household.id);
   c.set('actor', 'household');
-  await next();
-});
+}
 
 /**
  * Operator (dashboard) auth: one shared key for the demo, compared in constant time. A weak or missing
