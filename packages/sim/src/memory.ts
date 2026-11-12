@@ -442,6 +442,9 @@ export class MemoryBackend {
       deliveredAmiKw: sum((r) => r.deliveredAmiKw ?? 0),
       deliveredPhotoKw: sum((r) => r.deliveredPhotoKw ?? 0),
       committedHouseholds: found.commitments.size,
+      baselineKw: roundKw(
+        [...found.commitments.values()].reduce((total, c) => total + c.baselineKw, 0),
+      ),
       barangays,
     };
   }

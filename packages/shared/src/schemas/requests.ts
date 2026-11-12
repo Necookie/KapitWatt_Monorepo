@@ -115,6 +115,11 @@ export const AlertTotals = z.object({
   committedHouseholds: z.number().int().optional(),
   deliveredAmiKw: z.number().optional(),
   deliveredPhotoKw: z.number().optional(),
+  /**
+   * Summed baseline kW of the households with a commitment: what they would draw in the
+   * window without the alert. Lets the dashboard draw baseline against actual (FR-DASH-14).
+   */
+  baselineKw: z.number().optional(),
 });
 export type AlertTotals = z.infer<typeof AlertTotals>;
 

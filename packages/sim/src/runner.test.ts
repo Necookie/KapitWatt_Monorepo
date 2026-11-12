@@ -49,6 +49,8 @@ describe('a full simulated event (FR-SIM-10)', () => {
     expect(Math.abs(totals.committedKw - 720)).toBeLessThan(10);
     expect(summary.committedKw).toBe(totals.committedKw);
     expect(totals.deliveredKw).toBe(0);
+    // Baseline of the committed households: what they would draw without the alert.
+    expect(totals.baselineKw).toBeGreaterThan(totals.committedKw);
   });
 
   it('delivers about 527 kW, about 86 kW of it from smart meters', async () => {

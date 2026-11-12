@@ -1,11 +1,14 @@
 import type { AlertStatus, AlertTotals } from '@kapitwatt/shared';
+import { reliefForecast } from '@kapitwatt/sim';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { client, errorMessage, type DashboardAlert } from '@/lib/client';
-import { clock, count, kw, percent } from '@/lib/format';
+import { clock, count, fraction, kw, percent } from '@/lib/format';
 import { useAction } from '@/lib/queries';
+import { useSimParams } from '@/lib/sim-params';
 import { colors, space } from '@/theme';
 import { LoadBars } from './charts';
+import { LoadCurve } from './LoadCurve';
 import { StageControl } from './StageControl';
 import { Button, Card, LegendItem, Notice, Stat, Tag, Txt } from './ui';
 
@@ -24,6 +27,10 @@ export function AlertSummary({
   const barangays = totals?.barangays ?? [];
   const hit = barangays.filter((b) => b.targetHit).length;
   const measured = status === 'settling' || status === 'settled';
+  // FR-DASH-14: relief forecast = committed kW x follow-through (per path, less missed photos).
+  const { params } = useSimParams();
+  const forecast = reliefForecast(committed, params).deliveredKw;
+  const photoFollowThrough = params.photoFollowThrough ?? params.followThrough;
 
   // FR-DASH-12: an alert can be lifted until its window has ended. Asked twice, since
   // it stops the event for every household at once.
@@ -103,6 +110,13 @@ export function AlertSummary({
           />
           <View style={styles.divider} />
           <Stat
+            label="Relief forecast"
+            value={kw(Math.round(forecast))}
+            unit="kW"
+            note={`${percent(forecast, target)} of target, from what is committed`}
+          />
+          <View style={styles.divider} />
+          <Stat
             label="Delivered, verified"
             value={measured ? kw(delivered) : '—'}
             unit={measured ? 'kW' : undefined}
@@ -139,6 +153,31 @@ export function AlertSummary({
           deliveredAmiKw={totals?.deliveredAmiKw ?? 0}
           deliveredPhotoKw={totals?.deliveredPhotoKw ?? 0}
         />
+      </Card>
+
+      <Card title="Load curve and relief forecast">
+        <View style={{ gap: space.md }}>
+          <LoadCurve
+            windowStart={alert.windowStart}
+            windowEnd={alert.windowEnd}
+            baselineKw={totals?.baselineKw}
+            forecastKw={forecast}
+            deliveredKw={delivered}
+            measured={measured}
+          />
+          <Txt size="xs" tone="muted">
+            Load of the households that committed, averaged over the window: the pilot verifies one
+            figure per household, not a 5-minute curve. The forecast is an assumption, not a
+            measurement: committed kW × follow-through ({fraction(params.followThrough)} smart
+            meter, {fraction(photoFollowThrough)} photo), less photo households that miss a photo (
+            {fraction(1 - params.photoCompletion)}).
+            {measured
+              ? ` Verified relief came in ${kw(Math.abs(Math.round(delivered - forecast)))} kW ${
+                  delivered >= forecast ? 'above' : 'below'
+                } the forecast.`
+              : ''}
+          </Txt>
+        </View>
       </Card>
     </>
   );
