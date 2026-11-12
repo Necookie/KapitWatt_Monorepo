@@ -16,7 +16,7 @@ export default function LeaderboardScreen() {
   const mine = me.data?.barangayId;
 
   return (
-    <Screen onRefresh={refreshAll} refreshing={board.isRefetching}>
+    <Screen onRefresh={refreshAll}>
       <Text style={styles.intro}>Barangays ranked by verified energy saved in the pilot.</Text>
       <View style={styles.list}>
         {board.data.map((row) => {

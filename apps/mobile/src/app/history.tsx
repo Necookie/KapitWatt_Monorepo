@@ -17,7 +17,7 @@ export default function HistoryScreen() {
   if (history.isError) return <ErrorState onRetry={() => void history.refetch()} />;
 
   return (
-    <Screen onRefresh={refreshAll} refreshing={history.isRefetching}>
+    <Screen onRefresh={refreshAll}>
       {history.data.length === 0 ? (
         <Card title="No events yet">
           <Text style={styles.body}>Your past grid events will show up here.</Text>

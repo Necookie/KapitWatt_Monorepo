@@ -24,7 +24,7 @@ export default function HomeScreen() {
 
   return (
     // Pull to refresh finds the alert even if the push was missed (FR-APP-06).
-    <Screen onRefresh={refreshAll} refreshing={alert.isRefetching}>
+    <Screen onRefresh={refreshAll}>
       {needsRehearsal ? (
         <Card title="Finish your practice run">
           <Text style={styles.body}>

@@ -1,16 +1,16 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, space } from '@/theme';
 
-/** Every screen's outer frame: scrolls, pads, and optionally supports pull to refresh. */
-export function Screen(props: {
-  children: ReactNode;
-  onRefresh?: () => Promise<unknown>;
-  refreshing?: boolean;
-}) {
+/**
+ * Every screen's outer frame: scrolls, pads, and optionally supports pull to refresh.
+ * The spinner shows only for a pull the user made, never for the background polling.
+ */
+export function Screen(props: { children: ReactNode; onRefresh?: () => Promise<unknown> }) {
   const insets = useSafeAreaInsets();
   const { onRefresh } = props;
+  const [pulling, setPulling] = useState(false);
   return (
     <ScrollView
       style={styles.root}
@@ -18,8 +18,11 @@ export function Screen(props: {
       refreshControl={
         onRefresh ? (
           <RefreshControl
-            refreshing={props.refreshing ?? false}
-            onRefresh={() => void onRefresh()}
+            refreshing={pulling}
+            onRefresh={() => {
+              setPulling(true);
+              void onRefresh().finally(() => setPulling(false));
+            }}
             tintColor={colors.teal}
             colors={[colors.teal]}
           />

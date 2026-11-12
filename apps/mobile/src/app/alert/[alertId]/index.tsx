@@ -3,16 +3,21 @@ import { StyleSheet, Text } from 'react-native';
 import { AlertBadge } from '@/components/event/AlertBadge';
 import { BarangayProgress } from '@/components/event/BarangayProgress';
 import { Countdown } from '@/components/event/Countdown';
-import { PhotoSteps } from '@/components/event/PhotoSteps';
+import { NowCard } from '@/components/event/NowCard';
+import { StepList } from '@/components/event/StepList';
 import { MockControls } from '@/components/MockControls';
-import { Button, Card, ErrorState, Loading, Row, Screen, SimulatedNote } from '@/components/ui';
+import { Card, ErrorState, Loading, Row, Screen, SimulatedNote } from '@/components/ui';
 import { countdownTarget, eventPhase } from '@/lib/eventPhase';
+import { eventSteps, type NowAction } from '@/lib/eventSteps';
 import { formatClock, formatKw } from '@/lib/format';
 import { useAlert, useAlertTotals, useMe, useMyEventStatus, useRefreshAll } from '@/lib/queries';
 import { useServerNow } from '@/lib/serverTime';
 import { colors, text } from '@/theme';
 
-/** Event screen (FR-APP-09, 10, 18). Polls about every 2 s through the query hooks. */
+/**
+ * Event screen (FR-APP-09, 10, 18): one "do this now" card, then the step checklist, then the
+ * barangay's progress. Polls about every 2 s through the query hooks.
+ */
 export default function EventScreen() {
   const { alertId } = useLocalSearchParams<{ alertId: string }>();
   const alert = useAlert(alertId);
@@ -30,78 +35,49 @@ export default function EventScreen() {
   const view = alert.data;
   const phase = eventPhase(view, now);
   const countdown = countdownTarget(view, phase);
+  const { now: nowCard, steps } = eventSteps({
+    view,
+    phase,
+    status: status.data,
+    meterType: me.data.meterType,
+    commitCapKw: me.data.commitCapKw,
+    now,
+  });
   const commitment = status.data.commitment;
-  const isAmi = me.data.meterType === 'ami';
-  const canCommit = !commitment && (phase === 'before_window' || phase === 'window_open');
   const myBarangay = totals.data.barangays.find((b) => b.barangayId === me.data.barangayId);
 
+  const runAction = (kind: NowAction) => {
+    if (kind === 'rehearsal') router.push('/rehearsal');
+    else if (kind === 'commit')
+      router.push({ pathname: '/alert/[alertId]/commit', params: { alertId } });
+    else if (kind === 'result')
+      router.push({ pathname: '/alert/[alertId]/result', params: { alertId } });
+    else router.push({ pathname: '/alert/[alertId]/capture', params: { alertId, kind } });
+  };
+
   return (
-    <Screen onRefresh={refreshAll} refreshing={alert.isRefetching}>
+    <Screen onRefresh={refreshAll}>
       <Card>
         <AlertBadge level={view.alert.level} />
-        <Row
-          label="Peak window"
-          value={`${formatClock(view.alert.windowStart)} to ${formatClock(view.alert.windowEnd)}`}
-          strong
-        />
+        <Text style={styles.window}>
+          Peak window {formatClock(view.alert.windowStart)} to {formatClock(view.alert.windowEnd)}
+        </Text>
         {countdown ? <Countdown label={countdown.label} at={countdown.at} /> : null}
-        {phase === 'settled' ? <Text style={styles.body}>Results are in.</Text> : null}
-        {phase === 'cancelled' ? <Text style={styles.body}>This alert was lifted.</Text> : null}
-      </Card>
-
-      <Card title="Your commitment">
         {commitment ? (
-          <Row label="You committed to cut" value={formatKw(commitment.committedKw)} strong />
-        ) : canCommit && me.data.commitCapKw <= 0 ? (
-          <>
-            <Text style={styles.body}>
-              Finish your practice run first, so we know your usual usage.
-            </Text>
-            <Button label="Start practice" onPress={() => router.push('/rehearsal')} />
-          </>
-        ) : canCommit ? (
-          <>
-            <Text style={styles.body}>
-              Choose how many kW your household will cut during the window.
-            </Text>
-            <Button
-              label="Commit a cut"
-              onPress={() =>
-                router.push({ pathname: '/alert/[alertId]/commit', params: { alertId } })
-              }
-            />
-          </>
-        ) : (
-          <Text style={styles.body}>You did not commit to this event.</Text>
-        )}
+          <Row label="Your commitment" value={formatKw(commitment.committedKw)} strong />
+        ) : null}
       </Card>
 
-      {commitment && isAmi ? (
-        <Card title="Smart meter">
-          {phase === 'window_open' && status.data.liveReductionKw !== null ? (
-            <>
-              <Text style={styles.figure}>{formatKw(status.data.liveReductionKw)}</Text>
-              <Text style={styles.body}>
-                Live reduction against your usual usage, of {formatKw(commitment.committedKw)}{' '}
-                committed.
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.body}>No photos needed. Your smart meter reports your usage.</Text>
-          )}
-        </Card>
-      ) : null}
+      <NowCard
+        card={nowCard}
+        onAction={() => nowCard.action && runAction(nowCard.action.kind)}
+        liveReductionKw={status.data.liveReductionKw}
+        committedKw={commitment?.committedKw ?? null}
+      />
 
-      {commitment && !isAmi ? <PhotoSteps view={view} readings={status.data.readings} /> : null}
+      <StepList steps={steps} />
 
       {myBarangay ? <BarangayProgress row={myBarangay} settled={phase === 'settled'} /> : null}
-
-      {phase === 'settled' && commitment ? (
-        <Button
-          label="See your result"
-          onPress={() => router.push({ pathname: '/alert/[alertId]/result', params: { alertId } })}
-        />
-      ) : null}
 
       <SimulatedNote>Simulated NGCP alert for the Laguna pilot.</SimulatedNote>
       <MockControls />
@@ -110,6 +86,5 @@ export default function EventScreen() {
 }
 
 const styles = StyleSheet.create({
-  body: { ...text.body, color: colors.muted },
-  figure: { ...text.figure, color: colors.teal },
+  window: { ...text.title, color: colors.ink },
 });

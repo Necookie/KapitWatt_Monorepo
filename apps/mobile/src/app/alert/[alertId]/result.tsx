@@ -25,7 +25,7 @@ export default function ResultScreen() {
   const r = result.data;
   if (!r) {
     return (
-      <Screen onRefresh={result.refetch} refreshing={result.isRefetching}>
+      <Screen onRefresh={result.refetch}>
         <Card title="Results are not in yet">
           <Text style={styles.body}>
             {`They arrive ${SETTLEMENT_DELAY_MIN} minutes after the window ends. Pull to refresh.`}
@@ -38,7 +38,7 @@ export default function ResultScreen() {
   const total = r.creditPhp + r.bonusPhp;
 
   return (
-    <Screen onRefresh={result.refetch} refreshing={result.isRefetching}>
+    <Screen onRefresh={result.refetch}>
       <Card>
         <Text style={styles.label}>You earned</Text>
         <Text style={styles.figure}>{formatPhp(total)}</Text>

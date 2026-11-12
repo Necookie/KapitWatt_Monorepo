@@ -5,7 +5,6 @@ import {
   checkReadingValue,
   computeReward,
   DEFAULT_WINDOW_HOURS,
-  distanceMeters,
   isPhotoOnTime,
   PHOTO_RULES,
   photoBaselineKw,
@@ -46,8 +45,6 @@ import { ApiError } from '../api';
 const MOCK_START_REGISTERED = false;
 /** Meter type of the ready-made household (only used when MOCK_START_REGISTERED is true). */
 const MOCK_DEMO_METER_TYPE = 'standard' as MeterType;
-/** GPS distance limit for the photo check. Mock value: the real threshold is an open item (SRS 8). */
-const MOCK_GPS_MAX_METERS = 500;
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
@@ -383,8 +380,7 @@ export async function submitReading(
       ...checkReadingValue(input.readingKwh, previous.readingKwh, hours, h.billAvgKwhMonth),
     );
   }
-  if (distanceMeters(input.lat, input.lng, h.lat, h.lng) > MOCK_GPS_MAX_METERS)
-    flags.push('too_far');
+  // GPS distance is checked by the API only: its threshold is an open item (SRS 8).
 
   const base = {
     id: fakeId(7000 + readingSeq++),
@@ -552,6 +548,20 @@ export function mockFastForward() {
   } else {
     settle();
   }
+}
+
+/** Mock-only: which phase the mock event is in, so the demo controls can label the next step. */
+export function mockPhase(): 'before_window' | 'window_open' | 'settling' | 'settled' {
+  const now = Date.now();
+  if (event.settled) return 'settled';
+  if (now < event.windowStart) return 'before_window';
+  if (now < event.windowEnd) return 'window_open';
+  return 'settling';
+}
+
+/** Mock-only stand-in for the operator sending a new alert from the dashboard. */
+export function mockSendAlert() {
+  event = newEvent(event.seq + 1);
 }
 
 /** Mock-only: forget the household and all events, back to sign-up. */
