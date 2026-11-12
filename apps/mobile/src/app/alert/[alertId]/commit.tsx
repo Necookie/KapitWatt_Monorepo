@@ -1,121 +1,227 @@
-import { COMMIT_PRESETS_KW, roundKw } from '@kapitwatt/shared';
+import { Icon } from '@kapitwatt/icons';
+import { COMMIT_PRESETS_KW, REWARD, roundKw } from '@kapitwatt/shared';
+import { themes } from '@kapitwatt/styles';
+import { Text } from '@kapitwatt/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, ErrorState, Loading, Screen, SimulatedNote } from '@/components/ui';
-import { describeError } from '@/lib/api';
-import { formatKw } from '@/lib/format';
-import { useCommit, useMe } from '@/lib/queries';
-import { colors, fonts, radius, space, text } from '@/theme';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { MascotHeader } from '@/components/mascot/MascotHeader';
+import { Button, ErrorState, Loading, Screen } from '@/components/ui';
+import { ApiError, errorCode } from '@/lib/api';
+import { formatKw, formatWindow } from '@/lib/format';
+import { useAlert, useCommit, useMe } from '@/lib/queries';
+import { fonts, radius, space } from '@/theme';
 
+const c = themes.light.color;
 const STEP_KW = 0.1;
+const HOUR_MS = 3_600_000;
 
-/** Commit a cut in kW, never a list of appliances (FR-APP-07, 08). The API enforces the cap too. */
+/**
+ * Commit a cut in kW, never a list of appliances (FR-APP-07, 08; mockup "Commit a cut").
+ * The API enforces the cap too.
+ */
 export default function CommitScreen() {
   const { alertId } = useLocalSearchParams<{ alertId: string }>();
   const me = useMe();
+  const alert = useAlert(alertId);
   const commit = useCommit();
   const [kw, setKw] = useState<number | null>(null);
 
-  if (me.isPending) return <Loading />;
-  if (me.isError) return <ErrorState onRetry={() => void me.refetch()} />;
+  if (me.isPending || alert.isPending) return <Loading />;
+  if (me.isError || alert.isError) {
+    return (
+      <ErrorState
+        onRetry={() => {
+          void me.refetch();
+          void alert.refetch();
+        }}
+      />
+    );
+  }
 
   const cap = me.data.commitCapKw ?? 0;
   const selected = kw ?? Math.min(1, cap);
   const set = (next: number) => setKw(roundKw(Math.min(cap, Math.max(STEP_KW, next))));
+  const { windowStart, windowEnd } = alert.data.alert;
+  const hours = (new Date(windowEnd).getTime() - new Date(windowStart).getTime()) / HOUR_MS;
+  // Points if the whole commitment is verified (placeholder rate from shared constants).
+  const maxPoints = Math.round(selected * hours * REWARD.pointsPerKwh);
 
   return (
-    <Screen>
-      <Card title="How much will you cut?">
-        <View style={styles.presets}>
-          {COMMIT_PRESETS_KW.map((p) => {
-            const disabled = p > cap;
-            const active = p === selected;
-            return (
-              <Pressable
-                key={p}
-                accessibilityRole="button"
-                accessibilityState={{ disabled, selected: active }}
-                disabled={disabled}
-                onPress={() => set(p)}
-                style={[
-                  styles.preset,
-                  active && styles.presetActive,
-                  disabled && styles.presetDisabled,
-                ]}
-              >
-                <Text style={[styles.presetLabel, active && styles.presetLabelActive]}>
-                  {formatKw(p)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        <View style={styles.stepper}>
-          <Button label="-" variant="secondary" onPress={() => set(selected - STEP_KW)} />
-          <Text style={styles.figure}>{formatKw(selected)}</Text>
-          <Button label="+" variant="secondary" onPress={() => set(selected + STEP_KW)} />
-        </View>
-        <Text style={styles.body}>Your maximum is {formatKw(cap)}, based on your usual usage.</Text>
-      </Card>
-
-      {commit.isError ? <Text style={styles.error}>{commitError(commit.error)}</Text> : null}
-
-      <Button
-        label={`Commit ${formatKw(selected)}`}
-        loading={commit.isPending}
-        disabled={cap <= 0}
-        onPress={() =>
-          commit.mutate({ alertId, committedKw: selected }, { onSuccess: () => router.back() })
-        }
+    <Screen roomy>
+      <MascotHeader
+        label="Commit a cut"
+        line={`How much can you cut, ${formatWindow(windowStart, windowEnd)}?`}
       />
-      <SimulatedNote>
-        You are paid for the kWh we can verify, at a placeholder rate. Switch off whatever you like;
-        nobody checks which appliance.
-      </SimulatedNote>
+
+      <View style={styles.stepper}>
+        <RoundButton
+          icon="remove"
+          label={`Less, by ${formatKw(STEP_KW)}`}
+          disabled={selected <= STEP_KW}
+          onPress={() => set(selected - STEP_KW)}
+        />
+        <View style={styles.figure} accessibilityLiveRegion="polite">
+          <Text style={styles.figureNumber}>{selected.toFixed(1)}</Text>
+          <Text variant="headlineSmall" color="onSurfaceVariant">
+            kW
+          </Text>
+        </View>
+        <RoundButton
+          icon="add"
+          label={`More, by ${formatKw(STEP_KW)}`}
+          disabled={selected >= cap}
+          onPress={() => set(selected + STEP_KW)}
+        />
+      </View>
+
+      <View style={styles.segments} accessibilityRole="radiogroup" accessibilityLabel="Quick picks">
+        {COMMIT_PRESETS_KW.map((p, i) => {
+          const disabled = p > cap;
+          const active = p === selected;
+          return (
+            <Pressable
+              key={p}
+              accessibilityRole="radio"
+              accessibilityState={{ disabled, checked: active }}
+              accessibilityLabel={formatKw(p)}
+              disabled={disabled}
+              onPress={() => set(p)}
+              style={[
+                styles.segment,
+                i < COMMIT_PRESETS_KW.length - 1 && styles.segmentDivider,
+                active && styles.segmentOn,
+              ]}
+            >
+              {active ? (
+                <Icon name="check" size="sm" weight="bold" color="onSecondaryContainer" />
+              ) : null}
+              <Text
+                variant="titleSmall"
+                style={{
+                  color: disabled ? c.outline : active ? c.onSecondaryContainer : c.onSurface,
+                }}
+              >
+                {String(p)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.panel}>
+        <View style={styles.panelRow}>
+          <Text variant="bodyMedium" color="onSurfaceVariant">
+            Most you can commit
+          </Text>
+          <Text variant="titleSmall">{formatKw(cap)}</Text>
+        </View>
+        <View style={styles.panelRow}>
+          <Text variant="bodyMedium" color="onSurfaceVariant">
+            If you cut it all
+          </Text>
+          <Text variant="titleSmall" color="tertiary">
+            {`up to ${maxPoints} points`}
+          </Text>
+        </View>
+        <Text variant="bodySmall" color="onSurfaceVariant">
+          Switch off whatever you like. Nobody checks which appliance.
+        </Text>
+      </View>
+
+      <View style={styles.actions}>
+        {commit.isError ? <Text color="error">{commitError(commit.error)}</Text> : null}
+        <Button
+          label={`Commit ${formatKw(selected)}`}
+          loading={commit.isPending}
+          disabled={cap <= 0}
+          onPress={() =>
+            commit.mutate({ alertId, committedKw: selected }, { onSuccess: () => router.back() })
+          }
+        />
+      </View>
     </Screen>
   );
 }
 
-const COMMIT_REFUSALS: Record<string, string> = {
-  already_committed: 'You already committed to this event.',
-  window_closed: 'Commitments closed when the peak window started.',
-  alert_closed: 'This event is over.',
-  above_cap: 'That is above your maximum cut.',
-  needs_rehearsal: 'Finish your practice run first, so we know your usual usage.',
-  no_baseline: 'We do not have your usual usage yet, so you cannot commit.',
-  opted_out: 'Grid alerts are turned off for you. Turn them on in Profile to join.',
-  not_targeted: 'This alert is not for your barangay.',
-};
+/** The round outlined − and + buttons beside the figure. */
+function RoundButton(props: {
+  icon: 'add' | 'remove';
+  label: string;
+  disabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={props.label}
+      accessibilityState={{ disabled: props.disabled }}
+      disabled={props.disabled}
+      onPress={props.onPress}
+      style={({ pressed }) => [
+        styles.round,
+        props.disabled && styles.roundOff,
+        pressed && styles.roundPressed,
+      ]}
+    >
+      <Icon name={props.icon} weight="bold" color={props.disabled ? 'outline' : 'primary'} />
+    </Pressable>
+  );
+}
 
 function commitError(e: Error): string {
   return describeError(e, COMMIT_REFUSALS, 'Could not save your commitment. Try again.');
 }
 
 const styles = StyleSheet.create({
-  presets: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  preset: {
-    flexGrow: 1,
-    minWidth: '22%',
-    paddingVertical: space.md,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-  },
-  presetActive: { borderColor: colors.teal, backgroundColor: colors.teal },
-  presetDisabled: { opacity: 0.35 },
-  presetLabel: { ...text.body, fontFamily: fonts.semibold, color: colors.ink },
-  presetLabelActive: { color: colors.onDark },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: space.md,
+    paddingVertical: space.sm,
   },
-  figure: { ...text.figure, color: colors.ink },
-  body: { ...text.body, color: colors.muted },
-  error: { ...text.body, color: colors.red },
+  figure: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  figureNumber: {
+    fontFamily: fonts.semibold,
+    fontSize: 64,
+    lineHeight: 72,
+    color: c.onSurface,
+    fontVariant: ['tabular-nums'],
+  },
+  round: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: c.outline,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roundOff: { borderColor: c.outlineVariant },
+  roundPressed: { backgroundColor: c.surfaceContainerHigh },
+  segments: {
+    flexDirection: 'row',
+    height: 48,
+    borderWidth: 1,
+    borderColor: c.outline,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  segment: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  segmentDivider: { borderRightWidth: 1, borderRightColor: c.outline },
+  segmentOn: { backgroundColor: c.secondaryContainer },
+  panel: {
+    borderRadius: radius.lg,
+    backgroundColor: c.surfaceContainerLow,
+    padding: space.lg,
+    gap: space.sm,
+  },
+  panelRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  actions: { marginTop: 'auto', gap: space.sm },
 });
