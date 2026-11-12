@@ -1,5 +1,6 @@
 import {
   CreateAlertInput,
+  FastForwardInput,
   UpdateTargetsInput,
   type ActiveAlertResponse,
   type AlertLogResponse,
@@ -17,6 +18,7 @@ import { rateLimit } from '../middleware/rate-limit';
 import * as alertsService from '../services/alerts';
 import { toAlertView } from '../services/alert-view';
 import { dispatchAlertPush } from '../services/push';
+import { settleAlert } from '../services/settlement';
 import { alertTotals } from '../services/totals';
 
 export const alerts = new Hono<AppEnv>();
@@ -101,19 +103,30 @@ alerts.put(
     ),
 );
 
-// "Measure (fast-forward)": end the window, compress the photo timers in demo mode, then settle.
+// "Measure (fast-forward)", demo only: move the alert's clock to window start (commits close, before
+// photos open) or window end (after photos open). Never backwards; settle is a separate call.
 alerts.post(
   '/:id/fast-forward',
   demoOnly,
   operatorAuth,
   operatorLimit,
   validate('param', IdParam),
-  (c) => notImplemented(c, 'fast-forward window'),
+  validate('json', FastForwardInput),
+  async (c) =>
+    c.json(
+      await alertsService.fastForward(
+        c.var.db,
+        c.req.valid('param').id,
+        c.req.valid('json').to,
+        isDemo(c),
+      ),
+    ),
 );
 
-// Settlement (window end + 30 min): verified kWh, barangay target check, credit, points, bonus.
-alerts.post('/:id/settle', operatorAuth, operatorLimit, validate('param', IdParam), (c) =>
-  notImplemented(c, 'settle alert'),
+// Settle now (the operator's button; the cron settles automatically at window end + 30 min). Only
+// after the window has ended. Idempotent: settling a settled alert returns the recorded result.
+alerts.post('/:id/settle', operatorAuth, operatorLimit, validate('param', IdParam), async (c) =>
+  c.json(await settleAlert(c.var.db, c.req.valid('param').id, { isDemo: isDemo(c), force: true })),
 );
 
 // P1: end an alert early and send the alert-lifted push.

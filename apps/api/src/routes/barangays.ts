@@ -1,8 +1,8 @@
 import { listBarangaysWithCounts } from '@kapitwatt/db';
-import type { BarangayWithCount } from '@kapitwatt/shared';
+import type { BarangayWithCount, LeaderboardResponse } from '@kapitwatt/shared';
 import { Hono } from 'hono';
 import type { AppEnv } from '../env';
-import { notImplemented } from '../lib/todo';
+import { leaderboard } from '../services/rewards';
 
 export const barangays = new Hono<AppEnv>();
 
@@ -15,4 +15,7 @@ barangays.get('/', async (c) => {
 });
 
 // Barangay ranking by verified kWh.
-barangays.get('/leaderboard', (c) => notImplemented(c, 'barangay leaderboard'));
+barangays.get('/leaderboard', async (c) => {
+  const body: LeaderboardResponse = { leaderboard: await leaderboard(c.var.db) };
+  return c.json(body);
+});

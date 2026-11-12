@@ -109,3 +109,19 @@ describe('sim routes (before the database)', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('readings across demo clocks', () => {
+  it('does not flag a draw when the previous reading carries a later (fast-forwarded) time', async () => {
+    const { evaluatePhotoReading } = await import('../services/reading-checks');
+    const base = {
+      kind: 'before' as const,
+      capturedAt: new Date('2026-11-12T10:04:00Z'),
+      window: { start: new Date('2026-11-12T10:00:00Z'), end: new Date('2026-11-12T12:00:00Z') },
+      previous: { kwh: 1206.6, at: new Date('2026-11-12T12:05:00Z') },
+      billAvgKwhMonth: 450,
+      gps: null,
+    };
+    expect(evaluatePhotoReading({ ...base, readingKwh: 1207 }).flags).toEqual([]);
+    expect(evaluatePhotoReading({ ...base, readingKwh: 1204.3 }).flags).toEqual(['not_increasing']);
+  });
+});

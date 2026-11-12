@@ -25,6 +25,11 @@ export const PHOTO_RULES = {
 
 /** Settlement runs at window end plus this many minutes. */
 export const SETTLEMENT_DELAY_MIN = 30;
+/**
+ * Automatic settlement waits this much longer than SETTLEMENT_DELAY_MIN, because the after-photo
+ * deadline (window end + 30 min) is the same moment: a photo sent right at the deadline still counts.
+ */
+export const SETTLEMENT_GRACE_MIN = 1;
 
 export const COMMIT_PRESETS_KW = [0.5, 1, 1.5, 2] as const;
 /** The stepper moves in 0.1 kW, the precision kW is kept to. */

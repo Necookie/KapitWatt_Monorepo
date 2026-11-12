@@ -31,6 +31,8 @@
   //   npx wrangler r2 bucket create kapitwatt-meter-photos
   //   npx wrangler r2 bucket lifecycle add kapitwatt-meter-photos expire-photos --expire-days 30
   // `wrangler dev` emulates the bucket locally.
+  // Settlement runs automatically once an alert's window end + 30 min has passed.
+  "triggers": { "crons": ["* * * * *"] },
   "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "kapitwatt-meter-photos" }],
   "secrets": {
     "required": ["DATABASE_URL", "SIM_KEY", "OPERATOR_KEY"],

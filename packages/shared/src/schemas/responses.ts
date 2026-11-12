@@ -7,6 +7,7 @@ import {
   MeterType,
   ReadingFlag,
   ReadingKind,
+  ResultReason,
   VerificationPath,
 } from './enums';
 import { SimParams } from './sim';
@@ -137,7 +138,7 @@ export const CommitmentView = z.object({
   actualKw: z.number().nullable(),
   verifiedKwh: z.number().nullable(),
   /** Why a commitment earned nothing (late photo, missing data, ...). */
-  resultReason: z.string().nullable(),
+  resultReason: ResultReason.nullable(),
   /** Photo path only. */
   deadlines: PhotoDeadlines.nullable(),
   readings: z.object({ before: ReadingSummary.nullable(), after: ReadingSummary.nullable() }),
@@ -168,7 +169,11 @@ export const ResultCard = z.object({
   bonusPhp: z.number(),
   points: z.number().int(),
   barangay: BarangayProgress,
-  resultReason: z.string().nullable(),
+  /** Why it earned nothing; null when it was paid. */
+  resultReason: ResultReason.nullable(),
+  /** Measured cut and the part that was paid (capped by commitment and bill). */
+  cutKw: z.number().nullable(),
+  paidCutKw: z.number().nullable(),
 });
 export type ResultCard = z.infer<typeof ResultCard>;
 
@@ -208,6 +213,20 @@ export const LeaderboardRow = z.object({
   households: z.number().int(),
 });
 export type LeaderboardRow = z.infer<typeof LeaderboardRow>;
+
+/** GET /barangays/leaderboard: ranked by verified kWh, highest first. */
+export const LeaderboardResponse = z.object({ leaderboard: z.array(LeaderboardRow) });
+export type LeaderboardResponse = z.infer<typeof LeaderboardResponse>;
+
+/** POST /alerts/:id/settle: what settlement recorded. Repeating it returns the same result. */
+export const SettlementResult = z.object({
+  alertId: z.uuid(),
+  settledAt: z.iso.datetime(),
+  commitments: z.number().int(),
+  verifiedCount: z.number().int(),
+  deliveredKw: z.number(),
+});
+export type SettlementResult = z.infer<typeof SettlementResult>;
 
 /** Operator-only. */
 export const FlaggedReading = z.object({

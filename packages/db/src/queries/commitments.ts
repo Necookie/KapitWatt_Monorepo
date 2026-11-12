@@ -7,6 +7,7 @@ import {
   type CommitmentStatus,
   type ReadingFlag,
   type ReadingKind,
+  type ResultReason,
   type VerificationPath,
 } from '@kapitwatt/shared';
 import type { Db } from '../index';
@@ -90,7 +91,7 @@ export interface HouseholdCommitmentRow {
   status: CommitmentStatus;
   actualKw: number | null;
   verifiedKwh: number | null;
-  resultReason: string | null;
+  resultReason: ResultReason | null;
   windowStart: Date;
   windowEnd: Date;
   effectiveNow: Date;
@@ -155,7 +156,7 @@ export async function getHouseholdCommitment(
     status: r.status as CommitmentStatus,
     actualKw: r.actual_kw === null ? null : Number(r.actual_kw),
     verifiedKwh: r.verified_kwh === null ? null : Number(r.verified_kwh),
-    resultReason: (r.result_reason as string | null) ?? null,
+    resultReason: (r.result_reason as ResultReason | null) ?? null,
     windowStart: r.window_start as Date,
     windowEnd: r.window_end as Date,
     effectiveNow: r.effective_now as Date,

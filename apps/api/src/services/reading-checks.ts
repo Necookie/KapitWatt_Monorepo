@@ -42,8 +42,15 @@ export function evaluatePhotoReading(r: PhotoReadingFacts): {
     if (!isPhotoOnTime(r.kind, r.capturedAt, r.window.start, r.window.end)) flags.push('late');
   }
   if (r.previous) {
-    const hours = Math.max(0, (r.capturedAt.getTime() - r.previous.at.getTime()) / HOUR_MS);
-    flags.push(...checkReadingValue(r.readingKwh, r.previous.kwh, hours, r.billAvgKwhMonth));
+    const hours = (r.capturedAt.getTime() - r.previous.at.getTime()) / HOUR_MS;
+    if (hours > 0) {
+      flags.push(...checkReadingValue(r.readingKwh, r.previous.kwh, hours, r.billAvgKwhMonth));
+    } else if (r.readingKwh < r.previous.kwh) {
+      // No elapsed time to judge a draw against. This only happens in the demo, where each alert has
+      // its own fast-forward clock, so a later alert's reading can carry an earlier time. The
+      // "must not go down" rule still applies.
+      flags.push('not_increasing');
+    }
   }
   if (
     r.gps &&
