@@ -112,14 +112,31 @@ export default function SimulatorScreen() {
                 </View>
                 <View style={styles.gridItem}>
                   <Slider
-                    label="Follow-through"
-                    hint="Share of the committed cut actually delivered."
+                    label="Follow-through, smart meter"
+                    hint="Share of the committed cut smart-meter households deliver."
                     value={params.followThrough}
                     min={0}
                     max={1}
                     step={0.05}
                     format={pct}
+                    // Until the photo slider is moved, both paths follow this one.
                     onChange={(followThrough) => set({ followThrough })}
+                  />
+                </View>
+                <View style={styles.gridItem}>
+                  <Slider
+                    label="Follow-through, meter photo"
+                    hint={
+                      params.photoFollowThrough === undefined
+                        ? 'Same as smart meter until you move it.'
+                        : 'Share of the committed cut photo households deliver.'
+                    }
+                    value={params.photoFollowThrough ?? params.followThrough}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    format={pct}
+                    onChange={(photoFollowThrough) => set({ photoFollowThrough })}
                   />
                 </View>
                 <View style={styles.gridItem}>
@@ -336,8 +353,8 @@ export default function SimulatorScreen() {
               <Txt size="xs" tone="muted">
                 Arithmetic only, for {count(alert.data ? targeted : households)} households
                 {alert.data ? ' in the targeted barangays' : ''}: households × participation × cut,
-                then follow-through and photo completion. A real run lands near these figures, not
-                on them.
+                then follow-through per path and photo completion. A real run lands near these
+                figures, not on them.
                 {targetKw === undefined ? ' Send an alert to compare against its target.' : ''}
               </Txt>
             </View>

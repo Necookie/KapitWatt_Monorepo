@@ -16,4 +16,14 @@ describe('demo numbers from the plan', () => {
     expect(Math.round(o.deliveredKw)).toBe(527);
     expect(Math.round((o.deliveredKw / 600) * 100)).toBe(88);
   });
+
+  it('applies a separate follow-through to photo households when one is set', () => {
+    const o = expectedOutcome(TOTAL_SIMULATED_HOUSEHOLDS, {
+      ...DEFAULT_PARAMS,
+      photoFollowThrough: 0.5,
+    });
+    expect(Math.round(o.deliveredAmiKw)).toBe(86);
+    // 720 x 85% x 50% x 90%
+    expect(o.deliveredPhotoKw).toBeCloseTo(275.4);
+  });
 });

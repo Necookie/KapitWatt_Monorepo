@@ -52,7 +52,11 @@ function AssumptionsBar() {
   const { params } = useSimParams();
   const items = [
     `participation ${fraction(params.participation)}`,
-    `follow-through ${fraction(params.followThrough)}`,
+    params.photoFollowThrough === undefined || params.photoFollowThrough === params.followThrough
+      ? `follow-through ${fraction(params.followThrough)}`
+      : `follow-through ${fraction(params.followThrough)} smart meter, ${fraction(
+          params.photoFollowThrough,
+        )} photo`,
     `${fraction(params.amiShare)} smart meter, ${fraction(1 - params.amiShare)} photo`,
     `photo completion ${fraction(params.photoCompletion)}`,
     `baseline noise ±${fraction(params.baselineNoise)}`,

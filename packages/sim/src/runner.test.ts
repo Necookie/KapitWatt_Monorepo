@@ -77,6 +77,14 @@ describe('a full simulated event (FR-SIM-10)', () => {
     );
   });
 
+  it('applies follow-through per path when the photo one is set', async () => {
+    const same = await fullRun();
+    const lowPhoto = await fullRun({ ...DEFAULT_PARAMS, photoFollowThrough: 0.4 });
+    expect(lowPhoto.deliveredAmiKw).toBe(same.deliveredAmiKw);
+    // 720 x 85% x 40% x 90% is about 220 kW, half of the default 441.
+    expect(Math.abs((lowPhoto.deliveredPhotoKw ?? 0) - 220)).toBeLessThan(25);
+  });
+
   it('follows the participation preset', async () => {
     const poor = await fullRun(PRESETS.poor);
     expect(Math.abs(poor.committedKw - 360)).toBeLessThan(10);
