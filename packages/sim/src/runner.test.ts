@@ -110,6 +110,27 @@ describe('alert log', () => {
   });
 });
 
+describe('cancelling an alert', () => {
+  it('takes the alert out of force, keeps it in the log and refuses later commits', async () => {
+    const { backend, alertId } = setup();
+    expect(backend.cancel(alertId).status).toBe('cancelled');
+    expect(backend.currentAlert()).toBeNull();
+    expect(backend.listAlerts()[0]!.cancelledAt).not.toBeNull();
+    const summary = await backend.run(alertId, DEFAULT_PARAMS, 'commit');
+    expect(summary.committed).toBe(0);
+    // A second cancel changes nothing.
+    expect(backend.cancel(alertId).status).toBe('cancelled');
+  });
+
+  it('is refused once the window has ended', () => {
+    const { backend, alertId } = setup();
+    backend.fastForward(alertId, 'window_end');
+    expect(() => backend.cancel(alertId)).toThrow();
+    backend.settle(alertId);
+    expect(() => backend.cancel(alertId)).toThrow();
+  });
+});
+
 describe('operator override of barangay targets', () => {
   it('changes only the named barangay and marks it as an override', () => {
     const { backend, alertId } = setup();

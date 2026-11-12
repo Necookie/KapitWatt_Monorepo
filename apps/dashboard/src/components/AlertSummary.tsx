@@ -1,11 +1,13 @@
 import type { AlertStatus, AlertTotals } from '@kapitwatt/shared';
-import type { DashboardAlert } from '@/lib/client';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { client, errorMessage, type DashboardAlert } from '@/lib/client';
 import { clock, count, kw, percent } from '@/lib/format';
+import { useAction } from '@/lib/queries';
 import { colors, space } from '@/theme';
 import { LoadBars } from './charts';
 import { StageControl } from './StageControl';
-import { Card, LegendItem, Stat, Tag, Txt } from './ui';
+import { Button, Card, LegendItem, Notice, Stat, Tag, Txt } from './ui';
 
 /** The alert in force: what was sent, where it stands, and the headline load figures. */
 export function AlertSummary({
@@ -23,6 +25,12 @@ export function AlertSummary({
   const hit = barangays.filter((b) => b.targetHit).length;
   const measured = status === 'settling' || status === 'settled';
 
+  // FR-DASH-12: an alert can be lifted until its window has ended. Asked twice, since
+  // it stops the event for every household at once.
+  const cancellable = status === 'scheduled' || status === 'active' || status === 'window_open';
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const cancel = useAction(() => client.cancelAlert(alert.id));
+
   return (
     <>
       <Card>
@@ -39,7 +47,42 @@ export function AlertSummary({
               Sent {clock(alert.createdAt)} by {alert.createdBy} · {barangays.length} barangays
               targeted
             </Txt>
+            {cancellable ? (
+              <View style={styles.cancel}>
+                {confirmCancel ? (
+                  <>
+                    <Txt size="sm" tone="muted">
+                      Lift this alert? Households are told it is over.
+                    </Txt>
+                    <Button
+                      small
+                      label="Keep alert"
+                      disabled={cancel.isPending}
+                      onPress={() => {
+                        cancel.reset();
+                        setConfirmCancel(false);
+                      }}
+                    />
+                    <Button
+                      small
+                      kind="danger"
+                      label="Cancel alert"
+                      busy={cancel.isPending}
+                      onPress={() => cancel.mutate(undefined)}
+                    />
+                  </>
+                ) : (
+                  <Button
+                    small
+                    kind="ghost"
+                    label="Cancel alert"
+                    onPress={() => setConfirmCancel(true)}
+                  />
+                )}
+              </View>
+            ) : null}
           </View>
+          {cancel.error ? <Notice tone="critical">{errorMessage(cancel.error)}</Notice> : null}
           <StageControl alert={alert} status={status} />
         </View>
       </Card>
@@ -106,4 +149,11 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', flexWrap: 'wrap' },
   divider: { width: 1, backgroundColor: colors.border, marginVertical: space.md },
   legend: { flexDirection: 'row', gap: space.md, flexWrap: 'wrap' },
+  cancel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginLeft: 'auto',
+    flexWrap: 'wrap',
+  },
 });

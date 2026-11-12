@@ -25,6 +25,8 @@ export interface DashboardClient {
   /** The alert the operator is working on, settled ones included. Null when there is none. */
   getCurrentAlert(): Promise<DashboardAlert | null>;
   createAlert(input: CreateAlertInput): Promise<DashboardAlert>;
+  /** End an alert early; the API sends the alert-lifted push (FR-DASH-12). */
+  cancelAlert(alertId: string): Promise<void>;
   /** The alert log, newest first (FR-DASH-13). */
   listAlerts(): Promise<DashboardAlert[]>;
   getTotals(alertId: string): Promise<AlertTotals>;
@@ -100,6 +102,10 @@ const liveClient: DashboardClient = {
     rememberAlertId(alert.id);
     return alert;
   },
+  async cancelAlert(alertId) {
+    await api(`/alerts/${alertId}/cancel`, json({}));
+    if (recallAlertId() === alertId) rememberAlertId(null);
+  },
   async listAlerts() {
     return AlertLogResponse.parse(await api(`/alerts?limit=${ALERT_LOG_LIMIT}`)).alerts;
   },
@@ -158,6 +164,10 @@ const fixtureClient: DashboardClient = {
   listBarangays: () => viaFixture((b) => b.listBarangays()),
   getCurrentAlert: () => viaFixture((b) => b.currentAlert()),
   createAlert: (input) => viaFixture((b) => b.createAlert(input, 'operator (fixture)')),
+  cancelAlert: (alertId) =>
+    viaFixture((b) => {
+      b.cancel(alertId);
+    }),
   listAlerts: () => viaFixture((b) => b.listAlerts(ALERT_LOG_LIMIT)),
   getTotals: (alertId) => viaFixture((b) => b.totals(alertId)),
   updateTargets: (alertId, targets) =>

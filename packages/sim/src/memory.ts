@@ -326,6 +326,21 @@ export class MemoryBackend {
     return found.alert;
   }
 
+  /**
+   * POST /alerts/:id/cancel. Ends an alert early, before its window has ended; the API
+   * also sends the alert-lifted push. Safe to call twice.
+   */
+  cancel(alertId: string): Alert {
+    const found = this.find(alertId);
+    const { status } = found.alert;
+    if (status === 'cancelled') return found.alert;
+    if (status === 'settling' || status === 'settled') {
+      throw new MemoryBackendError(409, 'the window has already ended');
+    }
+    found.alert = { ...found.alert, status: 'cancelled', cancelledAt: this.now().toISOString() };
+    return found.alert;
+  }
+
   /** POST /alerts/:id/settle. Safe to call twice. */
   settle(alertId: string): Alert {
     const found = this.find(alertId);
