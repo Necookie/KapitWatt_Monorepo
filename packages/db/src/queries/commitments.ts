@@ -1,10 +1,13 @@
-import type {
-  AlertLevel,
-  CheckStatus,
-  CommitmentStatus,
-  ReadingFlag,
-  ReadingKind,
-  VerificationPath,
+import {
+  COMMIT_STEP_KW,
+  MAX_COMMIT_KW,
+  REWARD,
+  type AlertLevel,
+  type CheckStatus,
+  type CommitmentStatus,
+  type ReadingFlag,
+  type ReadingKind,
+  type VerificationPath,
 } from '@kapitwatt/shared';
 import type { Db } from '../index';
 
@@ -12,10 +15,14 @@ import type { Db } from '../index';
  * Inserts commitments for one alert, one row per household, re-checking every rule in the same
  * statement so a request that races the window start cannot slip through:
  *   alert open (not settling/settled/cancelled) and its effective time before window start;
- *   household opted in, with a baseline, in a barangay the alert targets.
+ *   household opted in, with a baseline, in a barangay the alert targets;
+ *   committed kW within the commit cap: min(baseline, bill cap, MAX_COMMIT_KW) rounded down to the
+ *   step (the same rule as services/cap.ts, computed exactly in numeric).
  * The verification path comes from the meter type and the baseline is snapshotted from the
  * household row, never from the caller. A household that already committed is skipped.
- * Works for one household (the app) or many (the simulator), in one request either way.
+ * Works for one household (the app) or many (the simulator), in ONE query either way: on Workers
+ * each query is a subrequest, so the simulator's paced run stays well inside the per-request limit.
+ * `simulatedOnly` restricts the insert to simulated households (the simulator's service account).
  * Returns the household ids that got a commitment.
  */
 export async function insertCommitments(
@@ -23,8 +30,10 @@ export async function insertCommitments(
   alertId: string,
   items: { householdId: string; committedKw: number }[],
   isDemo: boolean,
+  opts: { simulatedOnly?: boolean } = {},
 ): Promise<string[]> {
   if (items.length === 0) return [];
+  const steps = 1 / COMMIT_STEP_KW;
   const rows = await db`
     insert into commitments (alert_id, household_id, committed_kw, path, baseline_kw)
     select a.id, h.id, t.committed_kw,
@@ -40,6 +49,13 @@ export async function insertCommitments(
       and h.opted_in
       and h.baseline_kw is not null
       and h.barangay_id = any(a.target_barangay_ids)
+      and (not ${opts.simulatedOnly ?? false} or h.is_simulated)
+      and t.committed_kw > 0
+      and t.committed_kw <= floor(least(
+            h.baseline_kw,
+            ${REWARD.peakFactor}::numeric * h.bill_avg_kwh_month / ${REWARD.hoursPerMonth}::numeric,
+            ${MAX_COMMIT_KW}::numeric
+          ) * ${steps}) / ${steps}
     on conflict (alert_id, household_id) do nothing
     returning household_id`;
   return rows.map((r) => r.household_id as string);
