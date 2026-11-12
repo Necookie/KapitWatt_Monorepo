@@ -7,10 +7,13 @@ import { QueueCard } from './QueueCard';
 export function ReviewQueue({
   rows,
   selectedId,
+  decided,
   onSelect,
 }: {
   rows: FlaggedReading[];
   selectedId: string | undefined;
+  /** Decided readings, still listed until the refetch drops them. */
+  decided: ReadonlySet<string>;
   onSelect: (id: string) => void;
 }) {
   const t = useTheme();
@@ -21,6 +24,7 @@ export function ReviewQueue({
           key={r.id}
           reading={r}
           selected={r.id === selectedId}
+          leaving={decided.has(r.id)}
           onPress={() => onSelect(r.id)}
         />
       ))}

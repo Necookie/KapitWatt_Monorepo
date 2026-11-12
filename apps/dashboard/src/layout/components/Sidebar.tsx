@@ -133,7 +133,13 @@ export function Sidebar({
             <View
               pointerEvents="none"
               style={[
-                { position: 'absolute', left: (ITEM_COLLAPSED - 40) / 2, bottom: 0 },
+                {
+                  position: 'absolute',
+                  left: 0,
+                  bottom: 0,
+                  width: ITEM_COLLAPSED,
+                  alignItems: 'center',
+                },
                 motion.fade(collapsed),
               ]}
             >

@@ -20,7 +20,7 @@ import { StickyRail } from '../components/StickyRail';
 import { TargetPicker } from '../components/TargetPicker';
 import { WindowPicker } from '../components/WindowPicker';
 import { useAlertForm } from '../hooks/useAlertForm';
-import { DEFAULT_TARGET_KW, DURATIONS } from '../utils/alert-defaults';
+import { DEFAULT_TARGET_KW, DURATIONS, SENT_PAUSE_MS } from '../utils/alert-defaults';
 
 /**
  * Send alert: a numbered composer (level, window, target with its forecast, areas, message) beside a
@@ -33,6 +33,7 @@ export default function SendAlertPage() {
   const current = useCurrentAlert();
   const form = useAlertForm();
   const [confirming, setConfirming] = useState(false);
+  const [sent, setSent] = useState(false);
   const send = useCreateAlert(form.input);
   const inForce = current.data && current.data.status !== 'settled' ? current.data : null;
 
@@ -122,15 +123,17 @@ export default function SendAlertPage() {
         body={form.confirmBody}
         error={send.error ? errorMessage(send.error) : undefined}
         busy={send.isPending}
+        sent={sent}
         onCancel={() => {
           send.reset();
           setConfirming(false);
         }}
         onSend={() =>
           send.mutate(undefined, {
+            // A moment on the check, then the live view of the alert just sent.
             onSuccess: () => {
-              setConfirming(false);
-              router.replace('/');
+              setSent(true);
+              setTimeout(() => router.replace('/'), SENT_PAUSE_MS);
             },
           })
         }

@@ -7,6 +7,7 @@ import { Pressable, View } from 'react-native';
 import { ChoiceChip } from '@/components/ChoiceChip';
 import { approx } from '../utils/barangays';
 import type { PressState } from '@/utils/press-state';
+import { motion } from '@/styles/motion';
 
 /** A town as one row: tap its name for the whole town, or its barangays one by one. */
 export function TownCard({
@@ -90,8 +91,16 @@ export function TownCard({
                 backgroundColor: all || some ? c.primary : 'transparent',
               }}
             >
-              {all ? <Icon name="check" weight="bold" size="sm" color="onPrimary" /> : null}
-              {some ? <Icon name="remove" weight="bold" size="sm" color="onPrimary" /> : null}
+              {all ? (
+                <View key="all" style={motion.pop}>
+                  <Icon name="check" weight="bold" size="sm" color="onPrimary" />
+                </View>
+              ) : null}
+              {some ? (
+                <View key="some" style={motion.pop}>
+                  <Icon name="remove" weight="bold" size="sm" color="onPrimary" />
+                </View>
+              ) : null}
             </View>
             <Text variant="titleSmall" style={{ flex: 1 }} numberOfLines={1}>
               {town}

@@ -2,6 +2,7 @@ import { useTheme } from '@kapitwatt/hooks';
 import { Icon } from '@kapitwatt/icons';
 import { Text } from '@kapitwatt/ui';
 import { View } from 'react-native';
+import { motion, transition } from '@/styles/motion';
 
 export type StepState = 'done' | 'now' | 'todo';
 
@@ -23,20 +24,25 @@ export function Step({
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: t.space[3] }}>
       <View
-        style={{
-          width: 26,
-          height: 26,
-          borderRadius: 13,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor:
-            state === 'done' ? c.relief : state === 'now' ? c.primary : 'transparent',
-          borderWidth: state === 'todo' ? 1.5 : 0,
-          borderColor: c.outline,
-        }}
+        style={[
+          {
+            width: 26,
+            height: 26,
+            borderRadius: 13,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor:
+              state === 'done' ? c.relief : state === 'now' ? c.primary : 'transparent',
+            borderWidth: state === 'todo' ? 1.5 : 0,
+            borderColor: c.outline,
+          },
+          transition('background-color'),
+        ]}
       >
         {state === 'done' ? (
-          <Icon name="check" weight="bold" size="sm" color="onRelief" />
+          <View style={motion.pop}>
+            <Icon name="check" weight="bold" size="sm" color="onRelief" />
+          </View>
         ) : (
           <Text variant="labelMedium" color={state === 'now' ? 'onPrimary' : 'onSurfaceVariant'}>
             {n}

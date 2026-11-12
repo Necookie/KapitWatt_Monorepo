@@ -1,5 +1,7 @@
+import { memo } from 'react';
 import { useRouter } from 'expo-router';
 import { ScrollView, View } from 'react-native';
+import { motion } from '@/styles/motion';
 import { DataTable, type Column } from '@/components/DataTable';
 import { TargetMeter } from '@/components/TargetMeter';
 import { Tag } from '@/components/ui/Tag';
@@ -7,7 +9,13 @@ import { Txt } from '@/components/ui/Txt';
 import { count, kw, percent, type TownTotals } from '@/utils/format';
 
 /** Figures by town in kW; delivered columns stay blank until measured. Each row opens its town. */
-export function TownDetailsTable({ towns, measured }: { towns: TownTotals[]; measured: boolean }) {
+export const TownDetailsTable = memo(function TownDetailsTable({
+  towns,
+  measured,
+}: {
+  towns: TownTotals[];
+  measured: boolean;
+}) {
   const router = useRouter();
 
   const columns: Column<TownTotals>[] = [
@@ -74,7 +82,10 @@ export function TownDetailsTable({ towns, measured }: { towns: TownTotals[]; mea
         !measured ? (
           <Txt tone="faint">—</Txt>
         ) : r.barangaysHit > 0 ? (
-          <Tag tone="good" label={`${r.barangaysHit} of ${r.barangays.length}`} />
+          // Keyed by the count, so it pops each time another barangay reaches its target.
+          <View key={r.barangaysHit} style={motion.pop}>
+            <Tag tone="good" label={`${r.barangaysHit} of ${r.barangays.length}`} />
+          </View>
         ) : (
           <Txt tone="muted" numeric>
             0 of {r.barangays.length}
@@ -97,4 +108,4 @@ export function TownDetailsTable({ towns, measured }: { towns: TownTotals[]; mea
       </View>
     </ScrollView>
   );
-}
+});

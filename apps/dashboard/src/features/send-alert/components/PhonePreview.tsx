@@ -3,6 +3,7 @@ import { color as roles } from '@kapitwatt/tokens';
 import { Logo, Text } from '@kapitwatt/ui';
 import { View } from 'react-native';
 import { ON_SOFT } from '@/styles/on-brand';
+import { motion } from '@/styles/motion';
 
 /** The push as households will see it, on Grid Indigo like the app's own alert screen. */
 export function PhonePreview({ title, body }: { title: string; body: string }) {
@@ -19,14 +20,19 @@ export function PhonePreview({ title, body }: { title: string; body: string }) {
       <Text variant="labelLarge" style={{ color: ON_SOFT }}>
         What households receive
       </Text>
+      {/* Keyed by the title (level and window): a new alert arrives like a real notification. */}
       <View
+        key={title}
         accessibilityLabel={`Notification preview: ${title}. ${body}`}
-        style={{
-          gap: t.space[1],
-          padding: t.space[4],
-          borderRadius: t.radius.lg,
-          backgroundColor: roles.light.surfaceContainerLowest,
-        }}
+        style={[
+          {
+            gap: t.space[1],
+            padding: t.space[4],
+            borderRadius: t.radius.lg,
+            backgroundColor: roles.light.surfaceContainerLowest,
+          },
+          motion.dropIn,
+        ]}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: t.space[2] }}>
           <View

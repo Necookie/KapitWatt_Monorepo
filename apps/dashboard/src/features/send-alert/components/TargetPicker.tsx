@@ -3,6 +3,7 @@ import { useTheme } from '@kapitwatt/hooks';
 import { Icon } from '@kapitwatt/icons';
 import { expectedOutcome } from '@kapitwatt/sim';
 import { Text } from '@kapitwatt/ui';
+import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { fraction, kw, percent } from '@/utils/format';
 import { ChoiceChip } from '@/components/ChoiceChip';
@@ -33,6 +34,7 @@ export function TargetPicker({
 }) {
   const t = useTheme();
   const c = t.color;
+  const [focused, setFocused] = useState(false);
   const outcome = households !== undefined ? expectedOutcome(households, params) : undefined;
   const reachable = outcome !== undefined && targetKw > 0 && outcome.deliveredKw >= targetKw;
   return (
@@ -49,18 +51,24 @@ export function TargetPicker({
             paddingVertical: t.space[2],
             borderRadius: t.radius.md,
             borderWidth: t.borderWidth.hairline,
-            borderColor: c.outline,
+            borderColor: focused ? c.primary : c.outline,
             backgroundColor: c.surfaceContainerLowest,
+            // Focus: a second pixel outside the border, so the box does not change size.
+            ...(focused
+              ? { outlineStyle: 'solid' as const, outlineWidth: 1, outlineColor: c.primary }
+              : null),
           }}
         >
           <TextInput
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             accessibilityLabel={`Target in ${unit}`}
             inputMode="decimal"
             value={text}
             onChangeText={(v) => onText(v.replace(/[^0-9.]/g, ''))}
             style={[
               t.text.dataMedium,
-              { color: c.onSurface, width: 104, outlineWidth: 0 } as object,
+              { color: c.onSurface, width: 104, outlineWidth: 0, outlineStyle: 'none' } as object,
             ]}
           />
           <Text variant="titleMedium" color="onSurfaceVariant">

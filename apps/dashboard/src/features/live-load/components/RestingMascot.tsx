@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { ON } from '@/styles/on-brand';
 import { svgHidden } from '../utils/svg';
+import { motion } from '@/styles/motion';
 
 /** The mascot resting in rings that echo the alert gauge: the same place, nothing to measure yet. */
 export function RestingMascot({ size }: { size: number }) {
@@ -27,7 +28,7 @@ export function RestingMascot({ size }: { size: number }) {
         />
       </Svg>
       {/* Positioned, so it paints above the absolutely placed rings on the web. */}
-      <View style={{ zIndex: 1 }}>
+      <View style={[{ zIndex: 1 }, motion.breathe]}>
         <Mascot pose="neutral" height={size * 0.56} />
       </View>
     </View>

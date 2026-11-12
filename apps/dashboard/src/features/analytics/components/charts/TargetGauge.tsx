@@ -3,6 +3,7 @@ import { View } from 'react-native';
 import { kw, percent } from '@/utils/format';
 import { useChartColors } from '../../hooks/useChartColors';
 import { svgFont } from '../../utils/plot';
+import { domDraw } from '@/styles/motion';
 
 /** Delivered as a share of target on a half-circle gauge running to 125%, with the 100% mark. */
 export function TargetGauge({
@@ -57,6 +58,8 @@ export function TargetGauge({
         {share > 0 ? (
           <path
             d={arc(0, share)}
+            pathLength={1}
+            style={domDraw}
             fill="none"
             stroke={hit ? c.delivered : c.committed}
             strokeWidth={18}

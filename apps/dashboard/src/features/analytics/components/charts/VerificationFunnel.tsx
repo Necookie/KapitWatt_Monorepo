@@ -7,6 +7,7 @@ import { useChartColors } from '../../hooks/useChartColors';
 import { STAGES } from '../../utils/stages';
 import { ChartLegend } from '../ChartLegend';
 import { Empty } from '../Empty';
+import { motion } from '@/styles/motion';
 
 /** Households at each verification stage, smart meter and photo stacked, with step conversion. */
 export function VerificationFunnel({
@@ -63,7 +64,8 @@ export function VerificationFunnel({
               }}
             >
               {pending ? null : (
-                <>
+                // Grows from the left on first show (a settled event's shares do not change).
+                <View style={[{ flex: 1, flexDirection: 'row' }, motion.growX]}>
                   <View style={{ width: `${(row.ami / total) * 100}%`, backgroundColor: c.ami }} />
                   <View
                     style={{
@@ -72,7 +74,7 @@ export function VerificationFunnel({
                       marginLeft: row.ami > 0 ? 2 : 0,
                     }}
                   />
-                </>
+                </View>
               )}
             </View>
           </View>

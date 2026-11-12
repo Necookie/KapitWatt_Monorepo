@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useTheme } from '@kapitwatt/hooks';
 import type { BarangayWithCount } from '@kapitwatt/shared';
 import { about } from '@/utils/format';
@@ -12,14 +13,12 @@ import { EventSteps } from './EventSteps';
  * No alert in force: the pilot is ready, not empty. The same indigo hero as an event, the pilot's
  * figures, how an event runs, and the towns an alert can reach.
  */
-export function Readiness({
-  loading,
+export const Readiness = memo(function Readiness({
   demo,
   wide,
   households,
   barangays,
 }: {
-  loading: boolean;
   demo: boolean;
   /** Bento: hero beside its figures and the steps beside "committed now"; stacked otherwise. */
   wide: boolean;
@@ -33,7 +32,7 @@ export function Readiness({
   return (
     <>
       <Split wide={wide}>
-        <CalmHero loading={loading} demo={demo} />
+        <CalmHero demo={demo} />
         <TileStack
           lead={{
             label: 'Opted-in households',
@@ -85,4 +84,4 @@ export function Readiness({
       <Coverage barangays={barangays} />
     </>
   );
-}
+});

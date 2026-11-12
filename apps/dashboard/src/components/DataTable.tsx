@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { colors, space } from '@/styles/theme';
 import { Label } from '@/components/ui/Label';
 import { Txt } from '@/components/ui/Txt';
+import { motion } from '@/styles/motion';
 
 export interface Column<Row> {
   key: string;
@@ -83,13 +84,14 @@ export function DataTable<Row>({
             onPress={() => onRowPress(row)}
             style={({ hovered }: { pressed: boolean; hovered?: boolean }) => [
               styles.row,
+              motion.fadeIn,
               hovered ? styles.rowHover : null,
             ]}
           >
             {cells}
           </Pressable>
         ) : (
-          <View key={rowKey(row)} style={styles.row}>
+          <View key={rowKey(row)} style={[styles.row, motion.fadeIn]}>
             {cells}
           </View>
         );
