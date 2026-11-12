@@ -1,12 +1,12 @@
 import { PHOTO_RULES } from '@kapitwatt/shared';
-import { Text } from '@kapitwatt/ui';
+import { Button, Text } from '@kapitwatt/ui';
 import { router, Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { space } from '@kapitwatt/tokens';
 import { MeterCapture } from '@/components/capture/MeterCapture';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
-import { Button, ErrorState, Loading, Screen } from '@/components/ui';
+import { ErrorState, Loading, Screen } from '@/components/ui';
 import { MOCK } from '@/api/config';
-import { space } from '@/styles/theme';
 import { PhotoSteps } from '../components/PhotoSteps';
 import { RehearsalOutcome } from '../components/RehearsalOutcome';
 import { useRehearsal } from '../hooks/useRehearsal';
@@ -28,7 +28,7 @@ export default function RehearsalPage() {
       <Screen roomy>
         <MascotHeader label="Practice run" line="No practice needed with a smart meter." />
         <View style={styles.bottom}>
-          <Button label="Go to home" onPress={() => router.replace('/')} />
+          <Button size="lg" fullWidth label="Go to home" onPress={() => router.replace('/')} />
         </View>
       </Screen>
     );
@@ -54,7 +54,7 @@ export default function RehearsalPage() {
       <Screen roomy>
         <RehearsalOutcome baselineKw={h.baselineKw} commitCapKw={h.commitCapKw} />
         <View style={styles.bottom}>
-          <Button label="Go to home" onPress={() => router.replace('/')} />
+          <Button size="lg" fullWidth label="Go to home" onPress={() => router.replace('/')} />
         </View>
       </Screen>
     );
@@ -74,12 +74,18 @@ export default function RehearsalPage() {
       </Text>
 
       <View style={styles.bottom}>
-        <Button label={`Take photo ${nextPhoto}`} onPress={rehearsal.startCapture} />
+        <Button
+          size="lg"
+          fullWidth
+          label={`Take photo ${nextPhoto}`}
+          onPress={rehearsal.startCapture}
+        />
         {/* Demo only: the baseline it sets lives in the mock household (MOCK.account). */}
         {MOCK.account ? (
           <Button
-            label="Skip practice (demo)"
             variant="text"
+            label="Skip practice (demo)"
+
             align="center"
             onPress={rehearsal.skipPractice}
           />
@@ -90,5 +96,5 @@ export default function RehearsalPage() {
 }
 
 const styles = StyleSheet.create({
-  bottom: { marginTop: 'auto', gap: space.xs },
+  bottom: { marginTop: 'auto', gap: space[1] },
 });

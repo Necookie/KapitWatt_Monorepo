@@ -1,9 +1,9 @@
 import { themes } from '@kapitwatt/styles';
-import { withAlpha } from '@kapitwatt/tokens';
+import { fontFamily, radius, withAlpha } from '@kapitwatt/tokens';
 import { Text } from '@kapitwatt/ui';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { fonts, radius } from '@/styles/theme';
+import { useReveal, type RevealTarget } from '@/components/ui';
 
 const t = themes.light;
 const c = t.color;
@@ -19,8 +19,10 @@ export function SerialPlate(props: {
   onChange: (serial: string) => void;
 }) {
   const [focused, setFocused] = useState(false);
+  const box = useRef<RevealTarget>(null);
+  const reveal = useReveal();
   return (
-    <View style={styles.field}>
+    <View ref={box} style={styles.field}>
       <Text variant="labelLarge" color="onSurfaceVariant">
         {props.label}
       </Text>
@@ -36,7 +38,10 @@ export function SerialPlate(props: {
         <TextInput
           value={props.value}
           onChangeText={props.onChange}
-          onFocus={() => setFocused(true)}
+          onFocus={() => {
+            setFocused(true);
+            reveal(box.current);
+          }}
           onBlur={() => setFocused(false)}
           autoCapitalize="characters"
           autoCorrect={false}
@@ -71,7 +76,7 @@ const styles = StyleSheet.create({
   marks: { flexDirection: 'row', justifyContent: 'space-between' },
   mark: { color: withAlpha(c.onBrand, 0.6), letterSpacing: 1 },
   input: {
-    fontFamily: fonts.semibold,
+    fontFamily: fontFamily.semibold,
     fontSize: 24,
     letterSpacing: 4,
     color: c.onBrand,

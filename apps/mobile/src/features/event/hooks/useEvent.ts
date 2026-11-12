@@ -1,10 +1,11 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useBrownoutRisk } from '@/utils/brownout';
 import { useAlert, useAlertTotals, useMe, useMyEventStatus, useRefreshAll } from '@/api/queries';
+import { openEventAction } from '@/utils/event-action';
 import { useServerNow } from '@/utils/server-time';
-import { countdownTarget, eventPhase } from '../utils/event-phase';
-import { eventSteps, type NowAction } from '../utils/event-steps';
-import { MOOD } from '../utils/event-mood';
+import { countdownTarget, eventPhase } from '@/utils/event-phase';
+import { eventSteps, type NowAction } from '@/utils/event-steps';
+import { MOOD } from '@/utils/event-mood';
 
 /**
  * The event in the route and what the event screen renders from it: phase, countdown, the one
@@ -44,14 +45,7 @@ export function useEvent() {
   const mood = MOOD[phase];
   const live = nowCard.showLiveReduction ? status.data.liveReductionKw : null;
 
-  const runAction = (kind: NowAction) => {
-    if (kind === 'rehearsal') router.push('/rehearsal');
-    else if (kind === 'commit')
-      router.push({ pathname: '/alert/[alertId]/commit', params: { alertId } });
-    else if (kind === 'result')
-      router.push({ pathname: '/alert/[alertId]/result', params: { alertId } });
-    else router.push({ pathname: '/alert/[alertId]/capture', params: { alertId, kind } });
-  };
+  const runAction = (kind: NowAction) => openEventAction(alertId, kind);
 
   return {
     state: 'ready' as const,

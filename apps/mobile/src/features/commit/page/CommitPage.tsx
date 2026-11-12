@@ -1,9 +1,9 @@
-import { Text } from '@kapitwatt/ui';
+import { Button, Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
+import { space } from '@kapitwatt/tokens';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
-import { Button, ErrorState, Loading, Screen } from '@/components/ui';
+import { ErrorState, Loading, Screen } from '@/components/ui';
 import { formatKw, formatWindow } from '@/utils/format';
-import { space } from '@/styles/theme';
 import { CommitLimits } from '../components/CommitLimits';
 import { KwPresets } from '../components/KwPresets';
 import { KwStepper } from '../components/KwStepper';
@@ -35,6 +35,8 @@ export default function CommitPage() {
       <View style={styles.actions}>
         {form.error ? <Text color="error">{form.error}</Text> : null}
         <Button
+          size="lg"
+          fullWidth
           label={`Commit ${formatKw(form.selected)}`}
           loading={form.saving}
           disabled={form.cap <= 0}
@@ -46,5 +48,5 @@ export default function CommitPage() {
 }
 
 const styles = StyleSheet.create({
-  actions: { marginTop: 'auto', gap: space.sm },
+  actions: { marginTop: 'auto', gap: space[2] },
 });

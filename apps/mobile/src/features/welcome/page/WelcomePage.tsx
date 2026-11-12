@@ -1,16 +1,17 @@
 import { TRUST } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
-import { Logo } from '@kapitwatt/ui';
+import { Button, Logo } from '@kapitwatt/ui';
 import { StatusBar } from 'expo-status-bar';
 import { Animated, ScrollView, StyleSheet, View } from 'react-native';
-import { Button } from '@/components/ui';
+import { space } from '@kapitwatt/tokens';
+
 import { Fireflies } from '@/components/night/Fireflies';
 import { MoonMascot } from '@/components/night/Moon';
 import { NightSky } from '@/components/night/NightSky';
 import { Skyline } from '@/components/night/Skyline';
 import { greeting } from '@/utils/greeting';
-import { space } from '@/styles/theme';
 import { Body } from '../components/Body';
+import { FitPicture } from '../components/FitPicture';
 import { HoldLantern } from '../components/HoldLantern';
 import { PageDots } from '../components/PageDots';
 import { Panel } from '../components/Panel';
@@ -33,7 +34,7 @@ export default function WelcomePage() {
     <View style={styles.root}>
       <StatusBar style="light" />
       <NightSky />
-      <View style={[styles.top, { paddingTop: insets.top + space.md }]}>
+      <View style={[styles.top, { paddingTop: insets.top + space[3] }]}>
         <Logo height={24} color="onBrand" />
       </View>
 
@@ -55,39 +56,50 @@ export default function WelcomePage() {
             height={story.pagerHeight}
             kicker={greeting()}
             title="We'll tell you when the grid runs short."
-          >
-            <MoonMascot pose="alert" />
-            <Body>
-              NGCP raises a yellow or red alert and Meralco asks homes in your barangay to cut a
-              little during the peak.
-            </Body>
-          </Panel>
+            picture={
+              <FitPicture>
+                <MoonMascot pose="alert" />
+              </FitPicture>
+            }
+            caption={
+              <Body>
+                NGCP raises a yellow or red alert and Meralco asks homes in your barangay to cut a
+                little during the peak.
+              </Body>
+            }
+          />
 
           <Panel
             width={width}
             height={story.pagerHeight}
             kicker="Try it"
             title="Cut a little, together."
-          >
-            <HoldLantern cut={story.cut} onDone={story.onCut} />
-            {story.cutDone ? (
-              <RewardChip />
-            ) : (
-              <Body>Switch a few things off for the peak window.</Body>
-            )}
-          </Panel>
+            picture={<HoldLantern cut={story.cut} onDone={story.onCut} />}
+            caption={
+              story.cutDone ? (
+                <RewardChip />
+              ) : (
+                <Body>Switch a few things off for the peak window.</Body>
+              )
+            }
+          />
 
           <Panel
             width={width}
             height={story.pagerHeight}
             kicker="Your reward"
             title="Verified cuts raise your score."
-          >
-            <MoonMascot pose="reward" />
-            <Body>
-              {`We check each cut by smart meter or two meter photos. Every verified cut adds ${TRUST.cleanEvent} to your Contribution Score, and higher levels unlock perks.`}
-            </Body>
-          </Panel>
+            picture={
+              <FitPicture>
+                <MoonMascot pose="reward" />
+              </FitPicture>
+            }
+            caption={
+              <Body>
+                {`We check each cut by smart meter or two meter photos. Every verified cut adds ${TRUST.cleanEvent} to your Contribution Score, and higher levels unlock perks.`}
+              </Body>
+            }
+          />
         </ScrollView>
         <View style={styles.street} pointerEvents="none">
           <PageDots count={PAGES} index={story.page} />
@@ -97,12 +109,12 @@ export default function WelcomePage() {
 
       <View
         ref={sheetRise.sheet}
-        style={[styles.sheet, { paddingBottom: insets.bottom + space.lg }]}
+        style={[styles.sheet, { paddingBottom: insets.bottom + space[4] }]}
       >
-        <Button label="Join the pilot" onPress={join} />
-        <Button label="I already have an account" variant="text" align="center" onPress={logIn} />
+        <Button size="lg" fullWidth label="Join the pilot" onPress={join} />
+        <Button variant="text" label="I already have an account" align="center" onPress={logIn} />
       </View>
-      {/* Join or log in: the sheet rises to where the next page's sheet starts. */}
+      {/* Join or log in: the white sheet rises to fill the screen before the next page opens. */}
       {sheetRise.visible ? (
         <Animated.View
           pointerEvents="none"
@@ -122,11 +134,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: space.xl,
+    paddingHorizontal: space[6],
   },
   scene: { flex: 1 },
   pager: { flex: 1 },
-  street: { gap: space.md },
+  street: { gap: space[3] },
   rising: {
     position: 'absolute',
     left: 0,
@@ -137,9 +149,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
   },
   sheet: {
-    gap: space.xs,
-    paddingTop: space.lg,
-    paddingHorizontal: space.xl,
+    gap: space[1],
+    paddingTop: space[4],
+    paddingHorizontal: space[6],
     backgroundColor: c.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,

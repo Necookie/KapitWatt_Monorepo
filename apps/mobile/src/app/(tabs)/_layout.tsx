@@ -1,8 +1,10 @@
 import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
+import { themes } from '@kapitwatt/styles';
 import { hasAuthToken } from '@/api/http';
 import { CleanTabBar } from '@/layout/components/CleanTabBar';
-import { colors } from '@/styles/theme';
+
+const c = themes.light.color;
 
 /**
  * The four main screens behind the clean bottom bar (mockups: "Nav 1 · Clean bar"). A phone with no
@@ -14,7 +16,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       tabBar={(props) => <CleanTabBar {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}
+      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.surface } }}
     >
       <Tabs.Screen name="index" options={{ title: 'Home' }} />
       <Tabs.Screen name="history" options={{ title: 'History' }} />

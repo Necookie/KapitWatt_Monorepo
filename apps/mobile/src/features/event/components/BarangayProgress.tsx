@@ -1,8 +1,11 @@
 import { barangayProgress, type BarangayTotals } from '@kapitwatt/shared';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { themes } from '@kapitwatt/styles';
+import { Text } from '@kapitwatt/ui';
 import { Card, ProgressBar, Row } from '@/components/ui';
 import { formatKw } from '@/utils/format';
-import { colors, text } from '@/styles/theme';
+
+const c = themes.light.color;
 
 /** Verified delivered kW in the household's barangay against its target (PRD 6). */
 export function BarangayProgress(props: { row: BarangayTotals; settled: boolean }) {
@@ -17,7 +20,7 @@ export function BarangayProgress(props: { row: BarangayTotals; settled: boolean 
         strong
       />
       <Row label="Committed by neighbours" value={formatKw(row.committedKw)} />
-      <Text style={styles.note}>
+      <Text variant="bodyMedium" style={styles.note}>
         {row.targetHit
           ? 'Target reached. Every household here with a verified cut earns the barangay bonus.'
           : props.settled
@@ -29,5 +32,5 @@ export function BarangayProgress(props: { row: BarangayTotals; settled: boolean 
 }
 
 const styles = StyleSheet.create({
-  note: { ...text.caption, color: colors.muted },
+  note: { color: c.onSurfaceVariant },
 });

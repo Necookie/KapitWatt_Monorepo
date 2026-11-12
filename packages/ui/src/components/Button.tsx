@@ -14,7 +14,11 @@ export type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
   icon?: ReactNode;
   loading?: boolean;
   fullWidth?: boolean;
+  /** Where a button that is not full width sits in its row (a centred text link, say). */
+  align?: 'start' | 'center' | 'end';
 };
+
+const ALIGN = { start: 'flex-start', center: 'center', end: 'flex-end' } as const;
 
 export function Button({
   label,
@@ -23,6 +27,7 @@ export function Button({
   icon,
   loading = false,
   fullWidth,
+  align = 'start',
   disabled,
   ...rest
 }: ButtonProps) {
@@ -53,7 +58,7 @@ export function Button({
       style={{
         height,
         minWidth: 64,
-        alignSelf: fullWidth ? 'stretch' : 'flex-start',
+        alignSelf: fullWidth ? 'stretch' : ALIGN[align],
         borderRadius: t.radius.full,
         overflow: 'hidden',
         backgroundColor:

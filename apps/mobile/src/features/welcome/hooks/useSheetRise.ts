@@ -6,11 +6,13 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 const NATIVE = Platform.OS !== 'web';
 const RISE_MS = 380;
 const FALL_MS = 300;
+/** The panel is this much taller than the screen, so its rounded top leaves the screen at the end. */
+const RISE_OVERHANG = 40;
+
 /**
- * "Join the pilot" and "I already have an account": the white sheet rises to `targetTop` (where the
- * next page's own sheet starts: under sign-up's street, under login's moon), then that page fades
- * in around it, so the sheet carries on and the night never leaves the screen. A panel starts exactly over the sheet and slides up with a transform
- * (run natively); coming back to this page lowers it into place again.
+ * "Join the pilot" and "I already have an account": the white sheet rises all the way up and fills
+ * the screen, then the next page fades in. A panel starts exactly over the sheet and slides up with
+ * a transform (run natively); coming back to this page lowers it into place again.
  */
 export function useSheetRise(screenHeight: number) {
   const reduced = useReducedMotion();
@@ -21,7 +23,7 @@ export function useSheetRise(screenHeight: number) {
   const sheetTop = useRef(0);
   const raised = useRef(false);
 
-  const rise = (targetTop: number, then: () => void) => {
+  const rise = (then: () => void) => {
     if (reduced || !sheet.current) return then();
     // Measured at the tap, not from onLayout: the start must sit exactly on the sheet.
     sheet.current.measureInWindow((_x, top) => {
@@ -30,7 +32,7 @@ export function useSheetRise(screenHeight: number) {
       setVisible(true);
       raised.current = true;
       Animated.timing(y, {
-        toValue: targetTop,
+        toValue: -RISE_OVERHANG,
         duration: RISE_MS,
         easing: Easing.bezier(0.05, 0.7, 0.1, 1),
         useNativeDriver: NATIVE,
@@ -52,5 +54,5 @@ export function useSheetRise(screenHeight: number) {
     }, [y]),
   );
 
-  return { sheet, y, visible, rise, panelHeight: screenHeight };
+  return { sheet, y, visible, rise, panelHeight: screenHeight + RISE_OVERHANG };
 }

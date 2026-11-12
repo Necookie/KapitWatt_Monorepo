@@ -2,8 +2,9 @@ import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { radius } from '@kapitwatt/tokens';
+import { useReveal, type RevealTarget } from '@/components/ui';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { radius } from '@/styles/theme';
 
 const t = themes.light;
 const c = t.color;
@@ -25,6 +26,8 @@ export function DigitSlots(props: {
 }) {
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const [focused, setFocused] = useState(false);
+  const box = useRef<RevealTarget>(null);
+  const reveal = useReveal();
   const reduced = useReducedMotion();
   const snap = useRef(new Animated.Value(0)).current;
 
@@ -41,7 +44,7 @@ export function DigitSlots(props: {
 
   const next = Math.min(props.value.length, props.length - 1);
   return (
-    <View style={styles.field}>
+    <View ref={box} style={styles.field}>
       <Text variant="labelLarge" color={props.error ? 'error' : 'onSurfaceVariant'}>
         {props.label}
       </Text>
@@ -87,7 +90,10 @@ export function DigitSlots(props: {
             ref={input}
             value={props.value}
             onChangeText={(text) => props.onChange(text.replace(/\D/g, '').slice(0, props.length))}
-            onFocus={() => setFocused(true)}
+            onFocus={() => {
+              setFocused(true);
+              reveal(box.current);
+            }}
             onBlur={() => setFocused(false)}
             keyboardType="number-pad"
             maxLength={props.length}

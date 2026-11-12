@@ -1,12 +1,12 @@
 import { themes } from '@kapitwatt/styles';
-import { Text } from '@kapitwatt/ui';
+import { Button, Text } from '@kapitwatt/ui';
 import { StatusBar } from 'expo-status-bar';
 import { Animated, StyleSheet, View } from 'react-native';
-import { Button, Screen, TextField } from '@/components/ui';
+import { fontFamily, space } from '@kapitwatt/tokens';
+import { Screen, TextField } from '@/components/ui';
 import { Fireflies } from '@/components/night/Fireflies';
 import { NightSky } from '@/components/night/NightSky';
 import { greeting } from '@/utils/greeting';
-import { fonts, space } from '@/styles/theme';
 import { LoginNight } from '../components/LoginNight';
 import { useLoginForm } from '../hooks/useLoginForm';
 
@@ -89,14 +89,17 @@ export default function LoginPage() {
             />
             <View style={styles.actions}>
               <Button
+                size="lg"
+                fullWidth
                 label="Log in"
                 disabled={!form.filled}
                 loading={form.loading}
                 onPress={form.submit}
               />
               <Button
-                label="Forgot password?"
                 variant="text"
+                label="Forgot password?"
+
                 align="center"
                 onPress={form.forgotPassword}
               />
@@ -107,7 +110,7 @@ export default function LoginPage() {
             <Text variant="bodyMedium" color="onSurfaceVariant">
               New to KapitWatt?
             </Text>
-            <Button label="Create account" variant="text" onPress={form.createAccount} />
+            <Button variant="text" label="Create account" onPress={form.createAccount} />
           </View>
         </Screen>
       </Animated.View>
@@ -131,11 +134,11 @@ const styles = StyleSheet.create({
   // One column under the moon, on an 8 px rhythm: 24 from the sheet's top edge to the greeting,
   // 24 between the heading, the form and the links (the Screen's gap), 16 between fields and 24
   // above Log in. Text buttons carry their own 48 px touch height, which reads as their spacing.
-  heading: { alignItems: 'center', gap: space.xs, marginTop: space.lg },
-  kicker: { color: c.tertiary, fontFamily: fonts.semibold },
-  line: { maxWidth: 300, marginTop: space.xs },
-  form: { gap: space.lg },
-  actions: { marginTop: space.sm },
+  heading: { alignItems: 'center', gap: space[1], marginTop: space[4] },
+  kicker: { color: c.tertiary, fontFamily: fontFamily.semibold },
+  line: { maxWidth: 300, marginTop: space[1] },
+  form: { gap: space[4] },
+  actions: { marginTop: space[2] },
   bottom: {
     marginTop: 'auto',
     flexDirection: 'row',

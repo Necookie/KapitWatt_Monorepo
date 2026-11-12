@@ -1,10 +1,10 @@
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
+import { fontFamily } from '@kapitwatt/tokens';
 import { AlertBadge } from '@/components/AlertBadge';
 import { MockControls } from '@/components/MockControls';
 import { ErrorState, Loading, Screen } from '@/components/ui';
 import { formatKw, formatWindow } from '@/utils/format';
-import { fonts } from '@/styles/theme';
 import { BarangayProgress } from '../components/BarangayProgress';
 import { Countdown } from '../components/Countdown';
 import { NowCard } from '../components/NowCard';
@@ -68,6 +68,6 @@ export default function EventPage() {
 const styles = StyleSheet.create({
   alertRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   countdown: { gap: 2 },
-  strong: { fontFamily: fonts.semibold },
+  strong: { fontFamily: fontFamily.semibold },
   tabular: { fontVariant: ['tabular-nums'] },
 });

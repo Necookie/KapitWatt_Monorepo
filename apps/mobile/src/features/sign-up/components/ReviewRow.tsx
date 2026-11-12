@@ -1,7 +1,7 @@
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { radius, space } from '@/styles/theme';
+import { radius, space } from '@kapitwatt/tokens';
 
 const c = themes.light.color;
 
@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   updateButton: {
     height: 48,
-    paddingHorizontal: space.md,
+    paddingHorizontal: space[3],
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -59,8 +59,8 @@ const styles = StyleSheet.create({
   reviewRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
-    paddingVertical: space.md,
+    gap: space[3],
+    paddingVertical: space[3],
   },
   reviewDivider: { borderBottomWidth: 1, borderBottomColor: c.outlineVariant },
 });

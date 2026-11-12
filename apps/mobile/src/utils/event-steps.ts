@@ -1,5 +1,5 @@
 import type { MockAlertView, MeterType, MyEventStatus } from '@kapitwatt/shared';
-import type { EventPhase } from './event-phase';
+import type { EventPhase } from '@/utils/event-phase';
 import { formatClock, formatWindow } from '@/utils/format';
 
 /**

@@ -1,7 +1,7 @@
 import type { Barangay } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
 import { StyleSheet, View } from 'react-native';
-import { radius, space } from '@/styles/theme';
+import { radius, space } from '@kapitwatt/tokens';
 import type { StepId, StepProps } from '../utils/draft';
 import { METER_LABEL } from '../utils/meter-label';
 import { ReviewRow } from './ReviewRow';
@@ -56,8 +56,8 @@ const styles = StyleSheet.create({
   panel: {
     backgroundColor: c.surfaceContainerLow,
     borderRadius: radius.lg,
-    padding: space.lg,
+    padding: space[4],
     gap: 14,
   },
-  reviewPanel: { paddingVertical: space.xs, gap: 0 },
+  reviewPanel: { paddingVertical: space[1], gap: 0 },
 });

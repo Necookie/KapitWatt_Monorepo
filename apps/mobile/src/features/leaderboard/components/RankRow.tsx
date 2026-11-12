@@ -2,8 +2,8 @@ import type { LeaderboardEntry } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
+import { fontFamily, space } from '@kapitwatt/tokens';
 import { formatKwh } from '@/utils/format';
-import { fonts, space } from '@/styles/theme';
 import { rankBadge } from '../utils/rank-badge';
 
 const c = themes.light.color;
@@ -35,9 +35,9 @@ export function RankRow(props: { row: LeaderboardEntry; isMine: boolean; divider
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  strong: { fontFamily: fonts.bold },
+  strong: { fontFamily: fontFamily.bold },
   tabular: { fontVariant: ['tabular-nums'] },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space[3], paddingVertical: space[3] },
   divider: { borderBottomWidth: 1, borderBottomColor: c.outlineVariant },
   rank: {
     width: 36,

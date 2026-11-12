@@ -1,17 +1,16 @@
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { HEADER_MUTED } from '../utils/header-muted';
 
 const c = themes.light.color;
 
 export function Stat(props: { label: string; value: string }) {
   return (
     <View style={styles.stat}>
-      <Text variant="titleMedium" style={[styles.tabular, { color: c.onPrimary }]}>
+      <Text variant="titleMedium" style={[styles.tabular, { color: c.onSurface }]}>
         {props.value}
       </Text>
-      <Text variant="bodySmall" style={{ color: HEADER_MUTED }}>
+      <Text variant="bodySmall" color="onSurfaceVariant">
         {props.label}
       </Text>
     </View>

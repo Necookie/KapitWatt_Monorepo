@@ -1,10 +1,10 @@
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
+import { radius, space } from '@kapitwatt/tokens';
 import { ProgressBar } from '@/components/ui';
 import { formatKw } from '@/utils/format';
 import { useAlertTotals } from '@/api/queries';
-import { radius, space } from '@/styles/theme';
 
 const c = themes.light.color;
 
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   panel: {
     borderRadius: radius.lg,
     backgroundColor: c.surfaceContainerLow,
-    padding: space.lg,
+    padding: space[4],
     gap: 10,
   },
   panelHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },

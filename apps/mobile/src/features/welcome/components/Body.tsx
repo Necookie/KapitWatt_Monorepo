@@ -16,5 +16,5 @@ export function Body({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  body: { color: ON_SOFT, maxWidth: 320 },
+  body: { color: ON_SOFT, maxWidth: 340 },
 });

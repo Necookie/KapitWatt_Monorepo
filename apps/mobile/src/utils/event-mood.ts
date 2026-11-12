@@ -1,5 +1,5 @@
 import type { MascotPose } from '@kapitwatt/ui';
-import type { EventPhase } from './event-phase';
+import type { EventPhase } from '@/utils/event-phase';
 
 export interface EventMood {
   pose: MascotPose;
