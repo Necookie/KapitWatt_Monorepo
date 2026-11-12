@@ -404,11 +404,11 @@ Seven tables. SQL is in `packages/db/migrations/0001_init.sql`; Zod mirrors are 
 
 ### Deployment
 
-| ID     | Requirement                                                                                               |
-| ------ | --------------------------------------------------------------------------------------------------------- |
-| NFR-D1 | API deploys with `wrangler deploy` to Cloudflare Workers, with secrets set through `wrangler secret put`. |
-| NFR-D2 | Dashboard deploys as `expo export --platform web` output on Cloudflare Pages.                             |
-| NFR-D3 | Mobile ships as an Android APK from EAS; Expo Go during development.                                      |
+| ID     | Requirement                                                                                                                               |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| NFR-D1 | API deploys with `wrangler deploy` to Cloudflare Workers; secrets come from Doppler and are uploaded with the version (`--secrets-file`). |
+| NFR-D2 | Dashboard deploys as `expo export --platform web` output on Cloudflare Pages.                                                             |
+| NFR-D3 | Mobile ships as an Android APK from EAS; Expo Go during development.                                                                      |
 
 ## 7. Verification
 
