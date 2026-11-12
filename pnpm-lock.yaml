@@ -302,9 +302,24 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@kapitwatt/hooks':
+        specifier: workspace:*
+        version: link:../../packages/hooks
+      '@kapitwatt/icons':
+        specifier: workspace:*
+        version: link:../../packages/icons
       '@kapitwatt/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@kapitwatt/styles':
+        specifier: workspace:*
+        version: link:../../packages/styles
+      '@kapitwatt/tokens':
+        specifier: workspace:*
+        version: link:../../packages/tokens
+      '@kapitwatt/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.107.1
         version: 5.107.1(@types/react@19.3.0)(react@19.3.0)
@@ -320,6 +335,9 @@ importers:
       expo-device:
         specifier: ~58.0.5
         version: 58.0.5(expo@58.0.24)
+      expo-font:
+        specifier: ~58.0.12
+        version: 58.0.12(expo@58.0.24)(react-native@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)
       expo-linking:
         specifier: ~58.0.17
         version: 58.0.17(expo@58.0.24)(react-native@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2))(react@19.3.0)(supports-color@10.2.2)(typescript@6.0.3)

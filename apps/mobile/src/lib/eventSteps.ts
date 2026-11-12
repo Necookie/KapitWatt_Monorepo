@@ -1,6 +1,6 @@
 import type { MockAlertView, MeterType, MyEventStatus } from '@kapitwatt/shared';
 import type { EventPhase } from './eventPhase';
-import { formatClock } from './format';
+import { formatClock, formatWindow } from './format';
 
 /**
  * Turns the event's state into (1) the one thing the household should do now and (2) a checklist
@@ -59,7 +59,7 @@ export function eventSteps({
   const afterOpen = now >= t(view.afterPhotoOpensAt) && now <= t(view.afterPhotoDueAt);
   const beforeMissed = !has('before') && now > t(view.beforePhotoDueAt);
   const afterMissed = !has('after') && now > t(view.afterPhotoDueAt);
-  const windowText = `${formatClock(alert.windowStart)} to ${formatClock(alert.windowEnd)}`;
+  const windowText = formatWindow(alert.windowStart, alert.windowEnd);
   const canStillCommit = phase === 'before_window' || phase === 'window_open';
 
   // ----- Checklist -----
@@ -73,7 +73,7 @@ export function eventSteps({
     steps.push({
       key: 'before',
       title: 'Before photo',
-      when: `${formatClock(alert.windowStart)} to ${formatClock(view.beforePhotoDueAt)}`,
+      when: formatWindow(alert.windowStart, view.beforePhotoDueAt),
       state: has('before')
         ? 'done'
         : beforeMissed
@@ -85,7 +85,7 @@ export function eventSteps({
     steps.push({
       key: 'after',
       title: 'After photo',
-      when: `${formatClock(view.afterPhotoOpensAt)} to ${formatClock(view.afterPhotoDueAt)}`,
+      when: formatWindow(view.afterPhotoOpensAt, view.afterPhotoDueAt),
       state: has('after')
         ? 'done'
         : afterMissed

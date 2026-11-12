@@ -1,3 +1,4 @@
+import { Skeleton } from '@kapitwatt/ui';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { colors, space } from '@/theme';
@@ -20,12 +21,17 @@ export function DataTable<Row>({
   rowKey,
   onRowPress,
   empty,
+  loading = false,
+  skeletonRows = 5,
 }: {
   columns: Column<Row>[];
   rows: Row[];
   rowKey: (row: Row) => string;
   onRowPress?: (row: Row) => void;
   empty?: string;
+  /** Placeholder rows shaped like the columns while the first data loads. */
+  loading?: boolean;
+  skeletonRows?: number;
 }) {
   const cellStyle = (c: Column<Row>) => [
     styles.cell,
@@ -42,7 +48,21 @@ export function DataTable<Row>({
           </View>
         ))}
       </View>
-      {rows.length === 0 ? (
+      {loading && rows.length === 0
+        ? Array.from({ length: skeletonRows }, (_, i) => (
+            <View key={i} style={styles.row} accessibilityLabel={i === 0 ? 'Loading' : undefined}>
+              {columns.map((c, ci) => (
+                <View key={c.key} style={cellStyle(c)}>
+                  {c.header || c.width === undefined || c.width > 24 ? (
+                    // Vary the widths a little so the rows read as text, not a grid of bars.
+                    <Skeleton width={`${[78, 55, 66, 48, 72][(i + ci) % 5]}%`} height={10} />
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ))
+        : null}
+      {!loading && rows.length === 0 ? (
         <View style={styles.empty}>
           <Txt size="sm" tone="muted">
             {empty ?? 'Nothing to show yet.'}

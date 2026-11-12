@@ -1,54 +1,100 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { Card } from '@/components/ui';
+import { Icon } from '@kapitwatt/icons';
+import { themes } from '@kapitwatt/styles';
+import { Text } from '@kapitwatt/ui';
+import { StyleSheet, View } from 'react-native';
 import type { Step, StepState } from '@/lib/eventSteps';
-import { colors, radius, space, text } from '@/theme';
+import { fonts, radius, space } from '@/theme';
 
-const MARK: Record<StepState, { symbol: string; color: string; note?: string }> = {
-  done: { symbol: '✓', color: colors.green, note: 'Done' },
-  now: { symbol: '●', color: colors.teal, note: 'Now' },
-  later: { symbol: '○', color: colors.muted },
-  missed: { symbol: '✕', color: colors.red, note: 'Missed' },
-};
+const c = themes.light.color;
 
-/** Checklist of the event's steps with done / now / later / missed. */
+/** The round marker at the start of each step. */
+function Marker(props: { state: StepState }) {
+  switch (props.state) {
+    case 'done':
+      return (
+        <View style={[styles.marker, { backgroundColor: c.relief }]}>
+          <Icon name="check" size="sm" weight="bold" color="onRelief" />
+        </View>
+      );
+    case 'now':
+      return (
+        <View style={[styles.marker, styles.ring, { borderColor: c.primary }]}>
+          <View style={styles.dot} />
+        </View>
+      );
+    case 'missed':
+      return (
+        <View style={[styles.marker, styles.ring, { borderColor: c.error }]}>
+          <Icon name="close" size="sm" weight="bold" color="error" />
+        </View>
+      );
+    default:
+      return <View style={[styles.marker, styles.ring, { borderColor: c.outlineVariant }]} />;
+  }
+}
+
+/** What the right-hand side says for a step. */
+function sideText(step: Step): string {
+  if (step.state === 'done') return 'Done';
+  if (step.state === 'missed') return 'Missed';
+  if (step.state === 'now') return step.when ? `Now · ${step.when}` : 'Now';
+  return step.when ?? '';
+}
+
+/** Checklist of the event's steps (mockup "Event · window open"). */
 export function StepList(props: { steps: Step[] }) {
   return (
-    <Card title="Your steps">
+    <View style={styles.panel} accessibilityLabel="Your steps">
       {props.steps.map((step, i) => {
-        const mark = MARK[step.state];
+        const tone =
+          step.state === 'done'
+            ? c.relief
+            : step.state === 'now'
+              ? c.primary
+              : step.state === 'missed'
+                ? c.error
+                : c.onSurfaceVariant;
         return (
-          <View key={step.key} style={[styles.row, step.state === 'now' && styles.rowNow]}>
-            <Text style={[styles.symbol, { color: mark.color }]}>{mark.symbol}</Text>
-            <View style={styles.main}>
-              <Text style={[styles.title, step.state === 'later' && styles.muted]}>
-                {i + 1}. {step.title}
-              </Text>
-              {step.when ? <Text style={styles.when}>{step.when}</Text> : null}
-            </View>
-            {mark.note ? (
-              <Text style={[styles.note, { color: mark.color }]}>{mark.note}</Text>
-            ) : null}
+          <View key={step.key} style={[styles.row, i < props.steps.length - 1 && styles.divider]}>
+            <Marker state={step.state} />
+            <Text
+              style={[
+                styles.flex,
+                step.state === 'now' && styles.strong,
+                step.state === 'later' && { color: c.onSurfaceVariant },
+              ]}
+            >
+              {step.title}
+            </Text>
+            <Text variant="bodyMedium" style={[styles.side, { color: tone }]}>
+              {sideText(step)}
+            </Text>
           </View>
         );
       })}
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingVertical: space.sm,
-    paddingHorizontal: space.sm,
-    borderRadius: radius.md,
+  flex: { flex: 1 },
+  panel: {
+    borderRadius: radius.lg,
+    backgroundColor: c.surfaceContainerLow,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.xs,
   },
-  rowNow: { backgroundColor: colors.background },
-  symbol: { ...text.title, width: 24, textAlign: 'center' },
-  main: { flex: 1 },
-  title: { ...text.body, fontWeight: '700', color: colors.ink },
-  muted: { color: colors.muted, fontWeight: '400' },
-  when: { ...text.caption, color: colors.muted },
-  note: { ...text.caption, fontWeight: '700' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md },
+  divider: { borderBottomWidth: 1, borderBottomColor: c.outlineVariant },
+  marker: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ring: { borderWidth: 2 },
+  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.primary },
+  strong: { fontFamily: fonts.semibold },
+  side: { fontFamily: fonts.semibold, fontVariant: ['tabular-nums'] },
 });

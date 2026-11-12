@@ -42,7 +42,8 @@
         {
           "locationWhenInUsePermission": "KapitWatt checks that meter photos are taken at your registered home address."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "router": {

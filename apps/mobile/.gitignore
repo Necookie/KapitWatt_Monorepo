@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Local design mockups (HTML, opened in a browser; not shipped)
+mockups/

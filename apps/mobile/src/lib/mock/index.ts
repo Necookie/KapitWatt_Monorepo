@@ -644,6 +644,15 @@ export function mockPhase(): 'before_window' | 'window_open' | 'settling' | 'set
   return 'settling';
 }
 
+/**
+ * Mock-only: skip the practice run. Sets the plan's worked-example baseline (1.9 kW, capped by the
+ * bill) so the household can commit. There is no real skip: the API needs the rehearsal readings.
+ */
+export function mockSkipRehearsal() {
+  const h = requireHousehold();
+  h.baselineKw = Math.min(1.9, capKw(h.billAvgKwhMonth));
+}
+
 /** Mock-only stand-in for the operator sending a new alert from the dashboard. */
 export function mockSendAlert() {
   event = newEvent(event.seq + 1);

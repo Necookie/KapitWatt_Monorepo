@@ -1,3 +1,4 @@
+import { Skeleton, SkeletonText } from '@kapitwatt/ui';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -55,12 +56,18 @@ export function Card({
   children,
   style,
   padded = true,
+  loading = false,
+  skeleton,
 }: {
   title?: string;
   aside?: ReactNode;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   padded?: boolean;
+  /** Show a skeleton in place of the body; the title stays, so the layout does not jump. */
+  loading?: boolean;
+  /** A skeleton shaped like the body; three lines of text by default. */
+  skeleton?: ReactNode;
 }) {
   return (
     <View style={[styles.card, style]}>
@@ -72,7 +79,13 @@ export function Card({
           {aside}
         </View>
       ) : null}
-      <View style={padded ? styles.cardBody : null}>{children}</View>
+      {loading ? (
+        <View accessibilityLabel="Loading" style={padded || !skeleton ? styles.cardBody : null}>
+          {skeleton ?? <SkeletonText />}
+        </View>
+      ) : (
+        <View style={padded ? styles.cardBody : null}>{children}</View>
+      )}
     </View>
   );
 }
@@ -152,13 +165,25 @@ export function Stat({
   unit,
   note,
   children,
+  loading = false,
 }: {
   label: string;
   value: string;
   unit?: string;
   note?: string;
   children?: ReactNode;
+  /** Keep the label, stand in for the figure and its note. */
+  loading?: boolean;
 }) {
+  if (loading) {
+    return (
+      <View style={styles.stat} accessibilityLabel={`${label}: loading`}>
+        <Label>{label}</Label>
+        <Skeleton width={96} height={30} radius="sm" style={{ marginVertical: 3 }} />
+        <Skeleton width="70%" height={10} />
+      </View>
+    );
+  }
   return (
     <View style={styles.stat}>
       <Label>{label}</Label>
@@ -221,6 +246,32 @@ export function PageHeader({
         ) : null}
       </View>
       {actions ? <View style={styles.row}>{actions}</View> : null}
+    </View>
+  );
+}
+
+/** Skeleton for a chart card: columns of varied height on a baseline, like a bar chart. */
+export function ChartSkeleton({ height = 180 }: { height?: number }) {
+  const bars = [0.45, 0.7, 0.55, 0.85, 0.6, 0.95, 0.5, 0.75, 0.65, 0.8];
+  return (
+    <View style={{ gap: space.md }}>
+      <Skeleton width={180} height={10} />
+      <View
+        style={{
+          height,
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          gap: space.md,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }}
+      >
+        {bars.map((h, i) => (
+          <View key={i} style={{ flex: 1, height: `${h * 100}%` }}>
+            <Skeleton height="100%" radius="xs" />
+          </View>
+        ))}
+      </View>
     </View>
   );
 }

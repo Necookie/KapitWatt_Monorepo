@@ -247,6 +247,27 @@ export default function TownScreen() {
             with a verified cut a bonus on its own credit. The bonus rate is a placeholder.
           </Txt>
         </>
+      ) : alert.isLoading || totals.isLoading ? (
+        <>
+          <Card padded={false}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {['Town target', 'Committed', 'Delivered, verified', 'Barangays on target'].map(
+                (label) => (
+                  <Stat key={label} loading label={label} value="" />
+                ),
+              )}
+            </View>
+          </Card>
+          <Card title="Barangays" padded={false}>
+            <DataTable
+              columns={columns}
+              rows={[]}
+              rowKey={(b) => b.barangayId}
+              loading
+              skeletonRows={3}
+            />
+          </Card>
+        </>
       ) : (
         <Card>
           <Txt tone="muted">

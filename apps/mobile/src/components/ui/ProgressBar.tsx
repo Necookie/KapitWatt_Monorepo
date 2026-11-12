@@ -1,32 +1,23 @@
-import { StyleSheet, View } from 'react-native';
-import { colors, radius } from '@/theme';
+import { ProgressBar as DsProgressBar } from '@kapitwatt/ui';
 
-/** 0..1 fills the bar; above 1 stays full and turns green (target hit). */
-export function ProgressBar(props: { value: number }) {
-  const pct = Math.max(0, Math.min(1, props.value)) * 100;
-  const hit = props.value >= 1;
+/**
+ * Barangay progress, drawn by `@kapitwatt/ui` (thick). Tones follow DESIGN.md's chart roles:
+ * delivered kW in relief teal (the default), committed kW in primary.
+ * 0..1 fills the bar; above 1 stays full (a barangay can beat its target).
+ */
+export function ProgressBar(props: {
+  value: number;
+  tone?: 'relief' | 'primary';
+  accessibilityLabel?: string;
+}) {
   return (
-    <View
-      style={styles.track}
-      accessibilityRole="progressbar"
-      accessibilityValue={{ min: 0, max: 100, now: Math.round(pct) }}
-    >
-      <View
-        style={[
-          styles.fill,
-          { width: `${pct}%`, backgroundColor: hit ? colors.green : colors.teal },
-        ]}
-      />
-    </View>
+    <DsProgressBar
+      value={props.value}
+      tone={props.tone ?? 'relief'}
+      size="thick"
+      accessibilityLabel={
+        props.accessibilityLabel ?? `${Math.round(props.value * 100)}% of the target delivered`
+      }
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  track: {
-    height: 14,
-    borderRadius: radius.pill,
-    backgroundColor: colors.border,
-    overflow: 'hidden',
-  },
-  fill: { height: '100%', borderRadius: radius.pill },
-});

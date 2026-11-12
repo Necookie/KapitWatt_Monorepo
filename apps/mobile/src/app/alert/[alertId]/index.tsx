@@ -1,22 +1,34 @@
+import { Text } from '@kapitwatt/ui';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { AlertBadge } from '@/components/event/AlertBadge';
 import { BarangayProgress } from '@/components/event/BarangayProgress';
 import { Countdown } from '@/components/event/Countdown';
-import { NowCard } from '@/components/event/NowCard';
 import { StepList } from '@/components/event/StepList';
+import { MascotHeader } from '@/components/mascot/MascotHeader';
+import type { MascotPose } from '@/components/mascot/poses';
 import { MockControls } from '@/components/MockControls';
-import { Card, ErrorState, Loading, Row, Screen, SimulatedNote } from '@/components/ui';
-import { countdownTarget, eventPhase } from '@/lib/eventPhase';
+import { Button, ErrorState, Loading, Screen } from '@/components/ui';
+import { countdownTarget, eventPhase, type EventPhase } from '@/lib/eventPhase';
 import { eventSteps, type NowAction } from '@/lib/eventSteps';
-import { formatClock, formatKw } from '@/lib/format';
+import { formatKw, formatWindow } from '@/lib/format';
 import { useAlert, useAlertTotals, useMe, useMyEventStatus, useRefreshAll } from '@/lib/queries';
 import { useServerNow } from '@/lib/serverTime';
-import { colors, text } from '@/theme';
+import { fonts, space } from '@/theme';
+
+/** The mascot's mood follows the event: calm, cutting power, then celebrating. */
+const MOOD: Record<EventPhase, { pose: MascotPose; tone: 'primary' | 'reward' }> = {
+  before_window: { pose: 'neutral', tone: 'primary' },
+  window_open: { pose: 'dimmed', tone: 'primary' },
+  settling: { pose: 'neutral', tone: 'primary' },
+  settled: { pose: 'reward', tone: 'reward' },
+  cancelled: { pose: 'neutral', tone: 'primary' },
+};
 
 /**
- * Event screen (FR-APP-09, 10, 18): one "do this now" card, then the step checklist, then the
- * barangay's progress. Polls about every 2 s through the query hooks.
+ * Event screen (FR-APP-09, 10, 18; mockup "Event · window open"): alert and countdown, the mascot
+ * saying the one thing to do now, the step checklist, then the barangay's progress.
+ * Polls about every 2 s through the query hooks.
  */
 export default function EventScreen() {
   const { alertId } = useLocalSearchParams<{ alertId: string }>();
@@ -45,6 +57,8 @@ export default function EventScreen() {
   });
   const commitment = status.data.commitment;
   const myBarangay = totals.data.barangays.find((b) => b.barangayId === me.data.barangayId);
+  const mood = MOOD[phase];
+  const live = nowCard.showLiveReduction ? status.data.liveReductionKw : null;
 
   const runAction = (kind: NowAction) => {
     if (kind === 'rehearsal') router.push('/rehearsal');
@@ -56,35 +70,65 @@ export default function EventScreen() {
   };
 
   return (
-    <Screen onRefresh={refreshAll}>
-      <Card>
+    <Screen roomy onRefresh={refreshAll}>
+      <View style={styles.alertRow}>
         <AlertBadge level={view.alert.level} />
-        <Text style={styles.window}>
-          Peak window {formatClock(view.alert.windowStart)} to {formatClock(view.alert.windowEnd)}
+        <Text variant="bodyMedium" color="onSurfaceVariant" style={styles.tabular}>
+          {formatWindow(view.alert.windowStart, view.alert.windowEnd)}
         </Text>
-        {countdown ? <Countdown label={countdown.label} at={countdown.at} /> : null}
-        {commitment ? (
-          <Row label="Your commitment" value={formatKw(commitment.committedKw)} strong />
-        ) : null}
-      </Card>
+      </View>
 
-      <NowCard
-        card={nowCard}
-        onAction={() => nowCard.action && runAction(nowCard.action.kind)}
-        liveReductionKw={status.data.liveReductionKw}
-        committedKw={commitment?.committedKw ?? null}
-      />
+      {countdown || commitment ? (
+        <View style={styles.countdown}>
+          {countdown ? <Countdown label={countdown.label} at={countdown.at} /> : null}
+          {commitment ? (
+            <Text variant="bodyMedium" color="onSurfaceVariant">
+              You committed{' '}
+              <Text variant="bodyMedium" style={styles.strong}>
+                {formatKw(commitment.committedKw)}
+              </Text>
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      <View style={styles.now}>
+        <MascotHeader label="Do this now" line={nowCard.title} pose={mood.pose} tone={mood.tone} />
+        <Text color="onSurfaceVariant">{nowCard.body}</Text>
+        {live !== null ? (
+          <View>
+            <Text variant="headlineMedium" color="relief" style={styles.tabular}>
+              {formatKw(live)}
+            </Text>
+            <Text variant="bodyMedium" color="onSurfaceVariant">
+              below your usual usage right now
+            </Text>
+          </View>
+        ) : null}
+        {nowCard.action ? (
+          <Button
+            label={nowCard.action.label}
+            onPress={() => nowCard.action && runAction(nowCard.action.kind)}
+          />
+        ) : null}
+      </View>
 
       <StepList steps={steps} />
 
       {myBarangay ? <BarangayProgress row={myBarangay} settled={phase === 'settled'} /> : null}
 
-      <SimulatedNote>Simulated NGCP alert for the Laguna pilot.</SimulatedNote>
+      <Text variant="bodySmall" color="onSurfaceVariant" align="center">
+        Simulated NGCP alert for the Laguna pilot.
+      </Text>
       <MockControls />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  window: { ...text.title, color: colors.ink },
+  alertRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  countdown: { gap: 2 },
+  now: { gap: space.md },
+  strong: { fontFamily: fonts.semibold },
+  tabular: { fontVariant: ['tabular-nums'] },
 });

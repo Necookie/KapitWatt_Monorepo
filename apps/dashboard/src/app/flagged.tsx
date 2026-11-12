@@ -185,12 +185,11 @@ export default function FlaggedScreen() {
           columns={columns}
           rows={rows}
           rowKey={(r) => r.id}
+          loading={flagged.isLoading}
           empty={
-            flagged.isLoading
-              ? 'Loading flagged readings.'
-              : flagged.error
-                ? 'The review list could not be loaded.'
-                : 'No readings are waiting for review.'
+            flagged.error
+              ? 'The review list could not be loaded.'
+              : 'No readings are waiting for review.'
           }
         />
       </Card>

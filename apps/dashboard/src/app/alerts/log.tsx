@@ -104,7 +104,8 @@ export default function AlertLogScreen() {
           columns={columns}
           rows={log.data ?? []}
           rowKey={(a) => a.id}
-          empty={log.isLoading ? 'Loading the alert log.' : 'No alert has been sent yet.'}
+          empty="No alert has been sent yet."
+          loading={log.isLoading}
         />
       </Card>
       <Txt size="xs" tone="muted">
