@@ -26,3 +26,4 @@ export * from './queries/health';
 export * from './queries/barangays';
 export * from './queries/households';
 export * from './queries/alerts';
+export * from './queries/commitments';
