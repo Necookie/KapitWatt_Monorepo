@@ -13,6 +13,8 @@ export const keys = {
   totals: (alertId: string) => ['alert', alertId, 'totals'] as const,
   flagged: ['readings', 'flagged'] as const,
   simStatus: ['sim', 'status'] as const,
+  analytics: (alertId: string) => ['analytics', alertId] as const,
+  alertHistory: ['analytics', 'history'] as const,
 };
 
 export function useBarangays() {
@@ -38,6 +40,19 @@ export function useTotals(alertId: string | undefined) {
 
 export function useFlagged() {
   return useQuery({ queryKey: keys.flagged, queryFn: client.listFlagged, ...live });
+}
+
+export function useAnalytics(alertId: string | undefined) {
+  return useQuery({
+    queryKey: keys.analytics(alertId ?? 'none'),
+    queryFn: () => client.getAnalytics(alertId!),
+    enabled: Boolean(alertId),
+    ...live,
+  });
+}
+
+export function useAlertHistory() {
+  return useQuery({ queryKey: keys.alertHistory, queryFn: client.getAlertHistory, ...live });
 }
 
 export function useSimStatus() {
