@@ -240,6 +240,8 @@ Simulated households are flagged `is_simulated`; reset deletes those rows only.
 
 ## Deploy targets
 
+Live API: https://kapitwatt-api.dheyn-main.workers.dev (use as `EXPO_PUBLIC_API_URL` on phones).
+
 - API: `wrangler deploy` to Cloudflare Workers. Secrets `DATABASE_URL`, `SIM_KEY`, `OPERATOR_KEY` via
   `wrangler secret put`; local values in `apps/api/.dev.vars` (copy from `.dev.vars.example`).
 - Dashboard: `expo export --platform web`, then Cloudflare Pages serving `apps/dashboard/dist`.
