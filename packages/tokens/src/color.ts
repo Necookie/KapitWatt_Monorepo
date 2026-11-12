@@ -198,6 +198,9 @@ export const dataViz = {
   light: {
     committed: light.primary,
     delivered: light.relief,
+    /** Delivered split by verification path: told apart by lightness, not hue alone. */
+    deliveredAmi: teal[30],
+    deliveredPhoto: teal[50],
     target: light.tertiary,
     baseline: light.outline,
     reliefArea: light.reliefContainer,
@@ -207,6 +210,8 @@ export const dataViz = {
   dark: {
     committed: dark.primary,
     delivered: dark.relief,
+    deliveredAmi: teal[80],
+    deliveredPhoto: teal[60],
     target: dark.tertiary,
     baseline: dark.outline,
     reliefArea: dark.reliefContainer,

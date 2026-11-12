@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { color, type ColorRoles } from './color';
+import { color, dataViz, type ColorRoles } from './color';
 import { contrastRatio, withAlpha } from './contrast';
 
 type Role = keyof ColorRoles;
@@ -70,4 +70,18 @@ describe('helpers', () => {
     expect(withAlpha('#3238A5', 0.08)).toBe('#3238A514');
     expect(withAlpha('#3238A5', 1)).toBe('#3238A5FF');
   });
+});
+
+describe('chart series', () => {
+  it.each(['light', 'dark'] as const)(
+    'every %s series mark is at least 3:1 on the page',
+    (scheme) => {
+      const marks = ['committed', 'delivered', 'deliveredAmi', 'deliveredPhoto', 'target'] as const;
+      for (const m of marks) {
+        expect(contrastRatio(dataViz[scheme][m], color[scheme].surface), m).toBeGreaterThanOrEqual(
+          3,
+        );
+      }
+    },
+  );
 });

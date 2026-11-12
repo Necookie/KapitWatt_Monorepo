@@ -39,6 +39,7 @@ const ICONS = {
   chartBar: 'chart-bar',
   // navigation and actions
   home: 'house',
+  sidebar: 'sidebar-simple', // collapse or expand the navigation drawer
   history: 'clock-counter-clockwise',
   profile: 'user',
   settings: 'gear',

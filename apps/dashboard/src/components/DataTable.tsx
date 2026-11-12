@@ -1,8 +1,9 @@
 import { Skeleton } from '@kapitwatt/ui';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { colors, space } from '@/theme';
-import { Label, Txt } from './ui';
+import { colors, space } from '@/styles/theme';
+import { Label } from '@/components/ui/Label';
+import { Txt } from '@/components/ui/Txt';
 
 export interface Column<Row> {
   key: string;
