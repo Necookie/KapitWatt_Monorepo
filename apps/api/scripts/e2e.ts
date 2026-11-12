@@ -117,7 +117,10 @@ async function call(
   const res = await withRateLimitRetry(() =>
     fetch(`${API}${path}`, {
       method,
-      headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...headers },
+      headers: {
+        ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...headers,
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     }),
   );
