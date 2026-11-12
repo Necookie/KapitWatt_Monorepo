@@ -2,6 +2,7 @@ import {
   COMMIT_STEP_KW,
   MAX_COMMIT_KW,
   REWARD,
+  TRUST,
   type AlertLevel,
   type CheckStatus,
   type CommitmentStatus,
@@ -17,8 +18,8 @@ import type { Db } from '../index';
  * statement so a request that races the window start cannot slip through:
  *   alert open (not settling/settled/cancelled) and its effective time before window start;
  *   household opted in, with a baseline, in a barangay the alert targets;
- *   committed kW within the commit cap: min(baseline, bill cap, MAX_COMMIT_KW) rounded down to the
- *   step (the same rule as services/cap.ts, computed exactly in numeric).
+ *   committed kW within the commit cap: min(baseline, bill cap, MAX_COMMIT_KW) times the trust
+ *   multiplier, rounded down to the step (the same rule as services/cap.ts, exact in numeric).
  * The verification path comes from the meter type and the baseline is snapshotted from the
  * household row, never from the caller. A household that already committed is skipped.
  * Works for one household (the app) or many (the simulator), in ONE query either way: on Workers
@@ -44,7 +45,7 @@ export async function insertCommitments(
            as t(household_id, committed_kw)
     join households h on h.id = t.household_id
     join alerts a on a.id = ${alertId}
-    where a.status not in ('settling', 'settled', 'cancelled')
+    where a.status not in ('scheduled', 'settling', 'settled', 'cancelled')
       and now() + make_interval(secs => case when ${isDemo} then a.clock_offset_sec else 0 end)
           < a.window_start
       and h.opted_in
@@ -56,7 +57,7 @@ export async function insertCommitments(
             h.baseline_kw,
             ${REWARD.peakFactor}::numeric * h.bill_avg_kwh_month / ${REWARD.hoursPerMonth}::numeric,
             ${MAX_COMMIT_KW}::numeric
-          ) * ${steps}) / ${steps}
+          ) * least(1, ${TRUST.capFloor}::numeric + h.trust_score / 100) * ${steps}) / ${steps}
     on conflict (alert_id, household_id) do nothing
     returning household_id`;
   return rows.map((r) => r.household_id as string);

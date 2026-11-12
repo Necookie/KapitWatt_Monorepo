@@ -73,6 +73,9 @@ export const AlertView = z.object({
   createdBy: z.string(),
   createdAt: z.iso.datetime(),
   pushSentAt: z.iso.datetime().nullable(),
+  /** P1: when a scheduled alert goes out; null when it was sent on creation. Always sent by the API;
+   *  optional so fixtures that predate it still type-check. */
+  sendAt: z.iso.datetime().nullable().optional(),
   /** Server time for this alert (includes the demo fast-forward offset). */
   serverNow: z.iso.datetime(),
 });
@@ -243,6 +246,29 @@ export const FlaggedReading = z.object({
   hasPhoto: z.boolean(),
 });
 export type FlaggedReading = z.infer<typeof FlaggedReading>;
+
+/** GET /readings/flagged (operator): readings waiting for a person, newest first. */
+export const FlaggedReadingsResponse = z.object({ readings: z.array(FlaggedReading) });
+export type FlaggedReadingsResponse = z.infer<typeof FlaggedReadingsResponse>;
+
+/**
+ * POST /readings/:id/review (operator). When the alert had already settled, the commitment is
+ * settled again and its new result is included.
+ */
+export const ReviewResult = z.object({
+  readingId: z.uuid(),
+  checkStatus: CheckStatus,
+  commitment: z
+    .object({
+      status: CommitmentStatus,
+      resultReason: ResultReason.nullable(),
+      creditPhp: z.number(),
+      bonusPhp: z.number(),
+      points: z.number().int(),
+    })
+    .nullable(),
+});
+export type ReviewResult = z.infer<typeof ReviewResult>;
 
 export const SimStatus = z.object({
   enabled: z.boolean(),

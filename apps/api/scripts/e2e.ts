@@ -27,6 +27,8 @@ import {
   ResultCard,
   RewardsSummary,
   SettlementResult,
+  FlaggedReadingsResponse,
+  ReviewResult,
 } from '@kapitwatt/shared';
 
 const API = process.env.API_URL ?? 'http://localhost:8787';
@@ -579,6 +581,7 @@ try {
   await phase4Simulator(ctx);
   const p5 = await phase5Readings(ctx, p2);
   await phase6Settlement(ctx, p5);
+  await phase7Review(ctx, p5);
   console.log(`\nall ${passed} checks passed`);
 } catch (err) {
   console.error(err instanceof Error ? err.message : err);
@@ -763,7 +766,7 @@ async function phase5Readings(
     headers: bearer(a),
   });
   check(asHousehold.status === 401, 'a household cannot view photos');
-  return { cToken: c, moveClock };
+  return { cToken: c, moveClock, flaggedId: farResult.id, p2AlertId: p2.alertId };
 }
 
 async function phase6Settlement(
@@ -979,5 +982,209 @@ async function phase6Settlement(
     SimStatus.parse((await call('POST', '/sim/reset', undefined, SIM)).json).simulatedHouseholds ===
       0,
     'reset the simulation',
+  );
+}
+
+async function phase7Review(
+  ctx: Awaited<ReturnType<typeof phase1Households>>,
+  p5: Awaited<ReturnType<typeof phase5Readings>>,
+) {
+  console.log('phase 7: review, cancel, scheduled sends, reminders, trust');
+  const home = { lat: ctx.signup.lat, lng: ctx.signup.lng };
+  const far = { lat: home.lat + 0.02, lng: home.lng };
+  const a = ctx.token;
+  const inMinutes = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
+  const runCron = async () => {
+    const res = await fetch(`${API}/__scheduled?cron=*+*+*+*+*`);
+    if (!res.ok) throw new Error('cron trigger failed');
+    await new Promise((r) => setTimeout(r, 1500)); // the cron work runs after its response
+  };
+  const newAlert = async (extra: Record<string, unknown> = {}) =>
+    call(
+      'POST',
+      '/alerts',
+      {
+        level: 'red',
+        windowStart: inMinutes(3),
+        windowEnd: inMinutes(123),
+        targetKw: 5,
+        targetBarangayIds: [ctx.barangayId],
+        message: `${RUN} e2e phase 7 alert (test, ignore)`,
+        ...extra,
+      },
+      OPERATOR,
+    );
+  const trustOf = async (householdId: string) =>
+    Number(
+      (await db`select trust_score from households where id = ${householdId}`)[0]?.trust_score,
+    );
+
+  // --- Review before settlement (phase 5 left a too_far after photo on its alert).
+  const list = FlaggedReadingsResponse.parse(
+    (await call('GET', '/readings/flagged', undefined, OPERATOR)).json,
+  ).readings;
+  const flagged = list.find((r) => r.id === p5.flaggedId);
+  check(
+    flagged?.flags.includes('too_far') && flagged.hasPhoto && flagged.previousKwh === 1204.3,
+    'flagged list shows the reading, its flags and the reading before',
+  );
+  const approved = ReviewResult.parse(
+    (await call('POST', `/readings/${p5.flaggedId}/review`, { decision: 'approve' }, OPERATOR))
+      .json,
+  );
+  check(
+    approved.checkStatus === 'pass' && approved.commitment === null,
+    'approve before settlement: the reading passes',
+  );
+  const twice = await call(
+    'POST',
+    `/readings/${p5.flaggedId}/review`,
+    { decision: 'reject' },
+    OPERATOR,
+  );
+  check(
+    twice.status === 409 && errorCode(twice.json) === 'not_flagged',
+    'a reading is reviewed once',
+  );
+  const p2Totals = AlertTotals.parse((await call('GET', `/alerts/${p5.p2AlertId}/totals`)).json);
+  check(p2Totals.deliveredKw > 0, 'the approved photo now counts as delivered');
+
+  // --- Review after settlement: the commitment is settled again, trust adjusts.
+  const x = AlertView.parse((await newAlert()).json);
+  check(
+    (await call('POST', '/commitments', { alertId: x.id, committedKw: 1 }, bearer(a))).status ===
+      201,
+    'A commits to a new alert',
+  );
+  await fastForward(x.id, 'window_start');
+  const before = SubmitReadingResult.parse(
+    (await upload(a, { kind: 'before', alertId: x.id, readingKwh: 1210, ...far })).json,
+  );
+  check(before.checkStatus === 'flagged', 'a before photo far from home is flagged');
+  await fastForward(x.id, 'window_end');
+  check(
+    (await upload(a, { kind: 'after', alertId: x.id, readingKwh: 1212.2, ...home })).status === 201,
+    'after photo',
+  );
+  check((await call('POST', `/alerts/${x.id}/settle`, {}, OPERATOR)).status === 200, 'settled');
+  const held = ResultCard.parse(
+    (await call('GET', `/rewards/by-alert/${x.id}`, undefined, bearer(a))).json,
+  );
+  check(
+    held.status === 'flagged' && held.creditPhp === 0 && held.resultReason === 'failed_check',
+    'a flagged photo is held, not paid',
+  );
+  const trustHeld = await trustOf(ctx.householdId);
+  const review = ReviewResult.parse(
+    (await call('POST', `/readings/${before.id}/review`, { decision: 'approve' }, OPERATOR)).json,
+  );
+  check(
+    review.commitment?.status === 'verified' &&
+      review.commitment.creditPhp === 8.06 &&
+      review.commitment.points === 160,
+    'approve after settlement: re-settled and paid PHP 8.06, 160 points',
+  );
+  const card = ResultCard.parse(
+    (await call('GET', `/rewards/by-alert/${x.id}`, undefined, bearer(a))).json,
+  );
+  check(card.status === 'verified' && card.creditPhp === 8.06, 'result card shows the payment');
+  check(
+    (await trustOf(ctx.householdId)) === Math.min(100, trustHeld + 15),
+    'trust: the flag penalty is undone and the clean event counted (+15)',
+  );
+
+  // --- Cancel.
+  const y = AlertView.parse((await newAlert()).json);
+  const cancelled = await call('POST', `/alerts/${y.id}/cancel`, undefined, OPERATOR);
+  check(
+    cancelled.status === 200 && AlertView.parse(cancelled.json).status === 'cancelled',
+    'POST /alerts/:id/cancel',
+  );
+  const again = await call('POST', `/alerts/${y.id}/cancel`, undefined, OPERATOR);
+  check(
+    again.status === 409 && errorCode(again.json) === 'alert_closed',
+    'cancelling twice is 409',
+  );
+  const noCommit = await call('POST', '/commitments', { alertId: y.id, committedKw: 1 }, bearer(a));
+  check(
+    noCommit.status === 409 && errorCode(noCommit.json) === 'alert_closed',
+    'no commitments on a cancelled alert',
+  );
+  let lifted = false;
+  for (let i = 0; i < 10 && !lifted; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    lifted =
+      (await db`select lifted_push_sent_at from alerts where id = ${y.id}`)[0]
+        ?.lifted_push_sent_at !== null;
+  }
+  check(lifted, 'the alert-lifted push was claimed once');
+
+  // --- Scheduled send, then reminders through the cron.
+  const z = AlertView.parse((await newAlert({ sendAt: inMinutes(1) })).json);
+  check(
+    z.status === 'scheduled' && z.sendAt !== null && z.pushSentAt === null,
+    'a scheduled alert is stored, not sent',
+  );
+  const hidden = ActiveAlertResponse.parse(
+    (await call('GET', '/alerts/active', undefined, bearer(a))).json,
+  );
+  check(hidden.alert?.id !== z.id, 'households do not see it before it is sent');
+  const early = await call('POST', '/commitments', { alertId: z.id, committedKw: 1 }, bearer(a));
+  check(
+    early.status === 409 && errorCode(early.json) === 'not_sent',
+    'no commitments before it is sent',
+  );
+  await db`update alerts set send_at = now() - interval '1 second' where id = ${z.id}`; // test fixture
+  await runCron();
+  const sent = AlertView.parse((await call('GET', `/alerts/${z.id}`)).json);
+  check(sent.status === 'active', 'the cron sent it at its send time');
+  const reminder = async (
+    col: 'reminder_sent_at' | 'before_reminder_sent_at' | 'after_reminder_sent_at',
+  ) =>
+    (
+      await db`select reminder_sent_at, before_reminder_sent_at, after_reminder_sent_at from alerts where id = ${z.id}`
+    )[0]?.[col] as Date | null;
+  check(
+    (await reminder('reminder_sent_at')) !== null,
+    'pre-window reminder sent (window starts within 15 minutes)',
+  );
+  const firstReminder = (await reminder('reminder_sent_at'))!.getTime();
+  await runCron();
+  check(
+    (await reminder('reminder_sent_at'))!.getTime() === firstReminder,
+    'the reminder is not sent twice',
+  );
+  await fastForward(z.id, 'window_start');
+  await runCron();
+  check(
+    (await reminder('before_reminder_sent_at')) !== null,
+    'before-photo reminder at window start',
+  );
+  await fastForward(z.id, 'window_end');
+  await runCron();
+  check((await reminder('after_reminder_sent_at')) !== null, 'after-photo reminder at window end');
+
+  // --- Trust narrows the commit cap, in the code and in the SQL guard.
+  const cId = HouseholdMe.parse(
+    (await call('GET', '/auth/me', undefined, bearer(p5.cToken))).json,
+  ).id;
+  await db`update households set trust_score = 20 where id = ${cId}`; // test fixture
+  const meC = HouseholdMe.parse((await call('GET', '/auth/me', undefined, bearer(p5.cToken))).json);
+  check(meC.commitCapKw === 1.3, 'trust 20 lowers the cap from 1.9 to 1.3 kW');
+  const w = AlertView.parse((await newAlert()).json);
+  const over = await call(
+    'POST',
+    '/commitments',
+    { alertId: w.id, committedKw: 1.5 },
+    bearer(p5.cToken),
+  );
+  check(
+    over.status === 422 && errorCode(over.json) === 'above_cap',
+    'a cut above the trust-narrowed cap is 422',
+  );
+  check(
+    (await call('POST', '/commitments', { alertId: w.id, committedKw: 1.3 }, bearer(p5.cToken)))
+      .status === 201,
+    'a cut at the cap is accepted',
   );
 }

@@ -20,6 +20,7 @@ import {
   roundKw,
   SETTLEMENT_DELAY_MIN,
   SETTLEMENT_GRACE_MIN,
+  TRUST,
   verifyCut,
   type ResultReason,
   type SettlementResult,
@@ -87,6 +88,24 @@ export function measureCommitment(c: SettlementCommitmentRow, windowHours: numbe
 }
 
 /**
+ * How a settled result moves the household's trust score (P1, placeholder weights): a clean verified
+ * event raises it; a flagged or rejected reading, or a missing or late photo, lowers it. Missing AMI
+ * data and a zero cut are not the household's doing and leave it alone.
+ */
+export function trustDelta(m: Pick<Measured, 'status' | 'resultReason'>): number {
+  if (m.status === 'verified') return TRUST.cleanEvent;
+  switch (m.resultReason) {
+    case 'failed_check':
+      return TRUST.flaggedReading;
+    case 'missing_photo':
+    case 'late_photo':
+      return TRUST.missedEvent;
+    default:
+      return 0;
+  }
+}
+
+/**
  * The whole settlement of an alert, pure. Barangay delivered kW is the sum of paid cuts of verified
  * commitments; at 100% of its target every verified household there gets the bonus on its own
  * credit. Every commitment gets a reward row (zero when unpaid).
@@ -113,6 +132,8 @@ export function computeSettlement(
         : { creditPhp: 0, bonusPhp: 0, points: 0 };
     return {
       id: c.id,
+      householdId: c.householdId,
+      trustDelta: trustDelta(m),
       status: m.status,
       actualKw: m.actualKw,
       verifiedKwh: m.verifiedKwh,

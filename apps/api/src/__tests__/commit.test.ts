@@ -35,6 +35,7 @@ const alert: AlertRow = {
   createdAt: at('2026-11-12T09:00:00Z'),
   clockOffsetSec: 0,
   pushSentAt: null,
+  sendAt: null,
   settledAt: null,
   cancelledAt: null,
   effectiveNow: at('2026-11-12T09:30:00Z'),

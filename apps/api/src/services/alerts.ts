@@ -66,6 +66,14 @@ export async function createAlert(
   if (end <= Date.now()) {
     throw new AppError(422, 'window_in_past', 'The window has already ended.');
   }
+  const sendAt = input.sendAt === undefined ? null : Date.parse(input.sendAt);
+  if (sendAt !== null && sendAt <= Date.now()) {
+    throw new AppError(
+      422,
+      'send_at_in_past',
+      'The send time has already passed. Send now instead.',
+    );
+  }
 
   const requested = input.targetBarangayIds.length ? [...new Set(input.targetBarangayIds)] : null;
   const barangayIds = await existingBarangayIds(db, requested);
@@ -92,6 +100,7 @@ export async function createAlert(
         message: input.message,
         createdBy: opts.createdBy,
         idempotencyKey: opts.idempotencyKey,
+        sendAt: sendAt === null ? null : new Date(sendAt).toISOString(),
       },
       shares,
     );

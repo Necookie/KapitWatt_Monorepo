@@ -31,6 +31,27 @@ export const SETTLEMENT_DELAY_MIN = 30;
  */
 export const SETTLEMENT_GRACE_MIN = 1;
 
+/** Reminder push to targeted households this many minutes before the window starts (P1). */
+export const REMINDER_BEFORE_WINDOW_MIN = 15;
+
+/**
+ * Trust score (P1). ALL PLACEHOLDERS. Starts neutral; settlement moves it; it narrows the commit cap
+ * only below neutral: cap multiplier = min(1, capFloor + score / 100), so 50 keeps the full cap and
+ * 0 halves it.
+ */
+export const TRUST = {
+  start: 50,
+  min: 0,
+  max: 100,
+  /** A settled event with a verified cut and clean readings. */
+  cleanEvent: 5,
+  /** A flagged or rejected reading. */
+  flaggedReading: -10,
+  /** A missing or late photo. */
+  missedEvent: -5,
+  capFloor: 0.5,
+} as const;
+
 export const COMMIT_PRESETS_KW = [0.5, 1, 1.5, 2] as const;
 /** The stepper moves in 0.1 kW, the precision kW is kept to. */
 export const COMMIT_STEP_KW = 0.1;
