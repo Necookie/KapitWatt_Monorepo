@@ -1,4 +1,9 @@
-import { CreateAlertInput, DEFAULT_WINDOW_HOURS, type AlertLevel } from '@kapitwatt/shared';
+import {
+  CreateAlertInput,
+  DEFAULT_WINDOW_HOURS,
+  placeList,
+  type AlertLevel,
+} from '@kapitwatt/shared';
 import { expectedOutcome } from '@kapitwatt/sim';
 import { useMemo, useState } from 'react';
 import { toLocalInput } from '@/utils/datetime';
@@ -28,6 +33,8 @@ export function useAlertForm() {
   const [message, setMessage] = useState<string | null>(null);
   /** Null means all pilot areas. */
   const [picked, setPicked] = useState<Set<string> | null>(null);
+  /** Demo: targeted barangays marked as on the rotational brownout schedule (simulated). */
+  const [risk, setRisk] = useState<Set<string>>(() => new Set());
 
   const all = barangays.data ?? [];
   const selected = picked ?? new Set(all.map((b) => b.id));
@@ -44,8 +51,6 @@ export function useAlertForm() {
     }
     setUnit(next);
   };
-  const messageText =
-    message ?? defaultMessage(level, validStart ? startDate : new Date(), endDate);
 
   const byTown = useMemo(() => groupByTown(all), [all]);
 
@@ -53,6 +58,24 @@ export function useAlertForm() {
   const townCount = new Set(chosen.map((b) => b.municipality)).size;
   const knowsHouseholds = chosen.some((b) => b.optedInHouseholds !== undefined);
   const households = chosen.reduce((sum, b) => sum + (b.optedInHouseholds ?? 0), 0);
+  // Only targeted barangays can be at risk: dropping a target drops its mark too.
+  const atRisk = new Set(chosen.filter((b) => risk.has(b.id)).map((b) => b.id));
+  /** Marks or clears a town's barangays as at risk. The first mark targets all pilot areas, so the
+   *  other towns are asked to help; the operator can still narrow the targets after. */
+  const riskPlace = placeList(chosen.filter((b) => atRisk.has(b.id)).map((b) => b.municipality));
+  // Until the operator edits it, the message follows the level, the window and the at-risk towns.
+  const messageText =
+    message ?? defaultMessage(level, validStart ? startDate : new Date(), endDate, riskPlace);
+  const toggleRisk = (ids: string[], on: boolean) => {
+    const next = new Set(risk);
+    for (const id of ids) {
+      if (on) next.add(id);
+      else next.delete(id);
+    }
+    if (on && atRisk.size === 0) setPicked(null);
+    else if (on) setPicked(new Set([...selected, ...ids]));
+    setRisk(next);
+  };
 
   const input = {
     level,
@@ -61,6 +84,7 @@ export function useAlertForm() {
     targetKw: toKw(Number(targetText), unit),
     // An empty list is the API's way of saying "all pilot areas".
     targetBarangayIds: everything ? [] : chosen.map((b) => b.id),
+    atRiskBarangayIds: [...atRisk],
     message: messageText.trim(),
   };
   const parsed = CreateAlertInput.safeParse(input);
@@ -106,6 +130,14 @@ export function useAlertForm() {
         : '—',
     },
     { label: 'Reach', value: reach },
+    ...(atRisk.size > 0
+      ? [
+          {
+            label: 'At risk',
+            value: riskPlace,
+          },
+        ]
+      : []),
     { label: 'Target', value: input.targetKw > 0 ? power(input.targetKw) : '—' },
     {
       label: 'Forecast',
@@ -140,6 +172,9 @@ export function useAlertForm() {
     byTown,
     selected,
     toggle,
+    atRisk,
+    riskPlace,
+    toggleRisk,
     pickAll,
     households: knowsHouseholds ? households : undefined,
     input,

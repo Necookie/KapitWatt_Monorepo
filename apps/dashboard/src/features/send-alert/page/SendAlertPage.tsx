@@ -10,6 +10,7 @@ import { useCurrentAlert } from '@/api/queries';
 import { useLayoutValue } from '@/hooks/useLayoutValue';
 import { dayAndClock } from '@/utils/format';
 import { useCreateAlert } from '../api/useCreateAlert';
+import { AtRiskPicker } from '../components/AtRiskPicker';
 import { AreaPicker } from '../components/AreaPicker';
 import { ConfirmSend } from '../components/ConfirmSend';
 import { LevelCards } from '../components/LevelCards';
@@ -83,6 +84,11 @@ export default function SendAlertPage() {
             title="Target areas"
             subtitle="Only opted-in households in these barangays are alerted."
           >
+            <AtRiskPicker
+              byTown={form.byTown}
+              atRisk={form.atRisk}
+              onToggleTown={form.toggleRisk}
+            />
             <AreaPicker
               byTown={form.byTown}
               selected={form.selected}

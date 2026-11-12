@@ -85,6 +85,15 @@ export async function createAlert(
     );
   }
 
+  const atRisk = [...new Set(input.atRiskBarangayIds ?? [])];
+  if (atRisk.some((id) => !barangayIds.includes(id))) {
+    throw new AppError(
+      422,
+      'at_risk_not_targeted',
+      'Barangays marked at risk of a brownout must also be targeted.',
+    );
+  }
+
   const shares = toShares(splitTargetKw(input.targetKw, await optedInCounts(db, barangayIds)));
   const id = crypto.randomUUID();
   try {
@@ -97,6 +106,7 @@ export async function createAlert(
         windowEnd: new Date(end).toISOString(),
         targetKw: input.targetKw,
         targetBarangayIds: barangayIds,
+        atRiskBarangayIds: atRisk,
         message: input.message,
         createdBy: opts.createdBy,
         idempotencyKey: opts.idempotencyKey,

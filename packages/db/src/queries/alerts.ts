@@ -22,6 +22,8 @@ export interface AlertRow {
   windowEnd: Date;
   targetKw: number;
   targetBarangayIds: string[];
+  /** Targets the operator marked as at risk of a brownout (simulated). A subset of the targets. */
+  atRiskBarangayIds: string[];
   message: string;
   storedStatus: StoredAlertStatus;
   createdBy: string;
@@ -44,6 +46,7 @@ const toAlertRow = (r: Row): AlertRow => ({
   windowEnd: r.window_end as Date,
   targetKw: Number(r.target_kw),
   targetBarangayIds: r.target_barangay_ids as string[],
+  atRiskBarangayIds: (r.at_risk_barangay_ids as string[] | null) ?? [],
   message: r.message as string,
   storedStatus: r.status as StoredAlertStatus,
   createdBy: r.created_by as string,
@@ -140,6 +143,7 @@ export interface NewAlert {
   windowEnd: string;
   targetKw: number;
   targetBarangayIds: string[];
+  atRiskBarangayIds: string[];
   message: string;
   createdBy: string;
   idempotencyKey: string | null;
@@ -154,10 +158,10 @@ export async function insertAlertWithTargets(
   targets: { barangayId: string; targetKw: number }[],
 ): Promise<void> {
   await db.transaction([
-    db`insert into alerts (id, level, window_start, window_end, target_kw, target_barangay_ids, message,
-                           status, created_by, idempotency_key, send_at)
+    db`insert into alerts (id, level, window_start, window_end, target_kw, target_barangay_ids,
+                           at_risk_barangay_ids, message, status, created_by, idempotency_key, send_at)
        values (${a.id}, ${a.level}, ${a.windowStart}, ${a.windowEnd}, ${a.targetKw},
-               ${a.targetBarangayIds}::uuid[], ${a.message},
+               ${a.targetBarangayIds}::uuid[], ${a.atRiskBarangayIds}::uuid[], ${a.message},
                case when ${a.sendAt}::timestamptz is null then 'active' else 'scheduled' end,
                ${a.createdBy}, ${a.idempotencyKey}, ${a.sendAt}::timestamptz)`,
     db`insert into alert_barangay_targets (alert_id, barangay_id, target_kw, is_override)
