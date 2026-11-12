@@ -1,0 +1,5 @@
+# Doppler project for this repo. No secrets here: it only names where they live.
+# After `doppler login` (scope it to this folder if you use other workplaces), run `doppler setup`.
+setup:
+  project: kapitwatt
+  config: dev
