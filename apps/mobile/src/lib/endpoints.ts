@@ -23,6 +23,7 @@ import {
   type SubmitReadingResponse,
   type UpdateProfileInput,
 } from '@kapitwatt/shared';
+import { File } from 'expo-file-system';
 import {
   notCommittedStatus,
   toAlertView,
@@ -174,8 +175,10 @@ export async function submitReading(
   for (const [key, value] of Object.entries(input)) {
     if (value !== undefined) form.append(key, String(value));
   }
-  // React Native's FormData takes a file descriptor object instead of a Blob.
-  form.append('photo', { uri: photoUri, name: 'meter.jpg', type: 'image/jpeg' } as unknown as Blob);
+  // The photo as a File from expo-file-system (a Blob with bytes()). SDK 58's global fetch is
+  // expo/fetch, which cannot send React Native's `{ uri, name, type }` file parts: it throws
+  // "Unsupported FormDataPart implementation" before anything is sent.
+  form.append('photo', new File(photoUri) as unknown as Blob, 'meter.jpg');
   const result = SubmitReadingResult.parse(await api('/readings', { method: 'POST', body: form }));
   return toSubmittedReading(result, input, serverNowIso());
 }

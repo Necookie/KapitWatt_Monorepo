@@ -51,7 +51,11 @@ export function describeError(e: unknown, known: Record<string, string>, fallbac
   if (e instanceof Error && e.name === 'ZodError') {
     return 'The server is on a different version than this app. Ask the KapitWatt team to update it.';
   }
-  if (e instanceof TypeError) return 'Cannot reach the server. Check your internet connection.';
+  // No answer at all. React Native's fetch threw TypeError; SDK 58's (expo/fetch) throws its own
+  // FetchError, which is not exported and keeps the name "Error", but always starts its message so.
+  if (e instanceof TypeError || (e instanceof Error && e.message.startsWith('fetch failed:'))) {
+    return 'Cannot reach the server. Check your internet connection.';
+  }
   return fallback;
 }
 
