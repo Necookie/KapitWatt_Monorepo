@@ -32,3 +32,4 @@ export * from './queries/readings';
 export * from './queries/settlement';
 export * from './queries/rewards';
 export * from './queries/analytics';
+export * from './queries/demo';

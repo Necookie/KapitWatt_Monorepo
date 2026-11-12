@@ -187,7 +187,8 @@ export async function history(db: Db, householdId: string, limit: number): Promi
 /**
  * The simulator's batch commit (via the sim port): the same guarded insert as a phone, which checks
  * the cap, opt-in, baseline, targeted barangay, alert state, the window-start cutoff and one per
- * alert in SQL, limited to simulated households. Refused commits are skipped, as the runner expects.
+ * alert in SQL, limited to simulated households (and, with `includeDemo`, the demo accounts in a
+ * replayed past event). Refused commits are skipped, as the runner expects.
  * One query per batch. Returns the household ids that got a commitment.
  */
 export async function commitMany(
@@ -195,6 +196,7 @@ export async function commitMany(
   alertId: string,
   items: { householdId: string; committedKw: number }[],
   isDemo: boolean,
+  includeDemo = false,
 ): Promise<string[]> {
-  return insertCommitments(db, alertId, items, isDemo, { simulatedOnly: true });
+  return insertCommitments(db, alertId, items, isDemo, { simulatedOnly: true, includeDemo });
 }

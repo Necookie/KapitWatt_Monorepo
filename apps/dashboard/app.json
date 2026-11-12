@@ -5,12 +5,11 @@
     "scheme": "kapitwatt-dashboard",
     "version": "0.1.0",
     "platforms": ["web"],
-    "icon": "./assets/icon.png",
+    "icon": "../../packages/assets/logo/png/icon.png",
     "userInterfaceStyle": "light",
     "web": {
       "bundler": "metro",
-      "output": "single",
-      "favicon": "./assets/favicon.png"
+      "output": "single"
     },
     "plugins": ["expo-router"]
   }

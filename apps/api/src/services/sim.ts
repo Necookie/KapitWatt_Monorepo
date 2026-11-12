@@ -3,6 +3,7 @@ import type { SimParams, SimRunInput, SimRunSummary, SimStatus } from '@kapitwat
 import { buildLagunaSeed, DEFAULT_PARAMS, runCommits, runDelivery } from '@kapitwatt/sim';
 import { AppError, conflict, notFound } from '../lib/errors';
 import { logInfo } from '../lib/log';
+import { deliverDemoSmartMeters } from './demo';
 import { registerSimulated } from './households';
 import { createSimPort } from './sim-port';
 
@@ -103,6 +104,12 @@ export async function runSimulation(
   }
   const windowMinutes = (alert.windowEnd.getTime() - alert.windowStart.getTime()) / MIN_MS;
   const summary = await runDelivery(alert.id, input.params, port, windowMinutes);
-  logInfo('sim_delivery', { alertId: alert.id, households: summary.householdsWithReadings });
+  // Demo accounts commit on testers' phones; the fake smart-meter feed stands in for their meters.
+  const demoMeters = await deliverDemoSmartMeters(db, alert.id, window, input.params.followThrough);
+  logInfo('sim_delivery', {
+    alertId: alert.id,
+    households: summary.householdsWithReadings,
+    demoMeters,
+  });
   return summary;
 }

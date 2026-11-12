@@ -6,6 +6,7 @@ Brand files shared by `apps/mobile` and `apps/dashboard`. Static files only, no 
 | ----------- | ----------------------------------------------------------------------------- |
 | `logo/`     | Final logo SVGs: symbol, wordmark, horizontal and stacked lockups, icon       |
 | `logo/png/` | Expo app icon, Android adaptive icon layers, favicon, splash image            |
+| `logo/web/` | Web favicons: SVG, ICO (16/32/48), Apple touch icon, 192/512 manifest icons   |
 | `mascot/`   | Alitaptap poses for empty states and the result card (not the logo)           |
 | `fonts/`    | Albert Sans variable font and its licence (SIL OFL 1.1)                       |
 | `source/`   | Python that regenerates `logo/` (`build.py`) and `fonts/static/` (`fonts.py`) |
@@ -42,6 +43,11 @@ PNG paths for `app.json` (relative to `apps/<app>/`):
 ```
 
 The SVGs need `react-native-svg` to render inside the apps; on the dashboard (web) an `<img>` works.
+
+**Web favicons.** Expo serves `apps/<app>/public/` at the site root, so the dashboard keeps copies
+of `logo/web/*` in `apps/dashboard/public/`, linked from `public/index.html` (with
+`manifest.webmanifest`). Copy them again after regenerating. The favicon tile fits the symbol to
+76% of the square, not the app icon's 62%, so it stays readable at 16 px.
 
 ## Regenerating
 

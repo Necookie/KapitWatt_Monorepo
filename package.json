@@ -20,6 +20,8 @@
     "db:smoke": "doppler run -- pnpm --filter @kapitwatt/db smoke",
     "db:seed": "doppler run -- pnpm --filter @kapitwatt/db seed",
     "demo:accounts": "doppler run -- pnpm --filter @kapitwatt/api demo:accounts",
+    "demo:reset": "doppler run -- pnpm --filter @kapitwatt/api demo:reset",
+    "demo:seed-search": "doppler run -- pnpm --filter @kapitwatt/api demo:seed-search",
     "deploy:api": "doppler run -- node apps/api/scripts/deploy.mjs",
     "deploy:dashboard": "doppler run -- pnpm --filter @kapitwatt/dashboard build && pnpm --filter @kapitwatt/api exec wrangler deploy --config ../dashboard/wrangler.jsonc"
   },

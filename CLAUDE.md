@@ -39,8 +39,22 @@ docs/          The full plan (PDF, source of truth), PRD, SRS, MVP
 
 Inside each app:
 
-- `apps/mobile/src/app/` and `apps/dashboard/src/app/`: Expo Router routes only. One file per screen.
-  Components go in `src/components/`, API client and helpers in `src/lib/`.
+- `apps/mobile/src/app/`: Expo Router routes only. One file per screen. Components go in
+  `src/components/`, API client and helpers in `src/lib/`.
+- `apps/dashboard/src/` is feature-driven. `src/app/` holds Expo Router routes only, each one line:
+  `export { <Page> as default } from '@/features/<page>'`. Each page lives in `src/features/<page>/`
+  (`live-load`, `send-alert`, `flagged`, `alert-log`, `simulator`, `analytics`, `town-detail`), with
+  nothing at its root but `index.ts`:
+  - `page/<Name>Page.tsx`: composition only (no inline components, helpers or derivation blocks).
+  - `components/`: one component per file, named after it. `hooks/`: one hook per file (`useX.ts`).
+    `utils/`: pure functions and constants (kebab-case files). `api/`: one query or mutation hook per
+    file, for queries only this page uses. `styles/`: only for standalone styles or CSS.
+  - Code used by more than one page goes in the shared folders: `components/` (`ui/` holds the older
+    compact primitives), `hooks/`, `utils/`, `layout/` (the app shell, itself split into `components/`,
+    `hooks/`, `utils/`), `styles/` and `api/` (client, HTTP, shared queries and query keys).
+  - A feature never imports from another feature, and shared code never imports a feature; when two
+    pages need the same thing, move it to a shared folder. Inside a feature use relative imports; for
+    shared code use `@/`.
 - `apps/api/src/routes/`: one Hono router per resource, kept thin (validate, call a service, respond).
   Business logic goes in `src/services/` (see its README for the planned files). Auth in `src/middleware/`.
 - `packages/shared/src/schemas/` (enums, entities, requests, sim) and `src/math/` (payout, baseline,
@@ -67,6 +81,9 @@ pnpm build                   # typecheck all + bundle API (dry run) + export das
 pnpm db:migrate              # apply packages/db/migrations/*.sql (direct connection)
 pnpm db:seed                 # load the 21 pilot barangays (reference data, safe to re-run)
 pnpm db:smoke                # insert, read back, delete one row through the app's driver
+pnpm demo:reset -- --yes     # demo only, deletes data: clean slate + seed + demo accounts + past events
+pnpm demo:seed-search        # read-only: pick the live event's simulator seed (see "Demo reset")
+pnpm demo:accounts           # just the ten demo accounts (demo:reset includes this)
 pnpm --filter @kapitwatt/dashboard build   # expo export -> apps/dashboard/dist
 pnpm deploy:api              # preflight, then wrangler deploy with its secrets (from main)
 pnpm deploy:dashboard        # build with the Doppler env, then deploy to kapitwatt.dhekode.com
@@ -87,7 +104,10 @@ Adding dependencies:
 1. **Apps never import each other.** They talk through the API and `@kapitwatt/shared`.
 2. **The simulator never inserts rows.** It calls the same service functions real households hit, through
    the `SimPort` interface in `packages/sim/src/runner.ts`, so the demo exercises real code paths. It acts
-   as a service account for simulated rows only.
+   as a service account for simulated rows only. One written exception: the ten demo accounts
+   (`households.is_demo`). `pnpm demo:reset` commits and sends readings for them in replayed past events,
+   and the fake smart-meter feed covers a demo account a tester committed on the phone. In a live event
+   the simulator never commits for them.
 3. **Only `apps/api` and `packages/db` touch Postgres.** The driver is imported in `packages/db` only.
    Routes get a handle as `c.var.db` and pass it to query helpers in `packages/db/src/queries/`.
 4. **Push is sent only from the API**, through Expo Push, to opted-in tokens in targeted barangays.
@@ -238,6 +258,29 @@ and 441 kW by photo households = about 527 kW, 88% of the 600 kW target. The sho
 point (every missed photo is verified kW lost).
 
 Simulated households are flagged `is_simulated`; reset deletes those rows only.
+
+### Demo reset (before every demo)
+
+`pnpm demo:reset -- --yes` (`apps/api/scripts/demo-reset.ts`) rebuilds the demo world in about 20 s:
+
+1. The 21 barangays, then the ten demo accounts (`demo01..10@kapitwatt.test`): created if missing,
+   `is_demo`, all in the presenter's barangay, **Bagumbayan, Santa Cruz**. 01 to 07 photo, 08 and 09
+   smart meter, 10 has no baseline (practice-run demo). First, so a failure deletes nothing.
+2. Clean slate: every alert (with its commitments, readings and rewards), every simulated household,
+   orphan sign-ups (no email and no login token), and the demo accounts' leftover readings. Real
+   households with a login keep their accounts.
+3. 1,200 simulated households (household seed 2026).
+4. Six past events over four weeks (`PAST_EVENTS` in `apps/api/src/services/demo.ts`), each run through
+   the real services with no push, then moved back to its date. Each demo account follows a script
+   (mostly paid; one late photo, one missed photo, one skip, one flagged typo left for review).
+5. A forecast of the live event.
+
+The live event: alert to all pilot areas, 600 kW, 2 h; simulator seed **`LIVE_EVENT.seed`** in
+`apps/api/scripts/demo/live.ts` (type it in Simulator > Realism > Random seed; do not re-seed on stage).
+With that seed Bagumbayan reaches its target from simulated households alone; testers' commits only
+add to it. If the reset's data changes, run `pnpm demo:seed-search` and update the seed. The reset
+prints each demo account's last meter reading: a tester must type a higher one. Run the reset before
+phones are handed out (each replayed alert is open for a few seconds).
 
 ### Guardrails
 

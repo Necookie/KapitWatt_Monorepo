@@ -2,9 +2,9 @@ import { useBrandFonts } from '@kapitwatt/hooks';
 import { ThemeProvider } from '@kapitwatt/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Slot } from 'expo-router';
-import { AppShell } from '@/components/AppShell';
-import { GlobalStyles } from '@/components/GlobalStyles';
-import { SimParamsProvider } from '@/lib/sim-params';
+import { AppShell } from '@/layout/AppShell';
+import { GlobalStyles } from '@/styles/GlobalStyles';
+import { SimParamsProvider } from '@/hooks/sim-params';
 
 const queryClient = new QueryClient();
 

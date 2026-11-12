@@ -41,6 +41,8 @@ export const Household = z.object({
   accountNumber: z.string().nullable().optional(),
   accountName: z.string().nullable().optional(),
   serviceAddress: z.string().nullable().optional(),
+  /** One of the ten demo accounts (0005, `pnpm demo:reset`). Optional so older rows still parse. */
+  isDemo: z.boolean().optional(),
   // auth_token_hash, token_created_at and password_hash stay server-side only and are deliberately
   // not mirrored.
 });

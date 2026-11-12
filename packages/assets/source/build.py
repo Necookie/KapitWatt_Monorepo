@@ -19,6 +19,7 @@ from wordmark import build as build_wordmark
 HERE = Path(__file__).resolve().parent
 LOGO = HERE.parent / "logo"
 PNG = LOGO / "png"
+WEB = LOGO / "web"
 FONT = HERE.parent / "fonts" / "AlbertSans[wght].ttf"
 INDIGO, WHITE = "#171C8F", "#FFFFFF"
 
@@ -86,6 +87,16 @@ def main():
     for name, text in out.items():
         (LOGO / f"kapitwatt-{name}.svg").write_text(text)
 
+    # Web favicon tile: at 16-32 px the app icon's 62% symbol is too small to read, so the favicon
+    # fits the symbol to 76% of the tile. Written here as SVG; rasterized with the PNGs below.
+    WEB.mkdir(exist_ok=True)
+    kf = S * 0.76 / max(x1 - x0, y1 - y0)
+    tfx, tfy = (S - (x1 - x0) * kf) / 2 - x0 * kf, (S - (y1 - y0) * kf) / 2 - y0 * kf
+    fav_tile = f'<rect width="{S}" height="{S}" rx="{S * 0.22:.0f}" fill="{INDIGO}"/>' + path(
+        d, WHITE, f"translate({tfx:.2f} {tfy:.2f}) scale({kf:.4f})"
+    )
+    (WEB / "favicon.svg").write_text(svg(f"0 0 {S} {S}", fav_tile))
+
     # PNGs for Expo (app.json): icon, Android adaptive layers, favicon, splash
     def png(name, content, size=1024):
         page = f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 1024 1024">{content}</svg>'
@@ -107,7 +118,33 @@ def main():
     inner = stacked.split(">", 1)[1].rsplit("</svg>", 1)[0]
     png("splash-icon.png", f'<g transform="translate({(1024 - vb[2] * k3) / 2 - vb[0] * k3:.2f} {(1024 - vb[3] * k3) / 2 - vb[1] * k3:.2f}) scale({k3:.4f})">{inner}</g>')
 
-    print(f"wrote {len(out)} SVGs to {LOGO} and 6 PNGs to {PNG}")
+    # Web favicons (logo/web), rasterized: a multi-size ICO for browsers without SVG favicons, a
+    # flat 180 px touch icon (iOS rounds the corners itself), and 192/512 icons for the manifest.
+    def raster(content, size):
+        page = f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 1024 1024">{content}</svg>'
+        return bytes(resvg_py.svg_to_bytes(svg_string=page))
+
+    (WEB / "favicon.ico").write_bytes(ico({n: raster(fav_tile, n) for n in (16, 32, 48)}))
+    (WEB / "apple-touch-icon.png").write_bytes(raster(flat_icon, 180))
+    icon_tile = out["icon"].split(">", 1)[1].rsplit("</svg>", 1)[0]
+    for n in (192, 512):
+        (WEB / f"icon-{n}.png").write_bytes(raster(icon_tile, n))
+
+    print(f"wrote {len(out)} SVGs to {LOGO}, 6 PNGs to {PNG} and 5 favicons to {WEB}")
+
+
+def ico(images):
+    """An .ico holding PNG images (supported by every current browser and Windows since Vista)."""
+    import struct
+
+    header = struct.pack("<HHH", 0, 1, len(images))
+    entries, blobs = b"", b""
+    offset = 6 + 16 * len(images)
+    for size, data in sorted(images.items()):
+        dim = 0 if size >= 256 else size
+        entries += struct.pack("<BBBBHHII", dim, dim, 0, 0, 1, 32, len(data), offset + len(blobs))
+        blobs += data
+    return header + entries + blobs
 
 
 if __name__ == "__main__":
