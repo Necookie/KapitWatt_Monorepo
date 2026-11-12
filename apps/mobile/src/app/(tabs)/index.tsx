@@ -1,14 +1,18 @@
+import { Logo, Text } from '@kapitwatt/ui';
 import { Redirect, router } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
-import { AlertBadge } from '@/components/event/AlertBadge';
+import { StyleSheet, View } from 'react-native';
+import { AlertCard, BarangayTonight, QuietCard, RewardTiles } from '@/components/home/HomeCards';
+import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { MockControls } from '@/components/MockControls';
-import { Button, Card, ErrorState, Loading, Row, Screen, SimulatedNote } from '@/components/ui';
-import { ApiError, describeError } from '@/lib/api';
-import { startOver } from '@/lib/nav';
-import { formatClock } from '@/lib/format';
-import { useActiveAlert, useLogout, useMe, useRefreshAll } from '@/lib/queries';
-import { colors, text } from '@/theme';
+import { Button, ErrorState, Loading, Screen } from '@/components/ui';
+import { ApiError } from '@/lib/api';
+import { useActiveAlert, useMe, useRefreshAll } from '@/lib/queries';
+import { space } from '@/theme';
 
+/** "Juan Dela Cruz" -> "Juan"; households from before names were collected get a neutral hello. */
+const firstName = (name: string | null) => name?.trim().split(/\s+/)[0] ?? null;
+
+/** Home (mockup "Home · red alert"): greeting, the alert if there is one, rewards, barangay. */
 export default function HomeScreen() {
   const alert = useActiveAlert();
   const me = useMe();
@@ -36,73 +40,59 @@ export default function HomeScreen() {
     );
   }
 
-  const needsRehearsal = me.data.needsRehearsal;
-
+  const h = me.data;
   const view = alert.data;
+  const name = firstName(h.accountName);
 
   return (
     // Pull to refresh finds the alert even if the push was missed (FR-APP-06).
-    <Screen onRefresh={refreshAll}>
-      {needsRehearsal ? (
-        <Card title="Finish your practice run">
-          <Text style={styles.body}>
-            Take two practice meter photos so we know your usual usage. You need this before you can
-            commit to a cut.
+    <Screen roomy noHeader onRefresh={refreshAll}>
+      <View style={styles.greeting}>
+        <View style={styles.flex}>
+          <Text variant="bodyMedium" color="onSurfaceVariant">
+            {`${h.barangayName}, ${h.municipality}`}
           </Text>
+          <Text variant="headlineMedium" accessibilityRole="header">
+            {name ? `Hi, ${name}` : 'Hello'}
+          </Text>
+        </View>
+        <Logo height={20} />
+      </View>
+
+      {h.needsRehearsal ? (
+        <View style={styles.block}>
+          <MascotHeader
+            label="Practice run"
+            line="Take two practice photos before your first alert."
+          />
           <Button label="Start practice" onPress={() => router.push('/rehearsal')} />
-        </Card>
+        </View>
       ) : null}
 
       {view ? (
-        <Card>
-          <AlertBadge level={view.alert.level} />
-          <Text style={styles.message}>{view.alert.message}</Text>
-          <Row
-            label="Peak window"
-            value={`${formatClock(view.alert.windowStart)} to ${formatClock(view.alert.windowEnd)}`}
-            strong
-          />
-          <Button
-            label="Open event"
-            onPress={() =>
-              router.push({ pathname: '/alert/[alertId]', params: { alertId: view.alert.id } })
-            }
-          />
-        </Card>
+        <AlertCard
+          level={view.alert.level}
+          windowStart={view.alert.windowStart}
+          windowEnd={view.alert.windowEnd}
+          onOpen={() =>
+            router.push({ pathname: '/alert/[alertId]', params: { alertId: view.alert.id } })
+          }
+        />
       ) : (
-        <Card title="No grid alert right now">
-          <Text style={styles.body}>
-            We will notify you when the grid needs help. Pull down to check again.
-          </Text>
-        </Card>
+        <QuietCard />
       )}
 
-      <Card title="Your household">
-        <Row label="Barangay" value={`${me.data.barangayName}, ${me.data.municipality}`} />
-        <Row label="Meter" value={me.data.meterType === 'ami' ? 'Smart meter' : 'Photo readings'} />
-        <Row label="Points" value={String(me.data.points)} strong />
-        <Button
-          label="Leaderboard"
-          variant="secondary"
-          onPress={() => router.push('/leaderboard')}
-        />
-        <Button label="History" variant="secondary" onPress={() => router.push('/history')} />
-        <Button
-          label="Profile and privacy"
-          variant="secondary"
-          onPress={() => router.push('/profile')}
-        />
-      </Card>
+      <RewardTiles points={h.points} creditPhp={h.creditPhp} />
 
-      <SimulatedNote>
-        Laguna pilot. NGCP alerts and reward rates in this app are simulated placeholders.
-      </SimulatedNote>
+      {view ? <BarangayTonight alertId={view.alert.id} barangayId={h.barangayId} /> : null}
+
       <MockControls />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  message: { ...text.body, color: colors.ink },
-  body: { ...text.body, color: colors.muted },
+  flex: { flex: 1 },
+  greeting: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  block: { gap: space.md },
 });
