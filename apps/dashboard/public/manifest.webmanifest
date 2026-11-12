@@ -1,0 +1,13 @@
+{
+  "name": "KapitWatt Dashboard",
+  "short_name": "KapitWatt",
+  "description": "Meralco operator dashboard for KapitWatt residential demand response (simulated Laguna pilot).",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#171C8F",
+  "background_color": "#FCF8FD",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
