@@ -57,7 +57,7 @@ pnpm db:migrate              # apply packages/db/migrations/*.sql (direct connec
 pnpm db:seed                 # load the 21 pilot barangays (reference data, safe to re-run)
 pnpm db:smoke                # insert, read back, delete one row through the app's driver
 pnpm --filter @kapitwatt/dashboard build   # expo export -> apps/dashboard/dist
-pnpm --filter @kapitwatt/api deploy        # wrangler deploy
+pnpm deploy:api              # wrangler deploy, then upload DATABASE_URL, SIM_KEY, OPERATOR_KEY
 ```
 
 Run `pnpm typecheck` and `pnpm test` before calling a task done.
