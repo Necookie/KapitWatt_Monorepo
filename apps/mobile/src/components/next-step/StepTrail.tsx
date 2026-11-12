@@ -31,16 +31,23 @@ export function StepTrail({ steps, ink }: { steps: Step[]; ink: string }) {
         .map((s) => `${SHORT[s.key] ?? s.title}: ${s.state === 'now' ? 'now' : s.state}`)
         .join(', ')}
     >
-      {steps.map((s, i) => (
+      {/* The lines first, in one layer behind every step, so no line can cross a dot. Each runs
+          from the middle of one step to the middle of the next. */}
+      {steps.slice(1).map((s, i) => (
+        <View
+          key={`line-${s.key}`}
+          style={[
+            styles.line,
+            {
+              left: `${((i + 0.5) / steps.length) * 100}%`,
+              width: `${(1 / steps.length) * 100}%`,
+              backgroundColor: steps[i]!.state === 'done' ? ink : faint,
+            },
+          ]}
+        />
+      ))}
+      {steps.map((s) => (
         <View key={s.key} style={styles.step}>
-          {i > 0 ? (
-            <View
-              style={[
-                styles.line,
-                { backgroundColor: steps[i - 1]!.state === 'done' ? ink : faint },
-              ]}
-            />
-          ) : null}
           <View
             style={[
               styles.dot,
@@ -71,8 +78,7 @@ export function StepTrail({ steps, ink }: { steps: Step[]; ink: string }) {
 const styles = StyleSheet.create({
   trail: { flexDirection: 'row' },
   step: { flex: 1, alignItems: 'center', gap: 4 },
-  // From the middle of the previous dot to the middle of this one.
-  line: { position: 'absolute', top: DOT / 2 - 1, right: '50%', width: '100%', height: 2 },
+  line: { position: 'absolute', top: DOT / 2 - 1, height: 2 },
   dot: {
     width: DOT,
     height: DOT,

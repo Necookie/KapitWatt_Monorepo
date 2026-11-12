@@ -2,10 +2,10 @@ import { Redirect } from 'expo-router';
 import { MockControls } from '@/components/MockControls';
 import { ErrorState, Loading } from '@/components/ui';
 import { ApiError, describeError } from '@/api/http';
+import { NextStepCard } from '@/components/next-step/NextStepCard';
 import { TabScreen } from '@/layout/components/TabScreen';
 import { BarangayTonight } from '../components/BarangayTonight';
 import { LightCard } from '../components/LightCard';
-import { NextStepCard } from '../components/NextStepCard';
 import { useHome } from '../hooks/useHome';
 
 /**
