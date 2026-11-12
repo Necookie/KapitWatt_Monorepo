@@ -1,36 +1,34 @@
 /**
- * Uploads the API's secrets to the deployed Worker in one request:
- *   DATABASE_URL            from the repo root .env.local (written by `neon env pull`)
- *   SIM_KEY, OPERATOR_KEY   from apps/api/.dev.vars
- * Values go to Wrangler over stdin and are never printed.
- * Run from the repo root: `pnpm deploy:api` (deploys, then runs this).
+ * Uploads the API's secrets to the deployed Worker in one request.
+ * Values come from the process environment, which Doppler fills:
+ *   pnpm deploy:api   (runs `wrangler deploy`, then this script under `doppler run`)
+ * Only the names listed below are sent. Values go to Wrangler over stdin and are never printed.
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const apiDir = join(import.meta.dirname, '..');
 
-function readEnvFile(path) {
-  const out = {};
-  for (const line of readFileSync(path, 'utf8').split(/\r?\n/)) {
-    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
-    if (m) out[m[1]] = m[2].replace(/^(['"])(.*)\1$/, '$2');
+const REQUIRED = ['DATABASE_URL', 'SIM_KEY', 'OPERATOR_KEY'];
+const OPTIONAL = ['EXPO_ACCESS_TOKEN'];
+const MIN_KEY_LENGTH = 32;
+
+const secrets = {};
+for (const key of REQUIRED) {
+  const value = process.env[key];
+  if (!value || value === 'change-me') {
+    console.error(`${key} is missing or still "change-me". Set it in Doppler, then run again.`);
+    process.exit(1);
   }
-  return out;
+  secrets[key] = value;
+}
+for (const key of OPTIONAL) {
+  if (process.env[key]) secrets[key] = process.env[key];
 }
 
-const root = readEnvFile(join(apiDir, '..', '..', '.env.local'));
-const dev = readEnvFile(join(apiDir, '.dev.vars'));
-const secrets = {
-  DATABASE_URL: root.DATABASE_URL,
-  SIM_KEY: dev.SIM_KEY,
-  OPERATOR_KEY: dev.OPERATOR_KEY,
-};
-
-for (const [key, value] of Object.entries(secrets)) {
-  if (!value || value === 'change-me') {
-    console.error(`${key} is missing or still "change-me". Fix it, then run again.`);
+for (const key of ['SIM_KEY', 'OPERATOR_KEY']) {
+  if (secrets[key].length < MIN_KEY_LENGTH) {
+    console.error(`${key} is shorter than ${MIN_KEY_LENGTH} characters. Use a long random value.`);
     process.exit(1);
   }
 }

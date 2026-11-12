@@ -51,13 +51,3 @@ export const SimRunSummary = z.object({
   householdsWithReadings: z.number().int(),
 });
 export type SimRunSummary = z.infer<typeof SimRunSummary>;
-
-/** GET /sim/status. */
-export const SimStatus = z.object({
-  households: z.number().int(),
-  amiHouseholds: z.number().int(),
-  photoHouseholds: z.number().int(),
-  barangays: z.number().int(),
-  lastRun: SimRunSummary.nullable(),
-});
-export type SimStatus = z.infer<typeof SimStatus>;

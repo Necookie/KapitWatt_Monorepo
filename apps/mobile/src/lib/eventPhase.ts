@@ -1,9 +1,9 @@
-import type { AlertView } from '@kapitwatt/shared';
+import type { MockAlertView } from '@kapitwatt/shared';
 
 /** Where an event is from the household's point of view. Derived from server times and status. */
 export type EventPhase = 'before_window' | 'window_open' | 'settling' | 'settled' | 'cancelled';
 
-export function eventPhase(view: AlertView, now: number): EventPhase {
+export function eventPhase(view: MockAlertView, now: number): EventPhase {
   const { status, windowStart, windowEnd } = view.alert;
   if (status === 'cancelled') return 'cancelled';
   if (status === 'settled') return 'settled';
@@ -14,7 +14,7 @@ export function eventPhase(view: AlertView, now: number): EventPhase {
 
 /** The moment the countdown on the event screen runs to, and what it is called. */
 export function countdownTarget(
-  view: AlertView,
+  view: MockAlertView,
   phase: EventPhase,
 ): { label: string; at: string } | null {
   switch (phase) {

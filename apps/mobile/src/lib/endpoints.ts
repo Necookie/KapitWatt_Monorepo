@@ -1,14 +1,14 @@
 import {
   AlertTotals,
-  AlertView,
+  MockAlertView,
   Barangay,
   Commitment,
-  HistoryItem,
+  MockHistoryItem,
   LeaderboardEntry,
   MeResponse,
   MyEventStatus,
   RegisterHouseholdResponse,
-  ResultCard,
+  MockResultCard,
   SubmitReadingResponse,
   type CreateCommitmentInput,
   type RegisterHouseholdInput,
@@ -38,14 +38,14 @@ export async function getMe(): Promise<MeResponse> {
   return synced(USE_MOCKS ? await mock.getMe() : await get(MeResponse, '/auth/me'));
 }
 
-export async function getActiveAlert(): Promise<AlertView | null> {
+export async function getActiveAlert(): Promise<MockAlertView | null> {
   return synced(
-    USE_MOCKS ? await mock.getActiveAlert() : await get(AlertView.nullable(), '/alerts/active'),
+    USE_MOCKS ? await mock.getActiveAlert() : await get(MockAlertView.nullable(), '/alerts/active'),
   );
 }
 
-export async function getAlert(id: string): Promise<AlertView> {
-  return synced(USE_MOCKS ? await mock.getAlert(id) : await get(AlertView, `/alerts/${id}`));
+export async function getAlert(id: string): Promise<MockAlertView> {
+  return synced(USE_MOCKS ? await mock.getAlert(id) : await get(MockAlertView, `/alerts/${id}`));
 }
 
 export async function getAlertTotals(id: string): Promise<AlertTotals> {
@@ -68,10 +68,10 @@ export async function createCommitment(input: CreateCommitmentInput): Promise<Co
 }
 
 /** null until settlement has run (the API answers 404). */
-export async function getResult(alertId: string): Promise<ResultCard | null> {
+export async function getResult(alertId: string): Promise<MockResultCard | null> {
   if (USE_MOCKS) return mock.getResult(alertId);
   try {
-    return await get(ResultCard, `/rewards/by-alert/${alertId}`);
+    return await get(MockResultCard, `/rewards/by-alert/${alertId}`);
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) return null;
     throw e;
@@ -114,6 +114,6 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     : get(LeaderboardEntry.array(), '/barangays/leaderboard');
 }
 
-export async function getHistory(): Promise<HistoryItem[]> {
-  return USE_MOCKS ? mock.getHistory() : get(HistoryItem.array(), '/commitments/history');
+export async function getHistory(): Promise<MockHistoryItem[]> {
+  return USE_MOCKS ? mock.getHistory() : get(MockHistoryItem.array(), '/commitments/history');
 }

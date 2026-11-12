@@ -15,7 +15,7 @@ import { Button, Notice, Txt } from './ui';
 export function StageControl({ alert, status }: { alert: Alert; status: AlertStatus }) {
   const { params } = useSimParams();
   const sim = useSimStatus();
-  const hasSimulated = (sim.data?.households ?? 0) > 0;
+  const hasSimulated = (sim.data?.simulatedHouseholds ?? 0) > 0;
 
   const open = useAction(() => client.fastForward(alert.id, 'window_start'));
   // The fake meter feed reports once the window has ended. Real phones send their own photos.

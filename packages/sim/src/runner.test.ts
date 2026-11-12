@@ -38,8 +38,8 @@ describe('a full simulated event (FR-SIM-10)', () => {
   it('seeds 1,200 households at about 15% smart meter', () => {
     const { backend } = setup();
     const status = backend.status();
-    expect(status.households).toBe(1200);
-    expect(status.amiHouseholds / status.households).toBeCloseTo(0.15, 1);
+    expect(status.simulatedHouseholds).toBe(1200);
+    expect(status.amiHouseholds / status.simulatedHouseholds).toBeCloseTo(0.15, 1);
   });
 
   it('commits about 720 kW against a 600 kW target', async () => {
@@ -138,7 +138,7 @@ describe('pacing and safety', () => {
     const { backend, alertId } = setup();
     await backend.run(alertId, DEFAULT_PARAMS, 'commit');
     backend.reset();
-    expect(backend.status().households).toBe(0);
+    expect(backend.status().simulatedHouseholds).toBe(0);
     expect(backend.currentAlert()).toBeNull();
     expect(backend.totals(alertId).committedKw).toBe(0);
   });

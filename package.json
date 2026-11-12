@@ -8,18 +8,18 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev:api": "pnpm --filter @kapitwatt/api dev",
-    "dev:mobile": "pnpm --filter @kapitwatt/mobile start",
-    "dev:dashboard": "pnpm --filter @kapitwatt/dashboard web",
+    "dev:api": "doppler run -- pnpm --filter @kapitwatt/api dev",
+    "dev:mobile": "doppler run -- pnpm --filter @kapitwatt/mobile start",
+    "dev:dashboard": "doppler run -- pnpm --filter @kapitwatt/dashboard web",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "build": "pnpm -r typecheck && pnpm --filter @kapitwatt/api build && pnpm --filter @kapitwatt/dashboard build",
-    "db:migrate": "pnpm --filter @kapitwatt/db migrate",
-    "db:smoke": "pnpm --filter @kapitwatt/db smoke",
-    "db:seed": "pnpm --filter @kapitwatt/db seed",
-    "deploy:api": "pnpm --filter @kapitwatt/api run deploy && node apps/api/scripts/push-secrets.mjs"
+    "db:migrate": "doppler run -- pnpm --filter @kapitwatt/db migrate",
+    "db:smoke": "doppler run -- pnpm --filter @kapitwatt/db smoke",
+    "db:seed": "doppler run -- pnpm --filter @kapitwatt/db seed",
+    "deploy:api": "pnpm --filter @kapitwatt/api run deploy && doppler run -- node apps/api/scripts/push-secrets.mjs"
   },
   "devDependencies": {
     "prettier": "^3.6.0",

@@ -14,11 +14,11 @@ import {
   SETTLEMENT_DELAY_MIN,
   verifyCut,
   type AlertTotals,
-  type AlertView,
+  type MockAlertView,
   type Barangay,
   type Commitment,
   type CreateCommitmentInput,
-  type HistoryItem,
+  type MockHistoryItem,
   type LeaderboardEntry,
   type MeResponse,
   type MeterReading,
@@ -27,7 +27,7 @@ import {
   type ReadingFlag,
   type RegisterHouseholdInput,
   type RegisterHouseholdResponse,
-  type ResultCard,
+  type MockResultCard,
   type SubmitReadingInput,
   type SubmitReadingResponse,
 } from '@kapitwatt/shared';
@@ -96,12 +96,12 @@ interface MockEvent {
   settled: boolean;
   commitment: Commitment | null;
   readings: EventReading[];
-  result: ResultCard | null;
+  result: MockResultCard | null;
 }
 
 let household: MockHousehold | null = MOCK_START_REGISTERED ? demoHousehold() : null;
 let event: MockEvent = newEvent(1);
-let history: HistoryItem[] = seedHistory();
+let history: MockHistoryItem[] = seedHistory();
 let readingSeq = 0;
 
 function demoHousehold(): MockHousehold {
@@ -133,7 +133,7 @@ function newEvent(seq: number): MockEvent {
   };
 }
 
-function seedHistory(): HistoryItem[] {
+function seedHistory(): MockHistoryItem[] {
   const day = 24 * HOUR;
   const past = (daysAgo: number, seq: number, credit: number, bonus: number, kwh: number) => {
     const start = Date.now() - daysAgo * day;
@@ -242,7 +242,7 @@ export async function getMe(): Promise<MeResponse> {
   };
 }
 
-function alertView(): AlertView {
+function alertView(): MockAlertView {
   const now = Date.now();
   const status = event.settled
     ? 'settled'
@@ -263,6 +263,10 @@ function alertView(): AlertView {
       status,
       createdBy: 'operator (mock)',
       createdAt: iso(event.createdAt),
+      clockOffsetSec: 0,
+      settledAt: null,
+      cancelledAt: null,
+      pushSentAt: null,
     },
     beforePhotoDueAt: iso(event.windowStart + PHOTO_RULES.beforeDeadlineMin * MIN),
     afterPhotoOpensAt: iso(event.windowEnd),
@@ -272,13 +276,13 @@ function alertView(): AlertView {
   };
 }
 
-export async function getActiveAlert(): Promise<AlertView | null> {
+export async function getActiveAlert(): Promise<MockAlertView | null> {
   await delay();
   requireHousehold();
   return alertView();
 }
 
-export async function getAlert(id: string): Promise<AlertView> {
+export async function getAlert(id: string): Promise<MockAlertView> {
   await delay();
   assertAlert(id);
   return alertView();
@@ -355,6 +359,7 @@ export async function createCommitment(input: CreateCommitmentInput): Promise<Co
     actualKw: null,
     verifiedKwh: null,
     status: 'committed',
+    resultReason: null,
   };
   return event.commitment;
 }
@@ -387,7 +392,12 @@ export async function submitReading(
     householdId: h.id,
     kind: input.kind,
     readingKwh: input.readingKwh,
-    photoUrl: null,
+    receivedAt: iso(Date.now()),
+    photoKey: null,
+    lat: input.lat,
+    lng: input.lng,
+    reviewedBy: null,
+    reviewedAt: null,
     checkStatus: flags.length ? ('flagged' as const) : ('pass' as const),
     flags,
   };
@@ -435,7 +445,7 @@ export async function submitReading(
   return reading;
 }
 
-export async function getResult(id: string): Promise<ResultCard | null> {
+export async function getResult(id: string): Promise<MockResultCard | null> {
   await delay();
   assertAlert(id);
   return event.result;
@@ -458,7 +468,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   return rows.sort((a, b) => b.points - a.points).map((r, i) => ({ ...r, rank: i + 1 }));
 }
 
-export async function getHistory(): Promise<HistoryItem[]> {
+export async function getHistory(): Promise<MockHistoryItem[]> {
   await delay();
   requireHousehold();
   return history;

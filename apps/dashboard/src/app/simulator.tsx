@@ -38,7 +38,7 @@ export default function SimulatorScreen() {
       (name) => PRESETS[name].participation === params.participation,
     ) ?? null;
 
-  const households = status.data?.households ?? 0;
+  const households = status.data?.simulatedHouseholds ?? 0;
   const alertStatus = totals.data?.status ?? alert.data?.status;
   const canRun = Boolean(alert.data) && alertStatus === 'active' && households > 0;
   const targetKw = alert.data?.targetKw;
@@ -48,7 +48,7 @@ export default function SimulatorScreen() {
     : households;
   const expected = expectedOutcome(alert.data ? targeted : households, params);
   const failed = status.error ?? seed.error ?? run.error ?? reset.error;
-  const lastRun = run.data ?? status.data?.lastRun ?? null;
+  const lastRun = run.data ?? null;
 
   return (
     <>
@@ -280,7 +280,6 @@ export default function SimulatorScreen() {
                 label="Meter photo"
                 value={status.data ? count(status.data.photoHouseholds) : '—'}
               />
-              <Figure label="Barangays" value={status.data ? count(status.data.barangays) : '—'} />
             </View>
             {lastRun ? (
               <Txt size="sm" tone="muted" numeric style={{ marginTop: space.md }}>

@@ -7,13 +7,26 @@
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
-    // "demo" enables the /sim/* routes. Anything else turns them off.
+    // "demo" enables the /sim/* routes and Measure (fast-forward). Anything else turns them off.
     "APP_ENV": "demo",
+    // Browser origins allowed by CORS (the dashboard), comma-separated. Native apps send no Origin.
+    // Add the Cloudflare Pages URL here once the dashboard is deployed.
+    "ALLOWED_ORIGINS": "http://localhost:8081,http://localhost:19006",
   },
-  // Secrets (never commit): DATABASE_URL, SIM_KEY, OPERATOR_KEY.
-  //   local:  copy .dev.vars.example to .dev.vars
-  //   deploy: wrangler secret put <NAME>
-  //
-  // Photo storage is undecided (R2 or Supabase Storage). If R2:
-  // "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "kapitwatt-meter-photos" }]
+  // Workers Rate Limiting (period must be 10 or 60 seconds). Placeholders, sized for a demo where every
+  // phone shares one hotspot IP. Not inherited by named environments: repeat them in each env.
+  "ratelimits": [
+    { "name": "RL_REGISTER", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    { "name": "RL_HOUSEHOLD", "namespace_id": "1002", "simple": { "limit": 20, "period": 60 } },
+    { "name": "RL_OPERATOR", "namespace_id": "1003", "simple": { "limit": 120, "period": 60 } },
+    { "name": "RL_PUBLIC", "namespace_id": "1004", "simple": { "limit": 600, "period": 60 } },
+  ],
+  // Secrets live in Doppler (project kapitwatt). Never commit them.
+  //   local:  `pnpm dev:api` runs `doppler run -- wrangler dev`; because `secrets` is declared below,
+  //           wrangler reads these names from the process env. Do NOT create apps/api/.dev.vars:
+  //           if it exists, wrangler uses it instead of Doppler.
+  //   deploy: `pnpm deploy:api` deploys, then uploads them with `wrangler secret bulk`.
+  "secrets": {
+    "required": ["DATABASE_URL", "SIM_KEY", "OPERATOR_KEY"],
+  },
 }

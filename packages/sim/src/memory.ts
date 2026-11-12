@@ -17,6 +17,7 @@ import {
   type SimRunSummary,
   type SimStatus,
 } from '@kapitwatt/shared';
+import { DEFAULT_PARAMS } from './presets';
 import { createRng } from './rng';
 import {
   runCommits,
@@ -93,7 +94,6 @@ export class MemoryBackend {
   private readonly barangays: BarangayWithCount[] = [];
   private readonly households = new Map<string, MemHousehold>();
   private readonly alerts: MemAlert[] = [];
-  private lastRun: SimRunSummary | null = null;
   /** Alerts before this index predate the last reset and are no longer "current". */
   private currentFrom = 0;
   private readonly sleep: (ms: number) => Promise<void>;
@@ -167,10 +167,11 @@ export class MemoryBackend {
       for (const [householdId] of a.commitments) {
         if (!this.households.has(householdId)) a.commitments.delete(householdId);
       }
-      if (a.alert.status !== 'settled') a.alert = { ...a.alert, status: 'cancelled' };
+      if (a.alert.status !== 'settled') {
+        a.alert = { ...a.alert, status: 'cancelled', cancelledAt: this.now().toISOString() };
+      }
     }
     this.currentFrom = this.alerts.length;
-    this.lastRun = null;
     return this.status();
   }
 
@@ -179,11 +180,11 @@ export class MemoryBackend {
     const simulated = [...this.households.values()].filter((h) => h.isSimulated);
     const ami = simulated.filter((h) => h.meterType === 'ami').length;
     return {
-      households: simulated.length,
+      enabled: true,
+      simulatedHouseholds: simulated.length,
       amiHouseholds: ami,
       photoHouseholds: simulated.length - ami,
-      barangays: this.barangays.length,
-      lastRun: this.lastRun,
+      defaults: DEFAULT_PARAMS,
     };
   }
 
@@ -197,14 +198,9 @@ export class MemoryBackend {
     if (phase === 'deliver' && found.alert.status !== 'settling') {
       throw new MemoryBackendError(409, 'end the window before sending readings');
     }
-    const startedAt = this.currentFrom;
-    const summary =
-      phase === 'commit'
-        ? await runCommits(alertId, params, this.port)
-        : await runDelivery(alertId, params, this.port, found.windowMinutes);
-    // A reset during a paced run wins: do not report a run whose data is gone.
-    if (this.currentFrom === startedAt) this.lastRun = summary;
-    return summary;
+    return phase === 'commit'
+      ? runCommits(alertId, params, this.port)
+      : runDelivery(alertId, params, this.port, found.windowMinutes);
   }
 
   // --- alerts --------------------------------------------------------------
@@ -232,6 +228,10 @@ export class MemoryBackend {
       status: 'active',
       createdBy,
       createdAt: this.now().toISOString(),
+      clockOffsetSec: 0,
+      settledAt: null,
+      cancelledAt: null,
+      pushSentAt: null,
     };
     this.alerts.push({
       alert,
@@ -293,7 +293,7 @@ export class MemoryBackend {
     if (found.alert.status !== 'settling') {
       throw new MemoryBackendError(409, 'end the window before settling');
     }
-    found.alert = { ...found.alert, status: 'settled' };
+    found.alert = { ...found.alert, status: 'settled', settledAt: this.now().toISOString() };
     return found.alert;
   }
 

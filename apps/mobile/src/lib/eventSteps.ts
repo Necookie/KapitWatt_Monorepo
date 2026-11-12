@@ -1,4 +1,4 @@
-import type { AlertView, MeterType, MyEventStatus } from '@kapitwatt/shared';
+import type { MockAlertView, MeterType, MyEventStatus } from '@kapitwatt/shared';
 import type { EventPhase } from './eventPhase';
 import { formatClock } from './format';
 
@@ -33,7 +33,7 @@ export interface EventSteps {
 }
 
 interface Input {
-  view: AlertView;
+  view: MockAlertView;
   phase: EventPhase;
   status: MyEventStatus;
   meterType: MeterType;

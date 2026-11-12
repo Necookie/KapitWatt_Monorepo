@@ -26,26 +26,26 @@ smart-meter data or from meter photos taken in the app.
 
 ## Getting started
 
-Needs Node 22+, pnpm 12 and the Neon CLI (`npm i -g neon`, then `neon login`).
+Needs Node 22+, pnpm 12 and the Doppler CLI (env and secrets live in Doppler, project `kapitwatt`). The
+Neon CLI is optional, for branching the database.
 
 ```bash
 pnpm install
+doppler login        # once per machine (add --scope <repo path> if you use other Doppler workplaces)
+doppler setup        # once; doppler.yaml already names project kapitwatt, config dev
 
-# API (http://localhost:8787)
-# Database (Neon): link the project once, which also pulls DATABASE_URL into .env.local
-neon link            # pick the team's org and project, branch "production"
-pnpm db:migrate      # only needed when there are new migrations
+# Database: only needed when there are new migrations or reference data
+pnpm db:migrate
 pnpm db:seed         # pilot barangays; already loaded on the shared database
 
-cp apps/api/.dev.vars.example apps/api/.dev.vars
+# API (http://localhost:8787). Secrets come from Doppler; do not create apps/api/.dev.vars.
 pnpm dev:api
 
 # Dashboard (web)
-cp apps/dashboard/.env.example apps/dashboard/.env
 pnpm dev:dashboard
 
-# Household app (Expo Go or a dev build)
-cp apps/mobile/.env.example apps/mobile/.env   # use your LAN IP so phones can reach the API
+# Household app (Expo Go or a dev build). EXPO_PUBLIC_API_URL must be your LAN IP, not localhost,
+# so phones can reach a local API.
 pnpm dev:mobile
 ```
 

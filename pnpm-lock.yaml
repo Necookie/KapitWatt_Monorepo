@@ -187,7 +187,7 @@ importers:
   apps/api:
     dependencies:
       '@hono/zod-validator':
-        specifier: latest
+        specifier: ^0.9.1
         version: 0.9.1(hono@4.13.18)(zod@4.6.7)
       '@kapitwatt/db':
         specifier: workspace:*
@@ -211,6 +211,9 @@ importers:
       typescript:
         specifier: ~6.0.3
         version: 6.0.3
+      vitest:
+        specifier: ^5.1.0
+        version: 5.1.0(@types/node@26.6.6)(vite@8.3.7(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15))
       wrangler:
         specifier: ^4.160.1
         version: 4.160.1(@cloudflare/workers-types@5.20261112.1)(@types/node@26.6.6)

@@ -1,4 +1,4 @@
-import { POLL_INTERVAL_MS, type AlertView } from '@kapitwatt/shared';
+import { POLL_INTERVAL_MS, type MockAlertView } from '@kapitwatt/shared';
 import { useQuery } from '@tanstack/react-query';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
@@ -40,7 +40,7 @@ async function setUpNotifications(): Promise<boolean> {
   return (await Notifications.requestPermissionsAsync()).granted;
 }
 
-async function notify(view: AlertView) {
+async function notify(view: MockAlertView) {
   const { alert } = view;
   await Notifications.scheduleNotificationAsync({
     content: {
