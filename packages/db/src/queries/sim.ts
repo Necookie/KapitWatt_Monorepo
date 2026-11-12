@@ -3,8 +3,10 @@ import type { Db } from '../index';
 
 /**
  * Queries behind the simulator's service account. EVERY statement here is restricted to rows with
- * is_simulated = true: the simulator can never read or change a real household. Writes are batched
- * (one statement per chunk) because each query is one Worker subrequest.
+ * is_simulated = true, or, for the reading writes, is_demo = true (the ten demo accounts, whose
+ * replayed history and smart-meter feed come through the same path): the simulator can never read
+ * or change any other real household. Writes are batched (one statement per chunk) because each
+ * query is one Worker subrequest.
  */
 
 const CHUNK = 400;
@@ -138,7 +140,7 @@ export async function insertSimPhotoReadings(
                   ${part.map((r) => r.readingKwh)}::numeric[], ${part.map((r) => r.capturedAt)}::timestamptz[],
                   ${part.map((r) => r.checkStatus)}::text[], ${part.map((r) => r.flags.join(','))}::text[])
              as t(household_id, kind, kwh, captured_at, status, flags)
-      join households h on h.id = t.household_id and h.is_simulated
+      join households h on h.id = t.household_id and (h.is_simulated or h.is_demo)
       join commitments c on c.household_id = h.id and c.alert_id = ${alertId} and c.path = 'photo'
       join alerts a on a.id = c.alert_id and a.status not in ('settling', 'settled', 'cancelled')
       on conflict (commitment_id, kind) do nothing
@@ -165,7 +167,7 @@ export async function insertSimAmiIntervals(
       from unnest(${part.map((r) => r.householdId)}::uuid[],
                   ${part.map((r) => r.intervalStart)}::timestamptz[], ${part.map((r) => r.kwh)}::numeric[])
              as t(household_id, interval_start, kwh)
-      join households h on h.id = t.household_id and h.is_simulated
+      join households h on h.id = t.household_id and (h.is_simulated or h.is_demo)
       join commitments c on c.household_id = h.id and c.alert_id = ${alertId} and c.path = 'ami'
       join alerts a on a.id = c.alert_id and a.status not in ('settling', 'settled', 'cancelled')
       on conflict (household_id, interval_start) do nothing

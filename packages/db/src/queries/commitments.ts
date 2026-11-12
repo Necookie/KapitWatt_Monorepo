@@ -24,7 +24,8 @@ import type { Db } from '../index';
  * household row, never from the caller. A household that already committed is skipped.
  * Works for one household (the app) or many (the simulator), in ONE query either way: on Workers
  * each query is a subrequest, so the simulator's paced run stays well inside the per-request limit.
- * `simulatedOnly` restricts the insert to simulated households (the simulator's service account).
+ * `simulatedOnly` restricts the insert to simulated households (the simulator's service account);
+ * with `includeDemo` it may also act for demo households (the demo reset's replayed past events).
  * Returns the household ids that got a commitment.
  */
 export async function insertCommitments(
@@ -32,7 +33,7 @@ export async function insertCommitments(
   alertId: string,
   items: { householdId: string; committedKw: number }[],
   isDemo: boolean,
-  opts: { simulatedOnly?: boolean } = {},
+  opts: { simulatedOnly?: boolean; includeDemo?: boolean } = {},
 ): Promise<string[]> {
   if (items.length === 0) return [];
   const steps = 1 / COMMIT_STEP_KW;
@@ -51,7 +52,8 @@ export async function insertCommitments(
       and h.opted_in
       and h.baseline_kw is not null
       and h.barangay_id = any(a.target_barangay_ids)
-      and (not ${opts.simulatedOnly ?? false} or h.is_simulated)
+      and (not ${opts.simulatedOnly ?? false} or h.is_simulated
+           or (${opts.includeDemo ?? false} and h.is_demo))
       and t.committed_kw > 0
       and t.committed_kw <= floor(least(
             h.baseline_kw,

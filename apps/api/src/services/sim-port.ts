@@ -47,10 +47,12 @@ export function simPhotoReadings(
   h: Pick<SimHousehold, 'id' | 'billAvgKwhMonth'>,
   window: SimWindow,
   readings: SimHouseholdReadings['readings'],
+  /** The household's last reading before these, when it should be checked against (demo accounts). */
+  lastReading: { kwh: number; at: Date } | null = null,
 ): SimPhotoReading[] {
   const sorted = [...readings].sort((a, b) => a.atMinute - b.atMinute);
   const out: SimPhotoReading[] = [];
-  let previous: { kwh: number; at: Date } | null = null;
+  let previous = lastReading;
   for (const r of sorted) {
     const capturedAt = new Date(window.start.getTime() + r.atMinute * MIN_MS);
     const { checkStatus, flags } = evaluatePhotoReading({
