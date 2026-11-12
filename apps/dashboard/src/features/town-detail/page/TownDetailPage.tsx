@@ -1,84 +1,82 @@
-import { Card } from '@/components/ui/Card';
+import { useTheme } from '@kapitwatt/hooks';
+import { View } from 'react-native';
+import { Split } from '@/components/Split';
 import { Notice } from '@/components/ui/Notice';
-import { PageHeader } from '@/components/ui/PageHeader';
-import { Txt } from '@/components/ui/Txt';
 import { errorMessage } from '@/api/client';
-import { BarangayTable } from '../components/BarangayTable';
-import { TargetDraftNotice } from '../components/TargetDraftNotice';
-import { TargetEditActions } from '../components/TargetEditActions';
-import { TownBreadcrumb } from '../components/TownBreadcrumb';
+import { useLayoutValue } from '@/hooks/useLayoutValue';
+import { motion } from '@/styles/motion';
+import { BarangayCards } from '../components/BarangayCards';
+import { BonusNote } from '../components/BonusNote';
+import { TargetEditBar } from '../components/TargetEditBar';
 import { TownEmptyState } from '../components/TownEmptyState';
-import { TownFigures } from '../components/TownFigures';
-import { TownFiguresSkeleton } from '../components/TownFiguresSkeleton';
+import { TownHero } from '../components/TownHero';
+import { TownSkeleton } from '../components/TownSkeleton';
+import { TownTiles } from '../components/TownTiles';
 import { useTargetDraft } from '../hooks/useTargetDraft';
 import { useTownDetail } from '../hooks/useTownDetail';
 
+/**
+ * One town under the current alert, drilled into from Live load: the indigo hero with the town's
+ * figure and ring beside committed and delivery by path, then a card per barangay against its own
+ * share, where the operator can override the shares until the window ends.
+ */
 export default function TownDetailPage() {
-  const { name, alert, totals, town, measured, failed, editable } = useTownDetail();
+  const t = useTheme();
+  const [wide, onLayout] = useLayoutValue((w) => w >= 960);
+  const { name, alert, totals, town, status, measured, failed, loading, forecast, editable } =
+    useTownDetail();
   const draft = useTargetDraft(town, totals.data, alert.data?.id);
 
   return (
-    <>
-      <TownBreadcrumb name={name} />
-
-      <PageHeader
-        title={name ?? 'Town'}
-        subtitle="Delivered load against each barangay's own share of the target."
-      />
-
+    <View onLayout={onLayout} style={{ gap: t.space[4] }}>
       {failed ? <Notice tone="critical">{errorMessage(failed)}</Notice> : null}
 
-      {town ? (
-        <>
-          <TownFigures town={town} measured={measured} />
-          <Card
-            title="Barangays"
-            padded={false}
-            aside={
-              <TargetEditActions
-                editing={draft.editing}
-                editable={editable}
+      {loading ? (
+        <TownSkeleton wide={wide} />
+      ) : town && alert.data && status ? (
+        <View style={[{ gap: t.space[4] }, motion.fadeIn]}>
+          <Split wide={wide}>
+            <TownHero
+              alert={alert.data}
+              status={status}
+              town={town}
+              measured={measured}
+              forecast={forecast}
+            />
+            <TownTiles town={town} measured={measured} />
+          </Split>
+
+          <BarangayCards
+            rows={town.barangays}
+            measured={measured}
+            editable={editable}
+            editing={draft.editing}
+            typed={draft.typed}
+            onChangeTarget={draft.setTarget}
+            onEdit={draft.startEditing}
+            editBar={
+              <TargetEditBar
+                invalid={draft.invalid}
+                alertTargetKw={totals.data?.targetKw ?? 0}
+                allTargets={draft.allTargets}
                 saving={draft.save.isPending}
                 canSave={!draft.invalid && draft.changedCount > 0}
-                onEdit={draft.startEditing}
                 onCancel={draft.stopEditing}
                 onSave={() => draft.save.mutate(undefined, { onSuccess: draft.stopEditing })}
               />
             }
-          >
-            <BarangayTable
-              rows={town.barangays}
-              measured={measured}
-              editing={draft.editing}
-              typed={draft.typed}
-              onChangeTarget={draft.setTarget}
-            />
-          </Card>
+          />
           {draft.save.error ? (
             <Notice tone="critical">{errorMessage(draft.save.error)}</Notice>
           ) : null}
-          {draft.editing ? (
-            <TargetDraftNotice
-              invalid={draft.invalid}
-              alertTargetKw={totals.data?.targetKw ?? 0}
-              allTargets={draft.allTargets}
-            />
-          ) : null}
-          <Txt size="xs" tone="muted">
-            A barangay that reaches 100% of its target at settlement earns every household there
-            with a verified cut a bonus on its own credit. The bonus rate is a placeholder.
-          </Txt>
-        </>
-      ) : alert.isLoading || totals.isLoading ? (
-        <>
-          <TownFiguresSkeleton />
-          <Card title="Barangays" padded={false}>
-            <BarangayTable rows={[]} measured={measured} loading />
-          </Card>
-        </>
+
+          <BonusNote />
+        </View>
       ) : (
-        <TownEmptyState hasAlert={Boolean(alert.data)} />
+        <View style={motion.fadeIn}>
+          <TownEmptyState name={name} hasAlert={Boolean(alert.data)} />
+        </View>
       )}
-    </>
+    </View>
   );
 }

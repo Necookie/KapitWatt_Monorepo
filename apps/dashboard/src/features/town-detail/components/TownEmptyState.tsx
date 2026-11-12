@@ -1,14 +1,51 @@
-import { Card } from '@/components/ui/Card';
-import { Txt } from '@/components/ui/Txt';
+import { useTheme } from '@kapitwatt/hooks';
+import { Icon } from '@kapitwatt/icons';
+import { Button, Text } from '@kapitwatt/ui';
+import { useRouter } from 'expo-router';
+import { View } from 'react-native';
 
-export function TownEmptyState({ hasAlert }: { hasAlert: boolean }) {
+/** No figures for this town: no alert yet, or the alert does not target it. */
+export function TownEmptyState({ name, hasAlert }: { name?: string; hasAlert: boolean }) {
+  const t = useTheme();
+  const router = useRouter();
   return (
-    <Card>
-      <Txt tone="muted">
+    <View
+      style={{
+        alignItems: 'center',
+        gap: t.space[3],
+        paddingVertical: t.space[12],
+        paddingHorizontal: t.space[6],
+        borderRadius: t.radius.lg,
+        backgroundColor: t.color.surfaceContainerLowest,
+        borderWidth: t.borderWidth.hairline,
+        borderColor: t.color.outlineVariant,
+      }}
+    >
+      <View
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: t.radius.full,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: t.color.surfaceContainerHigh,
+        }}
+      >
+        <Icon name="town" color="onSurfaceVariant" />
+      </View>
+      <Text variant="titleLarge" style={{ textAlign: 'center' }}>
+        {hasAlert ? `${name ?? 'This town'} is not in this alert` : 'No alert yet'}
+      </Text>
+      <Text
+        variant="bodyMedium"
+        color="onSurfaceVariant"
+        style={{ textAlign: 'center', maxWidth: 420 }}
+      >
         {hasAlert
-          ? 'This town is not targeted by the current alert.'
-          : 'No alert has been sent yet.'}
-      </Txt>
-    </Card>
+          ? 'The current alert targets other towns. Its figures show on Live load.'
+          : 'A town’s figures appear here once an alert targets it.'}
+      </Text>
+      <Button label="Back to Live load" variant="tonal" onPress={() => router.push('/')} />
+    </View>
   );
 }

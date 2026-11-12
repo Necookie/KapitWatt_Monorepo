@@ -5,8 +5,8 @@ import { Text } from '@kapitwatt/ui';
 import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { kw, percent, type TownTotals } from '@/utils/format';
-import { SIZE } from '../utils/town-ring';
-import { Ring } from './Ring';
+import { Ring } from '@/components/Ring';
+import { SIZE, STROKE } from '../utils/town-ring';
 import type { PressState } from '@/utils/press-state';
 import { motion } from '@/styles/motion';
 
@@ -56,6 +56,8 @@ export function TownCard({ town, measured }: { town: TownTotals; measured: boole
               share={share}
               color={measured ? t.dataViz.delivered : t.dataViz.committed}
               track={t.color.surfaceContainerHighest}
+              size={SIZE}
+              stroke={STROKE}
             />
             <Text variant="labelMedium" style={{ fontVariant: ['tabular-nums'] }}>
               {percent(value, town.targetKw)}

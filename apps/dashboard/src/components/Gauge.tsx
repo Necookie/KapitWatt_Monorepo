@@ -7,7 +7,7 @@ import { percent } from '@/utils/format';
 import { ON, ON_SOFT } from '@/styles/on-brand';
 import { arcProps } from '@/styles/motion';
 import { Tally } from '@/components/Tally';
-import { svgHidden } from '../utils/svg';
+import { svgHidden } from '@/utils/svg';
 
 /**
  * Progress against target as a ring: a full circle is the target, marked by the orange tick at the top.
