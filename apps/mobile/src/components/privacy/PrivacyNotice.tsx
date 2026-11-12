@@ -1,6 +1,6 @@
 import type { IconName } from '@kapitwatt/icons';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, space, text } from '@/theme';
+import { colors, fonts, space, text } from '@/styles/theme';
 
 /**
  * The privacy notice, shown before any personal data is asked for at sign-up and again from the

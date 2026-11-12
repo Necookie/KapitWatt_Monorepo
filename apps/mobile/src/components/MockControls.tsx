@@ -1,11 +1,11 @@
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui';
-import { MOCK } from '@/lib/config';
-import { mockFastForward, mockPhase, mockResetAll, mockSendAlert } from '@/lib/mock';
-import { useRefreshAll } from '@/lib/queries';
-import { useServerNow } from '@/lib/serverTime';
-import { colors, fonts, radius, space, text } from '@/theme';
+import { MOCK } from '@/api/config';
+import { mockFastForward, mockPhase, mockResetAll, mockSendAlert } from '@/api/mock';
+import { useRefreshAll } from '@/api/queries';
+import { useServerNow } from '@/utils/server-time';
+import { colors, fonts, radius, space, text } from '@/styles/theme';
 
 /** What the next press does, named after the real operator action it stands in for. */
 const NEXT_STEP: Record<ReturnType<typeof mockPhase>, string> = {

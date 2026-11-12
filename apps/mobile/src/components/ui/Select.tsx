@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fonts, radius, space, text } from '@/theme';
+import { colors, fonts, radius, space, text } from '@/styles/theme';
 
 /**
  * Dropdown: a field showing the current choice; tapping it opens a list of options in a sheet.

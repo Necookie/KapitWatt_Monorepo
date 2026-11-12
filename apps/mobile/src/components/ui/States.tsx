@@ -1,6 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { colors, space, text } from '@/theme';
-import { Button } from './Button';
+import { colors, space, text } from '@/styles/theme';
+import { Button } from '@/components/ui/Button';
 
 export function Loading() {
   return (
