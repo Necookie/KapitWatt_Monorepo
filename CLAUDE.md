@@ -40,19 +40,24 @@ docs/          The full plan (PDF, source of truth), PRD, SRS, MVP
 
 Inside each app:
 
-- `apps/mobile/src/app/`: Expo Router routes only. One file per screen. Components go in
-  `src/components/`, API client and helpers in `src/lib/`.
-- `apps/dashboard/src/` is feature-driven. `src/app/` holds Expo Router routes only, each one line:
-  `export { <Page> as default } from '@/features/<page>'`. Each page lives in `src/features/<page>/`
-  (`live-load`, `send-alert`, `flagged`, `alert-log`, `simulator`, `analytics`, `town-detail`), with
-  nothing at its root but `index.ts`:
+- Both Expo apps are feature-driven. `src/app/` holds Expo Router routes only: each screen is one line,
+  `export { <Page> as default } from '@/features/<page>'` (the `_layout.tsx` navigators stay there).
+  Each page lives in `src/features/<page>/`, with nothing at its root but `index.ts`:
+  - Mobile pages: `welcome`, `sign-up`, `login`, `forgot-password`, `home`, `history`, `leaderboard`,
+    `profile`, `event`, `commit`, `capture`, `result`, `rehearsal`, `appliances`, `privacy`.
+  - Dashboard pages: `live-load`, `send-alert`, `flagged`, `alert-log`, `simulator`, `analytics`,
+    `town-detail`.
   - `page/<Name>Page.tsx`: composition only (no inline components, helpers or derivation blocks).
   - `components/`: one component per file, named after it. `hooks/`: one hook per file (`useX.ts`).
     `utils/`: pure functions and constants (kebab-case files). `api/`: one query or mutation hook per
     file, for queries only this page uses. `styles/`: only for standalone styles or CSS.
   - Code used by more than one page goes in the shared folders: `components/` (`ui/` holds the older
     compact primitives), `hooks/`, `utils/`, `layout/` (the app shell, itself split into `components/`,
-    `hooks/`, `utils/`), `styles/` and `api/` (client, HTTP, shared queries and query keys).
+    `hooks/`, `utils/`), `styles/` (the theme) and `api/` (client, HTTP, shared queries and query keys;
+    on mobile also the mock and push registration).
+  - Mobile shared components include `mascot/` (the living Alitaptap), `night/` (the sky, moon, street
+    and the sheet positions welcome, sign-up and login share), `capture/` (the in-app meter camera)
+    and `privacy/`.
   - A feature never imports from another feature, and shared code never imports a feature; when two
     pages need the same thing, move it to a shared folder. Inside a feature use relative imports; for
     shared code use `@/`.
@@ -64,7 +69,7 @@ Inside each app:
 Built so far in the API: sign-up, profile, push token, barangays, alerts (create, log, active, view,
 totals, targets) and commitments. Readings, rewards, settlement, fast-forward, leaderboard and the
 simulator routes still return HTTP 501. The mobile app still runs on its mock (`USE_MOCKS` in
-`apps/mobile/src/lib/config.ts`) and the dashboard on its fixture (`EXPO_PUBLIC_FIXTURES=1`) until those
+`apps/mobile/src/api/config.ts`) and the dashboard on its fixture (`EXPO_PUBLIC_FIXTURES=1`) until those
 land. Replace placeholders in place; keep the route paths.
 
 ## Commands

@@ -3,9 +3,9 @@ import { ThemeProvider } from '@kapitwatt/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useAlertWatcher } from '@/lib/alertWatcher';
-import { ApiError } from '@/lib/api';
-import { colors, text } from '@/theme';
+import { useAlertWatcher } from '@/layout/hooks/useAlertWatcher';
+import { ApiError } from '@/api/http';
+import { colors, text } from '@/styles/theme';
 
 const queryClient = new QueryClient({
   defaultOptions: {

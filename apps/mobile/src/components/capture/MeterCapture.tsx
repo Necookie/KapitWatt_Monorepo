@@ -9,10 +9,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocationPrompt } from '@/components/LocationPrompt';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { Button } from '@/components/ui';
-import { describeError } from '@/lib/api';
-import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
-import { useSubmitReading } from '@/lib/queries';
-import { fonts, radius, space } from '@/theme';
+import { describeError } from '@/api/http';
+import { currentPosition, LocationError, type LocationProblem } from '@/utils/location';
+import { useSubmitReading } from '@/api/queries';
+import { fonts, radius, space } from '@/styles/theme';
 
 const c = themes.light.color;
 

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui';
-import { fixLocation, LOCATION_HELP, type LocationProblem } from '@/lib/location';
-import { colors, radius, space, text } from '@/theme';
+import { fixLocation, LOCATION_HELP, type LocationProblem } from '@/utils/location';
+import { colors, radius, space, text } from '@/styles/theme';
 
 /**
  * Shown when we could not get the phone's location. The button brings back the right system

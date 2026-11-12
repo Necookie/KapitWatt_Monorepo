@@ -1,7 +1,7 @@
 import { themes } from '@kapitwatt/styles';
 import { Mascot, Text, type MascotPose } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { fonts } from '@/theme';
+import { fonts } from '@/styles/theme';
 
 const c = themes.light.color;
 

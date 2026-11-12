@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router/js-tabs';
-import { CleanTabBar } from '@/components/CleanTabBar';
-import { colors } from '@/theme';
+import { CleanTabBar } from '@/layout/components/CleanTabBar';
+import { colors } from '@/styles/theme';
 
 /** The four main screens behind the clean bottom bar (mockups: "Nav 1 · Clean bar"). */
 export default function TabsLayout() {

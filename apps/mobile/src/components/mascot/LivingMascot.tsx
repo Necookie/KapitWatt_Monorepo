@@ -11,10 +11,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
-import { svgHidden } from '@/lib/svgHidden';
-import { useReducedMotion } from '@/lib/useReducedMotion';
-import { mascotLayers } from './layers';
-import { ARMS, BOX, BURST_FROM, PERSONALITY, WING_ROOT } from './personality';
+import { svgHidden } from '@/utils/svg-hidden';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { mascotLayers } from '@/components/mascot/layers';
+import { ARMS, BOX, BURST_FROM, PERSONALITY, WING_ROOT } from '@/components/mascot/personality';
 
 const c = themes.light.color;
 const NATIVE = Platform.OS !== 'web';
