@@ -11,6 +11,7 @@ import { AppError, errorResponse, handleError } from './lib/errors';
 import { accessLog } from './middleware/log';
 import { clientIp, rateLimit } from './middleware/rate-limit';
 import { alerts } from './routes/alerts';
+import { analyticsRoutes } from './routes/analytics';
 import { auth } from './routes/auth';
 import { barangays } from './routes/barangays';
 import { commitments } from './routes/commitments';
@@ -97,6 +98,7 @@ app.get('/health/db', async (c) => c.json({ ok: true, ...(await dbHealth(c.var.d
 app.route('/auth', auth);
 app.route('/barangays', barangays);
 app.route('/alerts', alerts);
+app.route('/analytics', analyticsRoutes);
 app.route('/commitments', commitments);
 app.route('/readings', readings);
 app.route('/rewards', rewards);

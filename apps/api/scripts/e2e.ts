@@ -4,7 +4,9 @@
  *   terminal 1:  pnpm dev:api
  *   terminal 2:  pnpm --filter @kapitwatt/api e2e     (run under `doppler run --` for DATABASE_URL)
  *
- * API_URL defaults to http://localhost:8787. Every household it creates has a meter serial starting
+ * E2E_API_URL defaults to http://localhost:8787. It is NOT read from API_URL: `doppler run` overrides
+ * the environment with Doppler's values, and Doppler's API_URL is the live Worker. The test writes to
+ * the database and refuses to run against the live API unless E2E_ALLOW_LIVE=1 is set on purpose. Every household it creates has a meter serial starting
  * with E2E- and is deleted at the end, pass or fail. Grows with each API phase.
  */
 import { createHash } from 'node:crypto';
@@ -29,9 +31,17 @@ import {
   SettlementResult,
   FlaggedReadingsResponse,
   ReviewResult,
+  AlertAnalytics,
+  AlertHistoryResponse,
 } from '@kapitwatt/shared';
 
-const API = process.env.API_URL ?? 'http://localhost:8787';
+const API = process.env.E2E_API_URL ?? 'http://localhost:8787';
+if (/workers\.dev|kapitwatt-api\./.test(API) && process.env.E2E_ALLOW_LIVE !== '1') {
+  console.error(
+    `e2e: refusing to run against the live API (${API}). Point E2E_API_URL at a local server.`,
+  );
+  process.exit(1);
+}
 /** Must match the Worker's OPERATOR_KEY (both come from the environment). */
 const OPERATOR = { 'x-operator-key': process.env.OPERATOR_KEY ?? '' };
 const SIM = { 'x-sim-key': process.env.SIM_KEY ?? '' };
@@ -878,6 +888,46 @@ async function phase6Settlement(
     AlertView.parse((await call('GET', `/alerts/${id}`)).json).status === 'settled',
     'alert is settled',
   );
+
+  // Analytics agree with the settlement.
+  const analyticsRes = await call('GET', `/analytics/alerts/${id}`, undefined, OPERATOR);
+  check(
+    analyticsRes.status === 200,
+    `GET /analytics/alerts/:id returns 200 (got ${analyticsRes.status} ${JSON.stringify(analyticsRes.json).slice(0, 200)})`,
+  );
+  const analytics = AlertAnalytics.parse(analyticsRes.json);
+  const committedStage = analytics.funnel.find((f) => f.stage === 'committed')!;
+  const verifiedStage = analytics.funnel.find((f) => f.stage === 'verified')!;
+  check(
+    committedStage.ami + committedStage.photo === result.commitments,
+    'analytics: funnel starts at every commitment',
+  );
+  check(
+    verifiedStage.ami + verifiedStage.photo === result.verifiedCount,
+    'analytics: funnel ends at the verified count',
+  );
+  check(
+    analytics.outcomes.reduce((sum, o) => sum + o.households, 0) === result.commitments &&
+      analytics.outcomes.find((o) => o.outcome === 'verified')?.households === result.verifiedCount,
+    'analytics: outcomes add up to the commitments',
+  );
+  check(
+    analytics.payouts.creditPhp > 0 && (analytics.payouts.costPerKwhPhp ?? 0) > 0,
+    'analytics: payouts and cost per kWh',
+  );
+  check(
+    analytics.timeline.length > 1 &&
+      analytics.timeline.at(-1)!.committedKw === analytics.committedKw,
+    'analytics: commit timeline ends at the committed total',
+  );
+  const historyList = AlertHistoryResponse.parse(
+    (await call('GET', '/analytics/history', undefined, OPERATOR)).json,
+  ).alerts;
+  check(
+    historyList.find((h) => h.alertId === id)?.deliveredKw === result.deliveredKw,
+    'analytics: history shows the settled delivered kW',
+  );
+  check((await call('GET', '/analytics/history')).status === 401, 'analytics are operator-only');
 
   const cardA = ResultCard.parse(
     (await call('GET', `/rewards/by-alert/${id}`, undefined, bearer(a))).json,
