@@ -3,20 +3,38 @@ import { StyleSheet, Text } from 'react-native';
 import { AlertBadge } from '@/components/event/AlertBadge';
 import { MockControls } from '@/components/MockControls';
 import { Button, Card, ErrorState, Loading, Row, Screen, SimulatedNote } from '@/components/ui';
-import { ApiError } from '@/lib/api';
+import { ApiError, describeError } from '@/lib/api';
+import { startOver } from '@/lib/nav';
 import { formatClock } from '@/lib/format';
-import { useActiveAlert, useMe, useRefreshAll } from '@/lib/queries';
+import { useActiveAlert, useLogout, useMe, useRefreshAll } from '@/lib/queries';
 import { colors, text } from '@/theme';
 
 export default function HomeScreen() {
   const alert = useActiveAlert();
   const me = useMe();
   const refreshAll = useRefreshAll();
+  const logout = useLogout();
 
   // Not signed in: the API answers 401 without a household token.
   if (me.error instanceof ApiError && me.error.status === 401) return <Redirect href="/welcome" />;
   if (alert.isPending || me.isPending) return <Loading />;
-  if (alert.isError || me.isError) return <ErrorState onRetry={() => void refreshAll()} />;
+  if (alert.isError || me.isError) {
+    return (
+      <ErrorState
+        message={describeError(
+          me.error ?? alert.error,
+          {},
+          'Check your connection, then try again.',
+        )}
+        onRetry={() => void refreshAll()}
+        // Without this a phone whose saved login the server cannot read is stuck on this screen.
+        action={{
+          label: 'Log in again',
+          onPress: () => logout.mutate(undefined, { onSettled: () => startOver('/welcome') }),
+        }}
+      />
+    );
+  }
 
   const needsRehearsal = me.data.needsRehearsal;
 

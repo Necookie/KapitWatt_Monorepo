@@ -80,7 +80,7 @@ export function useRegister() {
     // Reset, not just invalidate: cached 401s would otherwise send Home straight back to sign-up.
     onSuccess: () => {
       void registerForPush();
-      return qc.resetQueries();
+      void qc.resetQueries();
     },
   });
 }
@@ -91,7 +91,8 @@ export function useLogin() {
     mutationFn: (input: LoginInput) => endpoints.login(input),
     onSuccess: () => {
       void registerForPush();
-      return qc.resetQueries();
+      // Not awaited: the screen moves on at once and the queries refill behind it.
+      void qc.resetQueries();
     },
   });
 }

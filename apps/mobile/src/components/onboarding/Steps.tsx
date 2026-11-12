@@ -13,7 +13,16 @@ import {
   DATA_CONSENT_LABEL,
   PrivacyNotice,
 } from '@/components/privacy/PrivacyNotice';
-import { Button, Card, Checkbox, Row, Select, SimulatedNote, TextField } from '@/components/ui';
+import {
+  Button,
+  Card,
+  Checkbox,
+  PasswordField,
+  Row,
+  Select,
+  SimulatedNote,
+  TextField,
+} from '@/components/ui';
 import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
 import { colors, space, text } from '@/theme';
 import { fieldOk, STEP_TITLE, STEPS, type StepId, type StepProps } from './draft';
@@ -67,23 +76,19 @@ export function AccountStep({ draft, set }: StepProps) {
       <Problem show={draft.email.length > 0 && !fieldOk('email', draft.email)}>
         Enter a valid email address.
       </Problem>
-      <TextField
+      <PasswordField
         label="Password"
         hint={`At least ${PASSWORD_MIN_LENGTH} characters.`}
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
+        autoComplete="new-password"
         value={draft.password}
         onChangeText={(password) => set({ password })}
       />
       <Problem show={draft.password.length > 0 && !fieldOk('password', draft.password)}>
         {`Use at least ${PASSWORD_MIN_LENGTH} characters.`}
       </Problem>
-      <TextField
+      <PasswordField
         label="Confirm password"
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
+        autoComplete="new-password"
         value={draft.confirmPassword}
         onChangeText={(confirmPassword) => set({ confirmPassword })}
       />

@@ -10,13 +10,21 @@ export function Loading() {
   );
 }
 
-export function ErrorState(props: { message?: string; onRetry?: () => void }) {
+export function ErrorState(props: {
+  message?: string;
+  onRetry?: () => void;
+  /** A second way out, for when trying again cannot help (for example: log in again). */
+  action?: { label: string; onPress: () => void };
+}) {
   return (
     <View style={styles.center}>
       <Text style={styles.title}>Something went wrong</Text>
       <Text style={styles.body}>{props.message ?? 'Check your connection, then try again.'}</Text>
       {props.onRetry ? (
         <Button label="Try again" variant="secondary" onPress={props.onRetry} />
+      ) : null}
+      {props.action ? (
+        <Button label={props.action.label} variant="secondary" onPress={props.action.onPress} />
       ) : null}
     </View>
   );

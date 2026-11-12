@@ -2,7 +2,16 @@ import { UpdateProfileInput } from '@kapitwatt/shared';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { Button, Card, ErrorState, Loading, Row, Screen, TextField } from '@/components/ui';
+import {
+  Button,
+  Card,
+  ErrorState,
+  Loading,
+  PasswordField,
+  Row,
+  Screen,
+  TextField,
+} from '@/components/ui';
 import { ApiError, describeError } from '@/lib/api';
 import { startOver } from '@/lib/nav';
 import { useDeleteAccount, useLogout, useMe, useUpdateProfile } from '@/lib/queries';
@@ -135,11 +144,9 @@ export default function ProfileScreen() {
         </Text>
         {deleting ? (
           <>
-            <TextField
+            <PasswordField
               label="Enter your password to confirm"
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
+              autoComplete="current-password"
               value={password}
               onChangeText={setPassword}
             />
