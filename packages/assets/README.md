@@ -2,13 +2,13 @@
 
 Brand files shared by `apps/mobile` and `apps/dashboard`. Static files only, no code to import.
 
-| Path        | What                                                                    |
-| ----------- | ----------------------------------------------------------------------- |
-| `logo/`     | Final logo SVGs: symbol, wordmark, horizontal and stacked lockups, icon |
-| `logo/png/` | Expo app icon, Android adaptive icon layers, favicon, splash image      |
-| `mascot/`   | Alitaptap poses for empty states and the result card (not the logo)     |
-| `fonts/`    | Albert Sans variable font and its licence (SIL OFL 1.1)                 |
-| `source/`   | Python that regenerates everything in `logo/`                           |
+| Path        | What                                                                          |
+| ----------- | ----------------------------------------------------------------------------- |
+| `logo/`     | Final logo SVGs: symbol, wordmark, horizontal and stacked lockups, icon       |
+| `logo/png/` | Expo app icon, Android adaptive icon layers, favicon, splash image            |
+| `mascot/`   | Alitaptap poses for empty states and the result card (not the logo)           |
+| `fonts/`    | Albert Sans variable font and its licence (SIL OFL 1.1)                       |
+| `source/`   | Python that regenerates `logo/` (`build.py`) and `fonts/static/` (`fonts.py`) |
 
 ## The logo
 

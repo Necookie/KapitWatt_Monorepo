@@ -1,0 +1,28 @@
+{
+  "name": "@kapitwatt/styles",
+  "version": "0.0.0",
+  "private": true,
+  "description": "KapitWatt theme (tokens as React Native styles), ThemeProvider and brand font sources.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/react": "~19.3.0",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "typescript": "~6.0.3"
+  },
+  "dependencies": {
+    "@kapitwatt/assets": "workspace:*",
+    "@kapitwatt/tokens": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
+  }
+}
