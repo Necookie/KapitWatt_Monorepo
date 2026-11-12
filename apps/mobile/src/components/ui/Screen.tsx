@@ -14,6 +14,7 @@ export function Screen(props: { children: ReactNode; onRefresh?: () => Promise<u
   return (
     <ScrollView
       style={styles.root}
+      keyboardShouldPersistTaps="handled"
       contentContainerStyle={[styles.content, { paddingBottom: space.xl + insets.bottom }]}
       refreshControl={
         onRefresh ? (

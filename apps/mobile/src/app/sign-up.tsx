@@ -1,7 +1,7 @@
 import { RegisterHouseholdInput } from '@kapitwatt/shared';
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { BackHandler, StyleSheet, Text } from 'react-native';
 import {
   EMPTY_DRAFT,
   STEPS,
@@ -20,11 +20,12 @@ import {
   StepHeader,
 } from '@/components/onboarding/Steps';
 import { Button, ErrorState, Loading, Screen, SimulatedNote } from '@/components/ui';
-import { errorCode } from '@/lib/api';
+import { describeError, errorCode } from '@/lib/api';
+import { startOver } from '@/lib/nav';
 import { useBarangays, useRegister } from '@/lib/queries';
 import { colors, text } from '@/theme';
 
-/** Where a refused sign-up sends the household back to, and what it is told. */
+/** Refusals that belong to one step: the household is sent back there to fix it. */
 const REFUSALS: Record<string, { step: StepId; message: string }> = {
   email_taken: {
     step: 'account',
@@ -48,6 +49,19 @@ export default function SignUpScreen() {
   const [step, setStep] = useState<StepId>('account');
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [problem, setProblem] = useState<string | null>(null);
+  const index = STEPS.indexOf(step);
+
+  // Android back button: one step back, not out of onboarding (which would lose what was typed).
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (index === 0) return false;
+        setStep(STEPS[index - 1]!);
+        return true;
+      });
+      return () => sub.remove();
+    }, [index]),
+  );
 
   if (barangays.isPending) return <Loading />;
   if (barangays.isError) return <ErrorState onRetry={() => void barangays.refetch()} />;
@@ -56,26 +70,27 @@ export default function SignUpScreen() {
     setProblem(null);
     setDraft((d) => ({ ...d, ...changes }));
   };
-  const index = STEPS.indexOf(step);
   const props = { draft, set };
 
   const join = () => {
     const parsed = RegisterHouseholdInput.safeParse(toSignUp(draft));
     if (!parsed.success) return;
+    setProblem(null);
     registerMutation.mutate(parsed.data, {
-      onSuccess: (res) => router.replace(res.household.needsRehearsal ? '/rehearsal' : '/'),
+      onSuccess: (res) => startOver(res.household.needsRehearsal ? '/rehearsal' : '/'),
       onError: (e) => {
         const refusal = REFUSALS[errorCode(e) ?? ''];
         if (refusal) setStep(refusal.step);
         setProblem(
-          refusal?.message ?? 'Could not sign you up. Check your connection and try again.',
+          refusal?.message ?? describeError(e, {}, 'Could not sign you up. Try again in a moment.'),
         );
       },
     });
   };
 
   return (
-    <Screen>
+    // Keyed by step so every step opens scrolled to the top.
+    <Screen key={step}>
       <StepHeader step={step} />
       {problem ? <Text style={styles.error}>{problem}</Text> : null}
 
@@ -109,7 +124,11 @@ export default function SignUpScreen() {
         label={index === 0 ? 'Cancel' : 'Back'}
         variant="secondary"
         disabled={registerMutation.isPending}
-        onPress={() => (index === 0 ? router.back() : setStep(STEPS[index - 1]!))}
+        onPress={() => {
+          if (index > 0) setStep(STEPS[index - 1]!);
+          else if (router.canGoBack()) router.back();
+          else router.replace('/welcome');
+        }}
       />
       {step === 'account' ? (
         <Button

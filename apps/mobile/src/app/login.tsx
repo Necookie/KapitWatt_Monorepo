@@ -3,17 +3,17 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { Button, Card, Screen, TextField } from '@/components/ui';
-import { ApiError, errorCode } from '@/lib/api';
+import { describeError } from '@/lib/api';
+import { startOver } from '@/lib/nav';
 import { useLogin } from '@/lib/queries';
 import { colors, text } from '@/theme';
 
 function loginError(e: Error): string {
-  const code = errorCode(e);
-  if (code === 'invalid_credentials') return 'Wrong email or password.';
-  if (e instanceof ApiError && e.status === 429) {
-    return 'Too many attempts. Wait a minute, then try again.';
-  }
-  return 'Could not log you in. Check your connection and try again.';
+  return describeError(
+    e,
+    { invalid_credentials: 'Wrong email or password.' },
+    'Could not log you in. Try again.',
+  );
 }
 
 /** Email and password login for a household that already joined. */
@@ -51,10 +51,7 @@ export default function LoginScreen() {
           onPress={() => {
             if (!parsed.success) return;
             login.mutate(parsed.data, {
-              onSuccess: (res) => {
-                router.dismissAll();
-                router.replace(res.household.needsRehearsal ? '/rehearsal' : '/');
-              },
+              onSuccess: (res) => startOver(res.household.needsRehearsal ? '/rehearsal' : '/'),
             });
           }}
         />

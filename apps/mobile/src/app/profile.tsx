@@ -3,7 +3,8 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { Button, Card, ErrorState, Loading, Row, Screen, TextField } from '@/components/ui';
-import { ApiError, errorCode } from '@/lib/api';
+import { ApiError, describeError } from '@/lib/api';
+import { startOver } from '@/lib/nav';
 import { useDeleteAccount, useLogout, useMe, useUpdateProfile } from '@/lib/queries';
 import { colors, text } from '@/theme';
 
@@ -32,10 +33,7 @@ export default function ProfileScreen() {
   const h = me.data;
 
   const edit = UpdateProfileInput.safeParse({ accountName: name, serviceAddress: address });
-  const leave = () => {
-    router.dismissAll();
-    router.replace('/welcome');
-  };
+  const leave = () => startOver('/welcome');
 
   return (
     <Screen onRefresh={me.refetch}>
@@ -58,7 +56,9 @@ export default function ProfileScreen() {
               onChangeText={setAddress}
             />
             {update.isError ? (
-              <Text style={styles.error}>Could not save your changes. Try again.</Text>
+              <Text style={styles.error}>
+                {describeError(update.error, {}, 'Could not save your changes. Try again.')}
+              </Text>
             ) : null}
             <Button
               label="Save"
@@ -145,9 +145,11 @@ export default function ProfileScreen() {
             />
             {remove.isError ? (
               <Text style={styles.error}>
-                {errorCode(remove.error) === 'invalid_credentials'
-                  ? 'Wrong password.'
-                  : 'Could not delete your account. Try again.'}
+                {describeError(
+                  remove.error,
+                  { invalid_credentials: 'Wrong password.' },
+                  'Could not delete your account. Try again.',
+                )}
               </Text>
             ) : null}
             <Button
