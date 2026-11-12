@@ -106,3 +106,13 @@ export function stepDone(step: StepId, d: Draft): boolean {
       return RegisterHouseholdInput.safeParse(toSignUp(d)).success;
   }
 }
+
+/**
+ * The given name from the account holder's name as it is billed, for a friendly line: "DELA CRUZ,
+ * JUAN" or "Juan dela Cruz" both give "Juan". Empty when nothing usable was typed.
+ */
+export function givenName(holder: string): string {
+  const name = holder.includes(',') ? holder.slice(holder.indexOf(',') + 1) : holder;
+  const first = name.trim().split(/\s+/)[0] ?? '';
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+}

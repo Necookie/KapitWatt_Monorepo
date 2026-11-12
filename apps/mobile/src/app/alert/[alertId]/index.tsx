@@ -8,7 +8,7 @@ import { BarangayProgress } from '@/components/event/BarangayProgress';
 import { Countdown } from '@/components/event/Countdown';
 import { StepList } from '@/components/event/StepList';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
-import type { MascotPose } from '@/components/mascot/poses';
+import type { MascotPose } from '@kapitwatt/ui';
 import { MockControls } from '@/components/MockControls';
 import { Button, ErrorState, Loading, Screen } from '@/components/ui';
 import { useBrownoutRisk } from '@/lib/brownout';

@@ -17,15 +17,28 @@ import { queryKeys } from './queries';
  * wake a closed app; real Expo Push (API side, rule 4) needs an installed build.
  */
 
+/**
+ * The browser preview (`expo start --web`) has no notifications: expo-notifications throws there.
+ * On web the watcher still polls (Home shares the query) but never notifies or reads taps.
+ */
+const WEB = Platform.OS === 'web';
+
+/** The last tapped notification; none on web. */
+const useTappedNotification: () => Notifications.NotificationResponse | null | undefined = WEB
+  ? () => null
+  : Notifications.useLastNotificationResponse;
+
 // Show the banner and play the sound even while the app is in the foreground.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+if (!WEB) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 async function setUpNotifications(): Promise<boolean> {
   await ensureAlertChannel();
@@ -64,7 +77,7 @@ export function useAlertWatcher() {
     if (!view || seen.current.has(view.alert.id)) return;
     if (view.alert.status === 'settled' || view.alert.status === 'cancelled') return;
     seen.current.add(view.alert.id);
-    if (pushRegistered()) return;
+    if (WEB || pushRegistered()) return;
     allowed.current ??= setUpNotifications().catch(() => false);
     void allowed.current.then((ok) => (ok ? notify(view) : undefined));
   }, [active.data]);
@@ -75,7 +88,7 @@ export function useAlertWatcher() {
   }, []);
 
   // Tapping the notification opens the event screen (FR-APP-05).
-  const response = Notifications.useLastNotificationResponse();
+  const response = useTappedNotification();
   useEffect(() => {
     const alertId = response?.notification.request.content.data?.alertId;
     if (typeof alertId === 'string') {

@@ -42,7 +42,10 @@ export function forgetPush(): void {
  * without a household token, on an emulator, without permission or without a project id.
  */
 export async function registerForPush(): Promise<void> {
-  if (registered || MOCK.account || !hasAuthToken() || !Device.isDevice) return;
+  // No push in the browser preview (expo-notifications is not available on web).
+  if (registered || Platform.OS === 'web' || MOCK.account || !hasAuthToken() || !Device.isDevice) {
+    return;
+  }
   try {
     const projectId: unknown =
       Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;

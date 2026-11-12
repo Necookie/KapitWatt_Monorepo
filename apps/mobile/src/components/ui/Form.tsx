@@ -1,7 +1,7 @@
 import { Icon } from '@kapitwatt/icons';
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
-import { useState } from 'react';
+import { useState, type ComponentRef, type Ref } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { colors, radius, space } from '@/theme';
 
@@ -11,7 +11,8 @@ const c = t.color;
 /**
  * A labelled text input with the same frame as a button: 56 px tall, 12 px corners (mockup page 1,
  * Log in). White fill so it reads as tappable; 2 px primary border while focused, error border and
- * message when `error` is set. Password fields (`secureTextEntry`) get a show/hide eye.
+ * message when `error` is set. Password fields (`secureTextEntry`) get a show/hide eye. `ref` reaches
+ * the input (to move focus to it from the field before).
  */
 export function TextField(
   props: Omit<TextInputProps, 'style'> & {
@@ -20,6 +21,7 @@ export function TextField(
     error?: string;
     /** Unit shown inside the field on the right, e.g. "kWh". */
     suffix?: string;
+    ref?: Ref<ComponentRef<typeof TextInput>>;
   },
 ) {
   const {
@@ -31,6 +33,7 @@ export function TextField(
     onFocus,
     onBlur,
     editable = true,
+    ref,
     ...input
   } = props;
   const [focused, setFocused] = useState(false);
@@ -56,6 +59,7 @@ export function TextField(
       >
         <TextInput
           {...input}
+          ref={ref}
           editable={editable}
           secureTextEntry={secureTextEntry && !revealed}
           accessibilityLabel={label}
