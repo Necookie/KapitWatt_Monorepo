@@ -45,6 +45,9 @@ export function commitRejection(
       ? conflict('needs_rehearsal', 'Finish the rehearsal before committing.')
       : conflict('no_baseline', 'Your smart-meter baseline is not available yet.');
   }
+  if (alert.storedStatus === 'scheduled') {
+    return conflict('not_sent', 'This alert has not been sent yet.');
+  }
   if (['settling', 'settled', 'cancelled'].includes(alert.storedStatus)) {
     return conflict('alert_closed', 'This alert is closed.');
   }
@@ -54,7 +57,8 @@ export function commitRejection(
   if (alert.effectiveNow >= alert.windowStart) {
     return conflict('window_closed', 'Commitments closed when the peak window started.');
   }
-  const cap = commitCapKw(household.baselineKw, household.billAvgKwhMonth) ?? 0;
+  const cap =
+    commitCapKw(household.baselineKw, household.billAvgKwhMonth, household.trustScore) ?? 0;
   if (committedKw > cap + 1e-9) {
     return new AppError(422, 'above_cap', `That is above your maximum cut of ${cap} kW.`);
   }

@@ -35,7 +35,7 @@ export function toHouseholdMe(p: HouseholdProfileRow): HouseholdMe {
     needsRehearsal: p.meterType === 'standard' && p.baselineKw === null,
     rehearsalReadings: p.rehearsalReadings,
     trustScore: p.trustScore,
-    commitCapKw: commitCapKw(p.baselineKw, p.billAvgKwhMonth),
+    commitCapKw: commitCapKw(p.baselineKw, p.billAvgKwhMonth, p.trustScore),
     optedIn: p.optedIn,
     points: p.points,
     creditPhp: Math.round(p.creditPhp * 100) / 100,

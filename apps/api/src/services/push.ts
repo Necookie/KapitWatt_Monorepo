@@ -17,13 +17,16 @@ const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 /** Expo accepts at most 100 messages per request. */
 const BATCH = 100;
 
+/** What the app routes on: open the event screen for alertId. */
+export type PushType = 'grid_alert' | 'reminder' | 'alert_lifted';
+
 export interface ExpoMessage {
   to: string;
   title: string;
   body: string;
   sound: 'default';
   priority: 'high';
-  data: { type: 'grid_alert'; alertId: string };
+  data: { type: PushType; alertId: string };
 }
 
 type ExpoTicket =
@@ -121,3 +124,39 @@ export async function dispatchAlertPush(
   });
   return outcome;
 }
+
+/**
+ * Sends one message to a set of tokens and records the outcome (clears unregistered tokens). Used
+ * for reminders and the alert-lifted push; recipients always come from queries limited to real,
+ * opted-in households with a token.
+ */
+export async function pushToTokens(
+  db: Db,
+  tokens: string[],
+  message: { title: string; body: string; type: PushType; alertId: string },
+  accessToken: string | undefined,
+  fetchFn: typeof fetch = fetch,
+): Promise<PushOutcome> {
+  const messages: ExpoMessage[] = tokens.map((to) => ({
+    to,
+    title: message.title,
+    body: message.body,
+    sound: 'default',
+    priority: 'high',
+    data: { type: message.type, alertId: message.alertId },
+  }));
+  const outcome = await sendExpo(messages, accessToken, fetchFn);
+  await clearPushTokens(db, outcome.unregistered);
+  logInfo('push_sent', {
+    alertId: message.alertId,
+    type: message.type,
+    recipients: tokens.length,
+    sent: outcome.sent,
+    failed: outcome.failed,
+  });
+  return outcome;
+}
+
+/** The window in Manila time, e.g. "18:00 to 20:00". */
+export const windowText = (a: Pick<AlertRow, 'windowStart' | 'windowEnd'>) =>
+  `${manilaTime.format(a.windowStart)} to ${manilaTime.format(a.windowEnd)}`;

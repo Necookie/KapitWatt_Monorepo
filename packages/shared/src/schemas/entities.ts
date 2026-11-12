@@ -56,6 +56,8 @@ export const Alert = z.object({
   settledAt: z.iso.datetime().nullable(),
   cancelledAt: z.iso.datetime().nullable(),
   pushSentAt: z.iso.datetime().nullable(),
+  /** P1: scheduled send time; null (or absent) when sent on creation. */
+  sendAt: z.iso.datetime().nullable().optional(),
 });
 export type Alert = z.infer<typeof Alert>;
 

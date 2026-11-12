@@ -41,10 +41,16 @@ export const CreateAlertInput = z
     /** Empty array = all pilot areas. */
     targetBarangayIds: z.array(z.uuid()).max(100),
     message: z.string().trim().min(1).max(500),
+    /** P1: send later (the push goes out at this time). Omit to send now. */
+    sendAt: z.iso.datetime().optional(),
   })
   .refine((a) => Date.parse(a.windowEnd) > Date.parse(a.windowStart), {
     message: 'windowEnd must be after windowStart',
     path: ['windowEnd'],
+  })
+  .refine((a) => a.sendAt === undefined || Date.parse(a.sendAt) < Date.parse(a.windowStart), {
+    message: 'sendAt must be before windowStart',
+    path: ['sendAt'],
   });
 export type CreateAlertInput = z.infer<typeof CreateAlertInput>;
 

@@ -28,6 +28,7 @@ export interface AlertRow {
   createdAt: Date;
   clockOffsetSec: number;
   pushSentAt: Date | null;
+  sendAt: Date | null;
   settledAt: Date | null;
   cancelledAt: Date | null;
   /** Server time plus the demo offset (demo only), from Postgres. */
@@ -49,6 +50,7 @@ const toAlertRow = (r: Row): AlertRow => ({
   createdAt: r.created_at as Date,
   clockOffsetSec: Number(r.clock_offset_sec),
   pushSentAt: (r.push_sent_at as Date | null) ?? null,
+  sendAt: (r.send_at as Date | null) ?? null,
   settledAt: (r.settled_at as Date | null) ?? null,
   cancelledAt: (r.cancelled_at as Date | null) ?? null,
   effectiveNow: r.effective_now as Date,
@@ -97,6 +99,8 @@ export async function findOpenAlert(
              as effective_now
     from alerts a
     where a.status not in ('settled', 'cancelled')
+      -- Households never see an alert before it is sent; the dashboard does.
+      and (${barangayId}::uuid is null or a.status <> 'scheduled')
       and (${barangayId}::uuid is null or ${barangayId}::uuid = any(a.target_barangay_ids))
     order by a.created_at desc
     limit 1`;
@@ -137,6 +141,8 @@ export interface NewAlert {
   message: string;
   createdBy: string;
   idempotencyKey: string | null;
+  /** P1: send later; the alert stays 'scheduled' until then. */
+  sendAt: string | null;
 }
 
 /** Stores the alert and its per-barangay targets atomically (the ids come from the caller). */
@@ -147,9 +153,11 @@ export async function insertAlertWithTargets(
 ): Promise<void> {
   await db.transaction([
     db`insert into alerts (id, level, window_start, window_end, target_kw, target_barangay_ids, message,
-                           status, created_by, idempotency_key)
+                           status, created_by, idempotency_key, send_at)
        values (${a.id}, ${a.level}, ${a.windowStart}, ${a.windowEnd}, ${a.targetKw},
-               ${a.targetBarangayIds}::uuid[], ${a.message}, 'active', ${a.createdBy}, ${a.idempotencyKey})`,
+               ${a.targetBarangayIds}::uuid[], ${a.message},
+               case when ${a.sendAt}::timestamptz is null then 'active' else 'scheduled' end,
+               ${a.createdBy}, ${a.idempotencyKey}, ${a.sendAt}::timestamptz)`,
     db`insert into alert_barangay_targets (alert_id, barangay_id, target_kw, is_override)
        select ${a.id}, t.barangay_id, t.target_kw, false
        from unnest(${targets.map((t) => t.barangayId)}::uuid[], ${targets.map((t) => t.targetKw)}::numeric[])
@@ -287,4 +295,95 @@ export async function listTotalsCommitments(
     amiKwh: Number(r.ami_kwh),
     amiIntervals: Number(r.ami_n),
   }));
+}
+
+// ---- P1: cancel, scheduled sends, reminders -----------------------------------------------------
+
+/**
+ * Cancels an alert that has not settled. Returns the status it had (so the caller knows whether a
+ * push ever went out), or null when it could not be cancelled.
+ */
+export async function cancelAlertRow(db: Db, alertId: string): Promise<string | null> {
+  const rows = await db`
+    update alerts a set status = 'cancelled', cancelled_at = now()
+    from (select id, status from alerts where id = ${alertId} for update) prev
+    where a.id = prev.id and prev.status in ('scheduled', 'active')
+    returning prev.status as previous`;
+  return rows.length ? (rows[0]!.previous as string) : null;
+}
+
+/** Claims the alert-lifted push once (first caller wins). */
+export async function claimLiftedPush(db: Db, alertId: string): Promise<boolean> {
+  const rows = await db`
+    update alerts set lifted_push_sent_at = now()
+    where id = ${alertId} and status = 'cancelled' and lifted_push_sent_at is null
+    returning id`;
+  return rows.length === 1;
+}
+
+/** Scheduled alerts whose send time has come: marks them active (sent) and returns their ids. */
+export async function claimDueScheduledAlerts(db: Db): Promise<string[]> {
+  const rows = await db`
+    update alerts set status = 'active'
+    where status = 'scheduled' and send_at <= now()
+    returning id`;
+  return rows.map((r) => r.id as string);
+}
+
+export type ReminderKind = 'pre_window' | 'before_photo' | 'after_photo';
+
+/**
+ * Claims the reminders that are due now, on each alert's clock, marking them sent in the same
+ * statement so overlapping cron runs never send one twice. A reminder whose moment has passed (for
+ * example after a fast-forward) is skipped, never sent late:
+ *   pre_window    from window start - leadMinutes until window start
+ *   before_photo  from window start until window start + beforeMinutes
+ *   after_photo   from window end until window end + afterMinutes
+ */
+export async function claimDueReminders(
+  db: Db,
+  kind: ReminderKind,
+  opts: { isDemo: boolean; leadMinutes: number; beforeMinutes: number; afterMinutes: number },
+): Promise<string[]> {
+  const now = db`now() + make_interval(secs => case when ${opts.isDemo} then a.clock_offset_sec else 0 end)`;
+  const rows =
+    kind === 'pre_window'
+      ? await db`
+          update alerts a set reminder_sent_at = now()
+          where a.status = 'active' and a.reminder_sent_at is null
+            and ${now} >= a.window_start - make_interval(mins => ${opts.leadMinutes})
+            and ${now} < a.window_start
+          returning a.id`
+      : kind === 'before_photo'
+        ? await db`
+            update alerts a set before_reminder_sent_at = now()
+            where a.status = 'active' and a.before_reminder_sent_at is null
+              and ${now} >= a.window_start
+              and ${now} < a.window_start + make_interval(mins => ${opts.beforeMinutes})
+            returning a.id`
+        : await db`
+            update alerts a set after_reminder_sent_at = now()
+            where a.status = 'active' and a.after_reminder_sent_at is null
+              and ${now} >= a.window_end
+              and ${now} < a.window_end + make_interval(mins => ${opts.afterMinutes})
+            returning a.id`;
+  return rows.map((r) => r.id as string);
+}
+
+/**
+ * Expo tokens of real photo households that committed to the alert and have not sent this photo
+ * yet: the people a before/after reminder is for.
+ */
+export async function photoReminderRecipients(
+  db: Db,
+  alertId: string,
+  kind: 'before' | 'after',
+): Promise<string[]> {
+  const rows = await db`
+    select distinct h.push_token
+    from commitments c join households h on h.id = c.household_id
+    where c.alert_id = ${alertId} and c.path = 'photo'
+      and h.opted_in and not h.is_simulated and h.push_token is not null
+      and not exists (select 1 from meter_readings m where m.commitment_id = c.id and m.kind = ${kind})`;
+  return rows.map((r) => r.push_token as string);
 }

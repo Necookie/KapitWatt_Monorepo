@@ -1,9 +1,10 @@
-import type {
-  CheckStatus,
-  ReadingFlag,
-  ResultReason,
-  SettlementResult,
-  VerificationPath,
+import {
+  TRUST,
+  type CheckStatus,
+  type ReadingFlag,
+  type ResultReason,
+  type SettlementResult,
+  type VerificationPath,
 } from '@kapitwatt/shared';
 import type { Db } from '../index';
 import type { AlertRow } from './alerts';
@@ -135,6 +136,9 @@ export async function listSettlementCommitments(
 
 export interface SettledCommitment {
   id: string;
+  householdId: string;
+  /** Change to the household's trust score (P1). */
+  trustDelta: number;
   status: 'verified' | 'unverified' | 'flagged';
   actualKw: number | null;
   verifiedKwh: number;
@@ -171,6 +175,10 @@ export async function writeSettlement(
        from unnest(${col('id')}::uuid[], ${col('creditPhp')}::numeric[], ${col('bonusPhp')}::numeric[],
                    ${col('points')}::int[]) as t(id, credit, bonus, points)
        on conflict (commitment_id) do nothing`,
+    db`update households h
+       set trust_score = least(${TRUST.max}, greatest(${TRUST.min}, h.trust_score + t.delta))
+       from unnest(${col('householdId')}::uuid[], ${col('trustDelta')}::numeric[]) as t(id, delta)
+       where h.id = t.id and t.delta <> 0`,
     db`update alerts set status = 'settled', settled_at = now(), settling_started_at = null
        where id = ${alertId} and status = 'settling'`,
   ]);
@@ -203,7 +211,7 @@ export async function fastForwardAlert(
     set clock_offset_sec = greatest(
           a.clock_offset_sec,
           ceil(extract(epoch from (case when ${to} = 'window_start' then a.window_start else a.window_end end) - now()))::int)
-    where a.id = ${alertId} and a.status not in ('settling', 'settled', 'cancelled')
+    where a.id = ${alertId} and a.status not in ('scheduled', 'settling', 'settled', 'cancelled')
     returning a.id`;
   return rows.length === 1;
 }

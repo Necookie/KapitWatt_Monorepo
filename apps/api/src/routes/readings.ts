@@ -1,16 +1,21 @@
-import { MAX_PHOTO_BYTES, ReviewReadingInput, SubmitReadingInput } from '@kapitwatt/shared';
+import {
+  MAX_PHOTO_BYTES,
+  ReviewReadingInput,
+  SubmitReadingInput,
+  type FlaggedReadingsResponse,
+} from '@kapitwatt/shared';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { z } from 'zod';
 import type { AppEnv } from '../env';
 import { AppError } from '../lib/errors';
-import { IdParam } from '../lib/params';
-import { notImplemented } from '../lib/todo';
+import { IdParam, LimitQuery } from '../lib/params';
 import { validate } from '../lib/validate';
 import { householdAuth, operatorAuth } from '../middleware/auth';
 import { rateLimit } from '../middleware/rate-limit';
 import { requireBucket } from '../services/photos';
 import * as readingsService from '../services/readings';
+import * as review from '../services/review';
 
 export const readings = new Hono<AppEnv>();
 
@@ -67,8 +72,33 @@ readings.get(
 );
 
 // P1: readings that failed a rule check, for a person to review.
-readings.get('/flagged', operatorAuth, (c) => notImplemented(c, 'list flagged readings'));
+readings.get(
+  '/flagged',
+  operatorAuth,
+  rateLimit('RL_OPERATOR', () => 'operator'),
+  validate('query', LimitQuery),
+  async (c) => {
+    const body: FlaggedReadingsResponse = {
+      readings: await review.flaggedReadings(c.var.db, c.req.valid('query').limit),
+    };
+    return c.json(body);
+  },
+);
 
-readings.post('/:id/review', operatorAuth, validate('json', ReviewReadingInput), (c) =>
-  notImplemented(c, 'approve or reject flagged reading'),
+// Approve or reject a flagged reading. On a settled alert the commitment is settled again.
+readings.post(
+  '/:id/review',
+  operatorAuth,
+  rateLimit('RL_OPERATOR', () => 'operator'),
+  validate('param', IdParam),
+  validate('json', ReviewReadingInput),
+  async (c) =>
+    c.json(
+      await review.reviewReading(
+        c.var.db,
+        c.req.valid('param').id,
+        c.req.valid('json').decision,
+        c.env.APP_ENV === 'demo',
+      ),
+    ),
 );

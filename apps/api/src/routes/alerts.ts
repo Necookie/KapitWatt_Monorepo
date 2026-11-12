@@ -11,13 +11,13 @@ import type { AppEnv } from '../env';
 import { defer } from '../lib/defer';
 import { AppError } from '../lib/errors';
 import { IDEMPOTENCY_KEY, IdParam, LimitQuery } from '../lib/params';
-import { notImplemented } from '../lib/todo';
 import { validate } from '../lib/validate';
 import { demoOnly, operatorAuth, optionalHouseholdAuth } from '../middleware/auth';
 import { rateLimit } from '../middleware/rate-limit';
 import * as alertsService from '../services/alerts';
 import { toAlertView } from '../services/alert-view';
 import { dispatchAlertPush } from '../services/push';
+import { cancelAlert } from '../services/notifications';
 import { settleAlert } from '../services/settlement';
 import { alertTotals } from '../services/totals';
 
@@ -59,7 +59,8 @@ alerts.post('/', operatorAuth, operatorLimit, validate('json', CreateAlertInput)
     idempotencyKey: idempotencyKey(c),
     isDemo: isDemo(c),
   });
-  if (created) {
+  // A scheduled alert is pushed by the cron at its send time, not now.
+  if (created && alert.storedStatus === 'active') {
     defer(c, 'push_dispatch', dispatchAlertPush(c.var.db, alert, c.env.EXPO_ACCESS_TOKEN));
   }
   return c.json(toAlertView(alert), created ? 201 : 200);
@@ -130,6 +131,9 @@ alerts.post('/:id/settle', operatorAuth, operatorLimit, validate('param', IdPara
 );
 
 // P1: end an alert early and send the alert-lifted push.
-alerts.post('/:id/cancel', operatorAuth, operatorLimit, validate('param', IdParam), (c) =>
-  notImplemented(c, 'cancel alert'),
-);
+// End an alert (scheduled or active). Households that were alerted get an alert-lifted push.
+alerts.post('/:id/cancel', operatorAuth, operatorLimit, validate('param', IdParam), async (c) => {
+  const { view, liftedPush } = await cancelAlert(c.var.db, c.req.valid('param').id, isDemo(c));
+  defer(c, 'lifted_push', liftedPush());
+  return c.json(view);
+});

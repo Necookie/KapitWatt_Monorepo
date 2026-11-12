@@ -33,6 +33,7 @@ export function toAlertView(a: AlertRow): AlertView {
     createdBy: a.createdBy,
     createdAt: a.createdAt.toISOString(),
     pushSentAt: a.pushSentAt?.toISOString() ?? null,
+    sendAt: a.sendAt?.toISOString() ?? null,
     serverNow: a.effectiveNow.toISOString(),
   };
 }
