@@ -77,3 +77,36 @@ export const ResultCard = z.object({
   zeroReason: ZeroPayoutReason.nullable(),
 });
 export type ResultCard = z.infer<typeof ResultCard>;
+
+/** POST /auth/register. The app sends the token as `Authorization: Bearer <token>` afterwards. */
+export const RegisterHouseholdResponse = z.object({
+  token: z.string(),
+  householdId: z.uuid(),
+  /** Photo households must finish the rehearsal before their first commit. */
+  needsRehearsal: z.boolean(),
+});
+export type RegisterHouseholdResponse = z.infer<typeof RegisterHouseholdResponse>;
+
+/** POST /readings returns the stored MeterReading (with checkStatus and flags). */
+export const SubmitReadingResponse = MeterReading;
+export type SubmitReadingResponse = z.infer<typeof SubmitReadingResponse>;
+
+/** GET /barangays/leaderboard. Per barangay only, never per household (NFR-S4). */
+export const LeaderboardEntry = z.object({
+  rank: z.number().int().positive(),
+  barangayId: z.uuid(),
+  name: z.string(),
+  municipality: z.string(),
+  points: z.number().int().nonnegative(),
+  verifiedKwh: z.number().nonnegative(),
+});
+export type LeaderboardEntry = z.infer<typeof LeaderboardEntry>;
+
+/** GET /commitments/history: this household's past events, newest first. */
+export const HistoryItem = z.object({
+  alert: Alert.pick({ id: true, level: true, windowStart: true, windowEnd: true }),
+  committedKw: z.number().positive(),
+  /** null while the event has not settled yet. */
+  result: ResultCard.nullable(),
+});
+export type HistoryItem = z.infer<typeof HistoryItem>;
