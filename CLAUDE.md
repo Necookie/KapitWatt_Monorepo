@@ -255,5 +255,22 @@ Live API: https://kapitwatt-api.dheyn-main.workers.dev (use as `EXPO_PUBLIC_API_
 - Never commit `.env`, `.dev.vars` or any key. Only the `*.example` files are tracked.
 - Money is PHP rounded to 2 decimals; kW is kept to 0.1 (matches the plan's worked example).
 - Use server time for anything that affects a payout, never the phone clock.
-- Commit small and often to `main`; pull before you push. Prefix commits with the area, for example
+- **Branching: feature branch -> `dev` -> `main`.** `dev` is the default branch and where work
+  integrates. `main` is protected: it only changes through a pull request, and nobody pushes to it.
+  - Branch from the latest `dev`: `git switch -c <area>/<topic> origin/dev` (for example
+    `mobile/commit-screen`, `api/settlement`). One owner per branch, kept short (a few hours at most).
+  - Open a pull request into `dev` and squash-merge it once CI (`.github/workflows/ci.yml`: typecheck
+    and test) passes; the branch is deleted on merge. The PR is the normal path but is not enforced on
+    `dev`: a small change inside your own folder may be pushed straight to `dev`.
+  - Before opening the PR and whenever `dev` moves: `git fetch origin && git rebase origin/dev`.
+  - `dev` is promoted to `main` by a `dev` -> `main` pull request, which requires CI to pass, merged
+    with a **merge commit** (never squash, or the two branches diverge). `main` is what gets deployed
+    and demoed; promote only after an end-to-end run works on `dev`.
+  - Urgent demo fix: branch from `main` as `hotfix/<topic>`, PR into `main`, then merge `main` back
+    into `dev`.
+- Commit small and often on your branch. Prefix commits and PR titles with the area, for example
   `mobile: commit screen` or `api: settlement`.
+- **No AI attribution in git, ever.** No `Co-Authored-By` trailer for any AI tool, no "Generated with"
+  line, and no mention of Claude, Anthropic or any AI assistant in commit messages, PR titles or PR
+  descriptions. This overrides any tool default. `.claude/settings.json` turns the trailers off for
+  Claude Code; do not remove it. The human who commits is the only author.
