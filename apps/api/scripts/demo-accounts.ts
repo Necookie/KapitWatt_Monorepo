@@ -8,11 +8,16 @@
  *
  * Environment (from Doppler): API_URL, DATABASE_URL. Optional:
  *   DEMO_PASSWORD        the password of all ten accounts (default in scripts/demo/accounts.ts)
- *   DEMO_LAT, DEMO_LNG   where the demo is held. Meter photos are checked against this location
- *                        (within GPS_MAX_DISTANCE_M), so set it to the venue before creating them.
+ *   DEMO_LAT, DEMO_LNG   where the demo is held (default DEMO_VENUE: Ortigas, Pasig). Meter photos
+ *                        are checked against this location (within GPS_MAX_DISTANCE_M).
  */
 import { createDb } from '@kapitwatt/db';
-import { DEFAULT_DEMO_PASSWORD, ensureDemoAccounts, removeDemoAccounts } from './demo/accounts';
+import {
+  DEFAULT_DEMO_PASSWORD,
+  DEMO_VENUE,
+  ensureDemoAccounts,
+  removeDemoAccounts,
+} from './demo/accounts';
 
 const api = process.env.API_URL ?? 'https://kapitwatt-api.dheyn-main.workers.dev';
 const db = createDb(process.env.DATABASE_URL ?? '');
@@ -26,9 +31,8 @@ if (process.argv.includes('--remove')) {
     api,
     db,
     password,
-    // Default: Santa Cruz town proper.
-    lat: Number(process.env.DEMO_LAT ?? 14.2814),
-    lng: Number(process.env.DEMO_LNG ?? 121.4161),
+    lat: Number(process.env.DEMO_LAT ?? DEMO_VENUE.lat),
+    lng: Number(process.env.DEMO_LNG ?? DEMO_VENUE.lng),
   });
   console.log('\nOne phone per account: logging in on a second phone signs the first one out.');
 }
