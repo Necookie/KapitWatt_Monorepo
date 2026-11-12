@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useBrownoutRisk } from '@/utils/brownout';
 import { useAlert, useAlertTotals, useMe, useMyEventStatus, useRefreshAll } from '@/api/queries';
 import { openEventAction } from '@/utils/event-action';
+import type { NextStep } from '@/utils/next-step';
 import { useServerNow } from '@/utils/server-time';
 import { countdownTarget, eventPhase } from '@/utils/event-phase';
 import { eventSteps, type NowAction } from '@/utils/event-steps';
@@ -46,6 +47,15 @@ export function useEvent() {
   const live = nowCard.showLiveReduction ? status.data.liveReductionKw : null;
 
   const runAction = (kind: NowAction) => openEventAction(alertId, kind);
+  // The same card as Home's; the countdown is in the band and the steps are listed with times.
+  const nextStep: NextStep = {
+    kind: 'event',
+    card: nowCard,
+    mood,
+    steps: null,
+    countdown: null,
+    onAction: runAction,
+  };
 
   return {
     state: 'ready' as const,
@@ -61,5 +71,6 @@ export function useEvent() {
     mood,
     live,
     runAction,
+    nextStep,
   };
 }

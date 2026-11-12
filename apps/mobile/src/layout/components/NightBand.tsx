@@ -1,8 +1,9 @@
 import { themes } from '@kapitwatt/styles';
 import { space, withAlpha } from '@kapitwatt/tokens';
+import { Icon } from '@kapitwatt/icons';
 import { Text } from '@kapitwatt/ui';
 import { useRef, type ReactNode } from 'react';
-import { Animated, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Skyline } from '@/components/night/Skyline';
 import { GridStatus } from './GridStatus';
@@ -27,11 +28,23 @@ const STARS = [
  * The top of every tab: onboarding's night carries on as a short band, the street (its windows lit)
  * at its foot, the tab's title over it and the grid's state under the title. `leading` sits before
  * the title (Profile's initials). Flat tones only (DESIGN.md).
+ *
+ * Screens opened over the tabs use it too: `onBack` adds the back arrow, `children` replaces the
+ * title (the event's alert and countdown), `status={false}` leaves out the grid's state, and `cut`
+ * (0 to 1) dims the street's windows one after another (the commit screen).
  */
-export function NightBand(props: { overline?: string; title: string; leading?: ReactNode }) {
+export function NightBand(props: {
+  overline?: string;
+  title?: string;
+  leading?: ReactNode;
+  children?: ReactNode;
+  status?: boolean;
+  onBack?: () => void;
+  cut?: Animated.Value;
+}) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  // The street's windows stay lit here (0 = no cut).
+  // Without a `cut`, the street's windows stay lit (0 = no cut).
   const lit = useRef(new Animated.Value(0)).current;
   return (
     <View style={[styles.band, { paddingTop: insets.top + space[4] }]}>
@@ -46,28 +59,40 @@ export function NightBand(props: { overline?: string; title: string; leading?: R
         />
       ))}
       <View pointerEvents="none" style={styles.street}>
-        <Skyline cut={lit} width={width} />
+        <Skyline cut={props.cut ?? lit} width={width} />
       </View>
 
-      <View style={styles.row}>
-        {props.leading}
-        <View style={styles.words}>
-          {props.overline ? (
-            <Text variant="bodyMedium" numberOfLines={1} style={{ color: ON_SOFT }}>
-              {props.overline}
+      {props.onBack ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          onPress={props.onBack}
+          style={styles.back}
+        >
+          <Icon name="back" color="onBrand" />
+        </Pressable>
+      ) : null}
+      {props.children ?? (
+        <View style={styles.row}>
+          {props.leading}
+          <View style={styles.words}>
+            {props.overline ? (
+              <Text variant="bodyMedium" numberOfLines={1} style={{ color: ON_SOFT }}>
+                {props.overline}
+              </Text>
+            ) : null}
+            <Text
+              variant="headlineSmall"
+              accessibilityRole="header"
+              numberOfLines={1}
+              style={{ color: c.onBrand }}
+            >
+              {props.title}
             </Text>
-          ) : null}
-          <Text
-            variant="headlineSmall"
-            accessibilityRole="header"
-            numberOfLines={1}
-            style={{ color: c.onBrand }}
-          >
-            {props.title}
-          </Text>
+          </View>
         </View>
-      </View>
-      <GridStatus />
+      )}
+      {props.status === false ? null : <GridStatus />}
     </View>
   );
 }
@@ -97,4 +122,12 @@ const styles = StyleSheet.create({
   street: { position: 'absolute', left: 0, right: 0, bottom: BAND_OVERLAP },
   row: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
   words: { flex: 1, gap: 2 },
+  back: {
+    width: 48,
+    height: 48,
+    marginLeft: -space[3],
+    marginTop: -space[3],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

@@ -11,8 +11,8 @@ import { NightSky } from '@/components/night/NightSky';
 import { Skyline } from '@/components/night/Skyline';
 import { greeting } from '@/utils/greeting';
 import { Body } from '../components/Body';
-import { FitPicture } from '../components/FitPicture';
 import { HoldLantern } from '../components/HoldLantern';
+import { MoonPicture } from '../components/MoonPicture';
 import { PageDots } from '../components/PageDots';
 import { Panel } from '../components/Panel';
 import { RewardChip } from '../components/RewardChip';
@@ -57,9 +57,9 @@ export default function WelcomePage() {
             kicker={greeting()}
             title="We'll tell you when the grid runs short."
             picture={
-              <FitPicture>
+              <MoonPicture>
                 <MoonMascot pose="alert" />
-              </FitPicture>
+              </MoonPicture>
             }
             caption={
               <Body>
@@ -90,9 +90,9 @@ export default function WelcomePage() {
             kicker="Your reward"
             title="Verified cuts raise your score."
             picture={
-              <FitPicture>
+              <MoonPicture>
                 <MoonMascot pose="reward" />
-              </FitPicture>
+              </MoonPicture>
             }
             caption={
               <Body>

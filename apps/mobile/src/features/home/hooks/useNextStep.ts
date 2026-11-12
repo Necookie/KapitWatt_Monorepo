@@ -2,9 +2,10 @@ import type { HouseholdMe, MockAlertView } from '@kapitwatt/shared';
 import { router } from 'expo-router';
 import { useMyEventStatus } from '@/api/queries';
 import { openEventAction } from '@/utils/event-action';
-import { MOOD, type EventMood } from '@/utils/event-mood';
+import { MOOD } from '@/utils/event-mood';
 import { countdownTarget, eventPhase } from '@/utils/event-phase';
-import { eventSteps, type NowAction, type NowCard, type Step } from '@/utils/event-steps';
+import { eventSteps, type NowAction } from '@/utils/event-steps';
+import type { NextStep } from '@/utils/next-step';
 import { useServerNow } from '@/utils/server-time';
 import {
   ALERT_MOOD,
@@ -14,18 +15,6 @@ import {
   QUIET,
   QUIET_MOOD,
 } from '../utils/next-step-copy';
-
-export interface NextStep {
-  kind: 'event' | 'practice' | 'quiet';
-  card: NowCard;
-  mood: EventMood;
-  /** The event's checklist (commit, photos or the cut, result); none outside an alert. */
-  steps: Step[] | null;
-  countdown: { label: string; at: string } | null;
-  onAction: (kind: NowAction) => void;
-  /** Opens the event screen (during an alert). */
-  onDetails?: () => void;
-}
 
 /**
  * Home's one thing to do next. During an alert it is the event screen's own "do this now" (the same
