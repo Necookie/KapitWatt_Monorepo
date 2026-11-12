@@ -61,9 +61,6 @@ export default function WelcomeScreen() {
       <View style={styles.actions}>
         <Button label="Create account" onPress={() => router.push('/sign-up')} />
         <Button label="Log in" variant="secondary" onPress={() => router.push('/login')} />
-        <Text variant="bodySmall" color="onSurfaceVariant" align="center">
-          Laguna pilot. Households, alerts and reward rates are simulated.
-        </Text>
       </View>
     </Screen>
   );

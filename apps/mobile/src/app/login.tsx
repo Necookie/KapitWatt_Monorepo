@@ -121,9 +121,6 @@ export default function LoginScreen() {
           variant="secondary"
           onPress={() => router.replace('/sign-up')}
         />
-        <Text variant="bodySmall" color="onSurfaceVariant" align="center">
-          Laguna pilot. Alerts and reward rates are simulated.
-        </Text>
       </View>
     </Screen>
   );
