@@ -1,4 +1,5 @@
 import { useTheme } from '@kapitwatt/hooks';
+import { Icon } from '@kapitwatt/icons';
 import { withAlpha } from '@kapitwatt/tokens';
 import { Pressable, View } from 'react-native';
 import { Text } from './Text';
@@ -64,9 +65,7 @@ export function SegmentedButtons<V extends string>({
             })}
           >
             {selected ? (
-              <Text variant="labelLarge" style={{ color: c.onSecondaryContainer }}>
-                ✓
-              </Text>
+              <Icon name="check" weight="bold" size="sm" color={c.onSecondaryContainer} />
             ) : null}
             <Text
               variant="labelLarge"

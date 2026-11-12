@@ -1,0 +1,32 @@
+{
+  "name": "@kapitwatt/icons",
+  "version": "0.0.0",
+  "private": true,
+  "description": "KapitWatt icon set: a curated subset of Phosphor icons (regular, bold, fill) behind one themed <Icon> component.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "generate": "node scripts/generate.mjs && prettier --write src/glyphs.ts"
+  },
+  "dependencies": {
+    "@kapitwatt/hooks": "workspace:*",
+    "@kapitwatt/tokens": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "react-native-svg": "*"
+  },
+  "devDependencies": {
+    "@phosphor-icons/core": "2.1.1",
+    "@types/react": "~19.3.0",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-svg": "15.16.0",
+    "typescript": "~6.0.3"
+  }
+}

@@ -16,4 +16,5 @@ everything reads the theme, so put `ThemeProvider` at the root.
 | `AlertBanner`      | NGCP red or yellow alert; always shows the level in words and a badge                                                             |
 | `Divider`          | Hairline separator                                                                                                                |
 
-Icons are a slot (`icon` prop); no icon set is bundled yet.
+Icons come from `@kapitwatt/icons`: pass `<Icon name="…" />` to a component's `icon` slot. `AlertBanner`
+and `SegmentedButtons` use it internally.

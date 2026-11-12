@@ -1,4 +1,5 @@
 import { useTheme } from '@kapitwatt/hooks';
+import { Icon } from '@kapitwatt/icons';
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { Text } from './Text';
@@ -13,7 +14,7 @@ export type AlertBannerProps = {
 };
 
 /**
- * NGCP grid alert. Always shows the level in words and a badge, so it never relies on colour alone.
+ * NGCP grid alert. Always shows the level in words and a warning icon, so it never relies on colour alone.
  * Red and yellow are reserved for alerts; do not reuse this component for errors.
  */
 export function AlertBanner({ level, title, message, action }: AlertBannerProps) {
@@ -32,25 +33,7 @@ export function AlertBanner({ level, title, message, action }: AlertBannerProps)
         backgroundColor: bg,
       }}
     >
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: fg,
-        }}
-      >
-        <Text
-          variant="titleMedium"
-          style={{ color: bg }}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-        >
-          !
-        </Text>
-      </View>
+      <Icon name="alert" weight="fill" size="lg" color={fg} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text variant="labelMedium" style={{ color: fg, textTransform: 'uppercase' }}>
           {level === 'red' ? 'Red alert' : 'Yellow alert'}
