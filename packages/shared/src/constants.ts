@@ -108,3 +108,18 @@ export const PILOT_BARANGAYS: Record<PilotTown, readonly [string, string, string
   Majayjay: ['Botocan', 'Olla', 'Origuel'],
   Magdalena: ['Buenavista', 'Poblacion', 'Sabang'],
 };
+
+/**
+ * Approximate town-centre (poblacion) coordinates, for the dashboard map only. They come from
+ * public maps and are good to about a kilometre. We hold no surveyed barangay locations, so the
+ * map lays each town's sampled barangays out around its centre and says so.
+ */
+export const PILOT_TOWN_CENTERS: Record<PilotTown, { lat: number; lng: number }> = {
+  'Santa Cruz': { lat: 14.2786, lng: 121.4153 },
+  Pila: { lat: 14.2339, lng: 121.3647 },
+  Victoria: { lat: 14.2253, lng: 121.3294 },
+  Nagcarlan: { lat: 14.1364, lng: 121.4164 },
+  Liliw: { lat: 14.1306, lng: 121.4361 },
+  Majayjay: { lat: 14.1461, lng: 121.4728 },
+  Magdalena: { lat: 14.1997, lng: 121.4297 },
+};

@@ -4,3 +4,5 @@ dist
 .expo
 .wrangler
 neon.ts
+# Vendored Leaflet stylesheet, kept as upstream wrote it
+apps/dashboard/src/components/analytics/leaflet.css

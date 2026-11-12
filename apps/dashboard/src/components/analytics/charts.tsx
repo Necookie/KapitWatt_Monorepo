@@ -12,7 +12,17 @@ import { Chip, ProgressBar, Stack, Text } from '@kapitwatt/ui';
 import { useState, type MouseEvent, type ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 import { count, dayAndClock, fraction, kw, percent, php } from '@/lib/format';
-import { Empty, Legend, Tooltip, niceMax, svgFont, ticks, useChartColors } from './primitives';
+import {
+  Empty,
+  Legend,
+  ShareScale,
+  Tooltip,
+  niceMax,
+  svgFont,
+  ticks,
+  useChartColors,
+  useShareShade,
+} from './primitives';
 
 const W = 1000;
 const nonScaling = { vectorEffect: 'non-scaling-stroke' as const };
@@ -595,12 +605,9 @@ const shareOf = (b: BarangayTotals) => (b.targetKw > 0 ? b.deliveredKw / b.targe
  */
 export function BarangayHeatGrid({ barangays }: { barangays: BarangayTotals[] }) {
   const t = useTheme();
+  const shade = useShareShade();
   if (barangays.length === 0) return <Empty>No barangays targeted.</Empty>;
   const towns = [...new Set(barangays.map((b) => b.municipality))];
-  const shade = (share: number) =>
-    share >= 1
-      ? t.color.relief
-      : withAlpha(t.color.relief, 0.1 + Math.min(1, Math.max(0, (share - 0.5) / 0.5)) * 0.6);
   return (
     <Stack gap={3}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
@@ -642,28 +649,7 @@ export function BarangayHeatGrid({ barangays }: { barangays: BarangayTotals[] })
           </View>
         ))}
       </View>
-      <Stack direction="row" align="center" gap={2}>
-        <Text variant="labelSmall" color="onSurfaceVariant">
-          50% or less
-        </Text>
-        <View
-          style={{
-            flexDirection: 'row',
-            width: 160,
-            height: 8,
-            borderRadius: 4,
-            overflow: 'hidden',
-          }}
-        >
-          {[0.5, 0.625, 0.75, 0.875, 0.99].map((s) => (
-            <View key={s} style={{ flex: 1, backgroundColor: shade(s) }} />
-          ))}
-          <View style={{ flex: 1, backgroundColor: shade(1) }} />
-        </View>
-        <Text variant="labelSmall" color="onSurfaceVariant">
-          100%+ of target
-        </Text>
-      </Stack>
+      <ShareScale />
     </Stack>
   );
 }
