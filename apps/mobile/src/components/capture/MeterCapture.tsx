@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, TextField } from '@/components/ui';
-import { ApiError } from '@/lib/api';
+import { ApiError, errorCode } from '@/lib/api';
 import { LocationPrompt } from '@/components/LocationPrompt';
 import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
 import { useSubmitReading } from '@/lib/queries';
@@ -159,7 +159,7 @@ function Submitted(props: { reading: MeterReading; onDone: () => void }) {
 
 function submitError(e: Error): string {
   if (e instanceof ApiError) {
-    const code = (e.body as { error?: string } | null)?.error;
+    const code = errorCode(e);
     if (code === 'deadline_passed') return 'The deadline for this photo has passed.';
     if (code === 'already_submitted') return 'You already sent this photo.';
     if (code === 'no_commitment') return 'Commit a cut before sending photos.';

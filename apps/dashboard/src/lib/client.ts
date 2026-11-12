@@ -1,3 +1,4 @@
+import { ApiErrorBody } from '@kapitwatt/shared';
 import type {
   Alert,
   AlertTotals,
@@ -155,13 +156,25 @@ const fixtureClient: DashboardClient = {
 
 export const client: DashboardClient = USE_FIXTURES ? fixtureClient : liveClient;
 
+/**
+ * The message from an error body. The API sends `{ error: { code, message, issues? } }`
+ * (ApiErrorBody in @kapitwatt/shared); the fixture sends `{ error: 'text' }`.
+ */
+function errorDetail(body: unknown): string | null {
+  if (!body || typeof body !== 'object' || !('error' in body)) return null;
+  const { error } = body as { error: unknown };
+  if (typeof error === 'string') return error;
+  const parsed = ApiErrorBody.safeParse(body);
+  if (!parsed.success) return null;
+  const { message, issues } = parsed.data.error;
+  const first = issues?.[0];
+  return first ? `${message} ${first.path}: ${first.message}` : message;
+}
+
 /** A short, readable reason for a failed call. */
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    const detail =
-      error.body && typeof error.body === 'object' && 'error' in error.body
-        ? String((error.body as { error: unknown }).error)
-        : null;
+    const detail = errorDetail(error.body);
     if (error.status === 501) return 'The API has not implemented this endpoint yet (501).';
     if (error.status === 401) return 'The API rejected the key (401). Check the dashboard .env.';
     if (error.status === 404) return detail ?? 'Not found (404).';

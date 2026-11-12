@@ -13,6 +13,18 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The machine-readable code of a failed call. The API sends `{ error: { code, message } }`
+ * (ApiErrorBody in @kapitwatt/shared); the mock sends `{ error: 'code' }`.
+ */
+export function errorCode(e: unknown): string | null {
+  if (!(e instanceof ApiError)) return null;
+  const error = (e.body as { error?: unknown } | null)?.error;
+  if (typeof error === 'string') return error;
+  const code = (error as { code?: unknown } | null | undefined)?.code;
+  return typeof code === 'string' ? code : null;
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const isForm = init.body instanceof FormData;
   const res = await fetch(`${BASE_URL}${path}`, {

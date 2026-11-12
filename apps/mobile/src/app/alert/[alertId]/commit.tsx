@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, ErrorState, Loading, Screen, SimulatedNote } from '@/components/ui';
-import { ApiError } from '@/lib/api';
+import { ApiError, errorCode } from '@/lib/api';
 import { formatKw } from '@/lib/format';
 import { useCommit, useMe } from '@/lib/queries';
 import { colors, radius, space, text } from '@/theme';
@@ -80,7 +80,7 @@ export default function CommitScreen() {
 
 function commitError(e: Error): string {
   if (e instanceof ApiError) {
-    const code = (e.body as { error?: string } | null)?.error;
+    const code = errorCode(e);
     if (code === 'already_committed') return 'You already committed to this event.';
     if (code === 'window_closed') return 'The peak window has ended.';
     if (code === 'above_cap') return 'That is above your maximum cut.';
