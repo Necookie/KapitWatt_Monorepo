@@ -3,10 +3,11 @@
  *
  *   pnpm demo:reset -- --yes
  *
- *   1. Clean slate: every alert (and its commitments, readings, rewards), every simulated household,
- *      orphan sign-ups (real households with no login), the demo accounts' leftover readings.
- *   2. The 21 pilot barangays (idempotent), then about 1,200 simulated households (seed 2026).
- *   3. The ten demo accounts: created if missing, marked demo, moved to Bagumbayan, baselines set.
+ *   1. The 21 pilot barangays (idempotent), then the ten demo accounts: created if missing, marked
+ *      demo, moved to Bagumbayan, baselines set. First, so a failure here deletes nothing.
+ *   2. Clean slate: every alert (and its commitments, readings, rewards), every simulated household,
+ *      orphan sign-ups (no email and no login token), the demo accounts' leftover readings.
+ *   3. About 1,200 simulated households (seed 2026).
  *   4. Six past events over four weeks, each through the real services (alert, commits, readings,
  *      settlement) with no push, then moved back to its date (apps/api/src/services/demo.ts).
  *   5. A forecast of the live event with LIVE_EVENT.seed (scripts/demo/live.ts).
@@ -44,18 +45,10 @@ const t0 = Date.now();
 const elapsed = () => `${Math.round((Date.now() - t0) / 1000)} s`;
 
 console.log(`demo reset on ${host}\n`);
-const wiped = await wipeDemoWorld(db);
-console.log(
-  `1. clean slate: ${wiped.alerts} alerts, ${wiped.simulated} simulated and ${wiped.orphans} orphan households deleted`,
-);
-
+// The accounts come first: registering a missing one goes through API_URL, and if that API writes to
+// another database the lookup below fails here, before anything has been deleted.
 await seedPilotBarangays(db);
-const status = await seedSimulation(db, { amiShare: 0.15, seed: HOUSEHOLD_SEED });
-console.log(
-  `2. seeded ${status.simulatedHouseholds} simulated households (${status.amiHouseholds} smart meter, ${status.photoHouseholds} photo)`,
-);
-
-console.log('3. demo accounts');
+console.log('1. demo accounts');
 await ensureDemoAccounts({
   api: process.env.API_URL ?? 'https://kapitwatt-api.dheyn-main.workers.dev',
   db,
@@ -63,6 +56,16 @@ await ensureDemoAccounts({
   lat: Number(process.env.DEMO_LAT ?? 14.2814),
   lng: Number(process.env.DEMO_LNG ?? 121.4161),
 });
+
+const wiped = await wipeDemoWorld(db);
+console.log(
+  `2. clean slate: ${wiped.alerts} alerts, ${wiped.simulated} simulated and ${wiped.orphans} orphan households deleted`,
+);
+
+const status = await seedSimulation(db, { amiShare: 0.15, seed: HOUSEHOLD_SEED });
+console.log(
+  `3. seeded ${status.simulatedHouseholds} simulated households (${status.amiHouseholds} smart meter, ${status.photoHouseholds} photo)`,
+);
 
 console.log('4. past events');
 const barangays = await listBarangays(db);

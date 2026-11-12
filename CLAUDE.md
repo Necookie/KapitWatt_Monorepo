@@ -263,13 +263,13 @@ Simulated households are flagged `is_simulated`; reset deletes those rows only.
 
 `pnpm demo:reset -- --yes` (`apps/api/scripts/demo-reset.ts`) rebuilds the demo world in about 20 s:
 
-1. Clean slate: every alert (with its commitments, readings and rewards), every simulated household,
-   orphan sign-ups (real households with no email), and the demo accounts' leftover readings. Real
+1. The 21 barangays, then the ten demo accounts (`demo01..10@kapitwatt.test`): created if missing,
+   `is_demo`, all in the presenter's barangay, **Bagumbayan, Santa Cruz**. 01 to 07 photo, 08 and 09
+   smart meter, 10 has no baseline (practice-run demo). First, so a failure deletes nothing.
+2. Clean slate: every alert (with its commitments, readings and rewards), every simulated household,
+   orphan sign-ups (no email and no login token), and the demo accounts' leftover readings. Real
    households with a login keep their accounts.
-2. The 21 barangays, then 1,200 simulated households (household seed 2026).
-3. The ten demo accounts (`demo01..10@kapitwatt.test`): created if missing, `is_demo`, all in the
-   presenter's barangay, **Bagumbayan, Santa Cruz**. 01 to 07 photo, 08 and 09 smart meter, 10 has no
-   baseline (practice-run demo).
+3. 1,200 simulated households (household seed 2026).
 4. Six past events over four weeks (`PAST_EVENTS` in `apps/api/src/services/demo.ts`), each run through
    the real services with no push, then moved back to its date. Each demo account follows a script
    (mostly paid; one late photo, one missed photo, one skip, one flagged typo left for review).

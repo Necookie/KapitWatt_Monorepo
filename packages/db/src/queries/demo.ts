@@ -44,7 +44,10 @@ export async function listDemoHouseholds(db: Db): Promise<DemoHouseholdRow[]> {
   }));
 }
 
-/** Marks an existing account as a demo household and puts it where the demo wants it. */
+/**
+ * Marks an existing demo account as a demo household and puts it where the demo wants it. Only a row
+ * the demo setup registered (its DEMO- meter serial) is touched; an email match alone is not enough.
+ */
 export async function setDemoHousehold(
   db: Db,
   email: string,
@@ -61,7 +64,7 @@ export async function setDemoHousehold(
     set is_demo = true, barangay_id = ${fields.barangayId}, service_address = ${fields.serviceAddress},
         baseline_kw = ${fields.baselineKw}, lat = ${fields.lat}, lng = ${fields.lng},
         trust_score = 50, opted_in = true
-    where email = ${email} and not is_simulated
+    where email = ${email} and meter_serial like 'DEMO-%' and not is_simulated
     returning id`;
   return r ? (r.id as string) : null;
 }
@@ -76,7 +79,8 @@ export interface DemoWipeResult {
  * The clean slate before a demo. Deletes, in one transaction:
  *   every alert (with, by cascade, its commitments, readings, rewards, targets and settlement);
  *   every simulated household (and its smart-meter intervals);
- *   orphan sign-ups: real households with no login (no email), which can never be used again;
+ *   orphan sign-ups: real households with no email and no login token, which nobody can ever use
+ *   (an older household that still holds a token is kept: a phone may still be signed in with it);
  *   the demo accounts' own leftover readings and intervals (a practice run done on stage).
  * Real households with a login keep their rows; their event history goes with the alerts.
  */
@@ -84,7 +88,9 @@ export async function wipeDemoWorld(db: Db): Promise<DemoWipeResult> {
   const [alerts, simulated, orphans] = await db.transaction([
     db`delete from alerts returning id`,
     db`delete from households where is_simulated returning id`,
-    db`delete from households where not is_simulated and not is_demo and email is null returning id`,
+    db`delete from households
+       where not is_simulated and not is_demo and email is null and auth_token_hash is null
+       returning id`,
     db`delete from meter_readings m using households h
        where m.household_id = h.id and h.is_demo`,
     db`delete from ami_intervals i using households h

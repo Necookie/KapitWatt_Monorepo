@@ -192,7 +192,12 @@ export async function ensureDemoAccounts(c: DemoAccountsConfig): Promise<void> {
       lat: c.lat,
       lng: c.lng,
     });
-    if (!id) throw new Error(`${email}: not found after sign-up`);
+    if (!id) {
+      throw new Error(
+        `${email}: not in this database with a DEMO- meter serial. If it was just registered, ` +
+          'API_URL points at an API on another database.',
+      );
+    }
     const ready = a.baselineKw === null ? 'needs practice run' : `baseline ${a.baselineKw} kW`;
     const meter = a.meterType === 'ami' ? 'smart meter' : 'photo';
     log(`  ${email}  ${a.name.padEnd(17)} ${meter.padEnd(11)} ${ready}  (${state})`);
@@ -204,7 +209,7 @@ export async function removeDemoAccounts(db: Db): Promise<number> {
   const gone = await db`
     delete from households
     where email like ${`demo%@${DEMO_EMAIL_DOMAIN}`} and meter_serial like ${`${DEMO_SERIAL_PREFIX}%`}
-      and not is_simulated
+      and is_demo and not is_simulated
     returning email`;
   return gone.length;
 }
