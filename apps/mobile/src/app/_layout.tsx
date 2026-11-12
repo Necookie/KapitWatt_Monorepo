@@ -30,40 +30,29 @@ export default function RootLayout() {
     // The household app ships light only (DESIGN.md).
     <ThemeProvider scheme="light">
       <QueryClientProvider client={queryClient}>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <AlertWatcher />
         <Stack
           screenOptions={{
-            headerStyle: { backgroundColor: colors.navy },
-            headerTintColor: colors.onDark,
+            // Mockups: a light top bar with only the back arrow; each screen has its own heading.
+            headerTitle: '',
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.ink,
+            headerShadowVisible: false,
             headerTitleStyle: { fontFamily: text.title.fontFamily },
-            headerTitle: 'KapitWatt',
             contentStyle: { backgroundColor: colors.background },
           }}
         >
-          {/* Mockup page 2: no top bar on the first screen; the logo opens it. */}
+          {/* Home, History, Leaderboard and Profile, behind the clean bottom bar. */}
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          {/* No top bar on the first screen; the logo opens it. */}
           <Stack.Screen name="welcome" options={{ headerShown: false }} />
-          {/* Mockup sign-up (mascot option A): the screen draws its own top bar with progress. */}
+          {/* Sign-up draws its own top bar with progress. */}
           <Stack.Screen name="sign-up" options={{ headerShown: false }} />
-          {/* Mockup page 1: a light top bar with only the back arrow; the screen has its heading. */}
-          <Stack.Screen
-            name="login"
-            options={{
-              headerTitle: '',
-              headerStyle: { backgroundColor: colors.background },
-              headerTintColor: colors.ink,
-              headerShadowVisible: false,
-            }}
-          />
+          {/* The camera is full screen with its own close button. */}
+          <Stack.Screen name="alert/[alertId]/capture" options={{ headerShown: false }} />
           <Stack.Screen name="forgot-password" options={{ headerTitle: 'Forgot password' }} />
-          <Stack.Screen name="profile" options={{ headerTitle: 'Profile and privacy' }} />
           <Stack.Screen name="privacy" options={{ headerTitle: 'Privacy notice' }} />
-          <Stack.Screen name="rehearsal" options={{ headerTitle: 'Practice run' }} />
-          <Stack.Screen name="alert/[alertId]/commit" options={{ headerTitle: 'Commit a cut' }} />
-          <Stack.Screen name="alert/[alertId]/capture" options={{ headerTitle: 'Meter photo' }} />
-          <Stack.Screen name="alert/[alertId]/result" options={{ headerTitle: 'Your result' }} />
-          <Stack.Screen name="leaderboard" options={{ headerTitle: 'Leaderboard' }} />
-          <Stack.Screen name="history" options={{ headerTitle: 'History' }} />
         </Stack>
       </QueryClientProvider>
     </ThemeProvider>

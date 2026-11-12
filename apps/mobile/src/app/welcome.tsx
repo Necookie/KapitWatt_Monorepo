@@ -1,7 +1,6 @@
 import { themes } from '@kapitwatt/styles';
 import { Logo, Text } from '@kapitwatt/ui';
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { MASCOT_POSES } from '@/components/mascot/poses';
@@ -27,7 +26,6 @@ const STEPS = [
 export default function WelcomeScreen() {
   return (
     <Screen roomy noHeader>
-      <StatusBar style="dark" />
       <Logo height={26} />
 
       <View style={styles.hero}>

@@ -1,7 +1,6 @@
 import { RegisterHouseholdInput } from '@kapitwatt/shared';
 import { Text } from '@kapitwatt/ui';
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
@@ -101,7 +100,6 @@ export default function SignUpScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
       <SignUpTopBar step={step} onBack={back} disabled={registerMutation.isPending} />
       <Screen roomy>
         <MascotHeader

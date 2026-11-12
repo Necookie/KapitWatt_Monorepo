@@ -1,7 +1,6 @@
 import { LoginInput } from '@kapitwatt/shared';
 import { Logo, Text } from '@kapitwatt/ui';
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Screen, TextField } from '@/components/ui';
@@ -60,7 +59,6 @@ export default function LoginScreen() {
 
   return (
     <Screen roomy>
-      <StatusBar style="dark" />
       <View style={styles.intro}>
         <Logo height={32} />
         <View style={styles.heading}>
