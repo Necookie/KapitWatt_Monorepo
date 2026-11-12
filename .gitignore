@@ -36,3 +36,7 @@ Thumbs.db
 # local Claude Code settings
 .claude/settings.local.json
 .neon
+
+# Python (packages/assets/source)
+__pycache__/
+.venv/
