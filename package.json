@@ -15,7 +15,7 @@
     "test": "pnpm -r test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build": "pnpm -r typecheck && pnpm --filter @kapitwatt/api build && pnpm --filter @kapitwatt/dashboard build",
+    "build": "pnpm -r typecheck && pnpm --filter @kapitwatt/api build && pnpm --filter @kapitwatt/dashboard build && pnpm --filter @kapitwatt/landing build",
     "db:migrate": "doppler run -- pnpm --filter @kapitwatt/db migrate",
     "db:smoke": "doppler run -- pnpm --filter @kapitwatt/db smoke",
     "db:seed": "doppler run -- pnpm --filter @kapitwatt/db seed",
@@ -23,7 +23,10 @@
     "demo:reset": "doppler run -- pnpm --filter @kapitwatt/api demo:reset",
     "demo:seed-search": "doppler run -- pnpm --filter @kapitwatt/api demo:seed-search",
     "deploy:api": "doppler run -- node apps/api/scripts/deploy.mjs",
-    "deploy:dashboard": "doppler run -- pnpm --filter @kapitwatt/dashboard build && pnpm --filter @kapitwatt/api exec wrangler deploy --config ../dashboard/wrangler.jsonc"
+    "deploy:dashboard": "doppler run -- pnpm --filter @kapitwatt/dashboard build && pnpm --filter @kapitwatt/api exec wrangler deploy --config ../dashboard/wrangler.jsonc",
+    "deploy:landing": "pnpm --filter @kapitwatt/landing build && pnpm --filter @kapitwatt/api exec wrangler deploy --config ../landing/wrangler.jsonc",
+    "release:mobile": "node apps/mobile/scripts/release.mjs",
+    "update:mobile": "node apps/mobile/scripts/update.mjs"
   },
   "devDependencies": {
     "prettier": "^3.6.0",
