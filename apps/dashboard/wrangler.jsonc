@@ -1,0 +1,16 @@
+{
+  // The operator dashboard as static files on Cloudflare (Workers static assets).
+  // Build first: `doppler run -- pnpm --filter @kapitwatt/dashboard build` (expo export -> dist),
+  // then deploy this config with wrangler. EXPO_PUBLIC_* values are baked in at build time.
+  "name": "kapitwatt-dashboard",
+  // Cloudflare account, the same one as the API. An identifier, not a secret.
+  "account_id": "668f78c5a9581c5051bd60a4985d6166",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./dist",
+    // Expo Router exports a single-page app: unknown paths fall back to index.html.
+    "not_found_handling": "single-page-application",
+  },
+  // The API must list this origin in ALLOWED_ORIGINS (apps/api/wrangler.jsonc).
+  "routes": [{ "pattern": "kapitwatt.dhekode.com", "custom_domain": true }],
+}
