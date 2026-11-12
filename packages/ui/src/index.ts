@@ -21,4 +21,5 @@ export { Logo } from './components/Logo';
 export type { LogoProps } from './components/Logo';
 export { Mascot } from './components/Mascot';
 export type { MascotProps } from './components/Mascot';
+export { mascotXml, type MascotPose } from './mascot-xml';
 export { Skeleton, SkeletonText } from './components/Skeleton';

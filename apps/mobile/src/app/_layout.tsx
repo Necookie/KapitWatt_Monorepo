@@ -47,8 +47,10 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           {/* No top bar on the first screen; the logo opens it. */}
           <Stack.Screen name="welcome" options={{ headerShown: false }} />
-          {/* Sign-up draws its own top bar with progress. */}
-          <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+          {/* Sign-up draws its own top bar with progress. It fades in: from the welcome page it opens
+              on the white sheet that has just risen to fill the screen. */}
+          <Stack.Screen name="sign-up" options={{ headerShown: false, animation: 'fade' }} />
+          <Stack.Screen name="login" options={{ headerShown: false, animation: 'fade' }} />
           {/* The camera is full screen with its own close button. */}
           <Stack.Screen name="alert/[alertId]/capture" options={{ headerShown: false }} />
           <Stack.Screen name="forgot-password" options={{ headerTitle: 'Forgot password' }} />

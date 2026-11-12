@@ -6,11 +6,9 @@ import {
   type AlertLevel,
 } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
-import { Text } from '@kapitwatt/ui';
+import { Mascot, Text } from '@kapitwatt/ui';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { SvgXml } from 'react-native-svg';
-import { MASCOT_POSES } from '@/components/mascot/poses';
 import { ProgressBar } from '@/components/ui';
 import type { BrownoutRisk } from '@/lib/brownout';
 import { formatKw, formatWindow } from '@/lib/format';
@@ -67,7 +65,9 @@ export function AlertCard(props: {
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
         >
-          <SvgXml xml={MASCOT_POSES.alert} width={70} height={81} style={styles.mascot} />
+          <View style={styles.mascot}>
+            <Mascot pose="alert" height={81} />
+          </View>
         </View>
       </View>
       <Pressable
@@ -92,7 +92,9 @@ export function QuietCard() {
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
-        <SvgXml xml={MASCOT_POSES.neutral} width={56} height={65} style={styles.mascotSmall} />
+        <View style={styles.mascotSmall}>
+          <Mascot pose="neutral" height={65} />
+        </View>
       </View>
       <View style={styles.flex}>
         <Text variant="titleMedium">No grid alert right now</Text>
