@@ -5,3 +5,4 @@ export { Screen } from '@/components/ui/Screen';
 export { ErrorState, Loading, SimulatedNote } from '@/components/ui/States';
 export { Checkbox, PasswordField, TextField } from '@/components/ui/Form';
 export { Select } from '@/components/ui/Select';
+export { useReveal, type RevealTarget } from '@/components/ui/reveal';
