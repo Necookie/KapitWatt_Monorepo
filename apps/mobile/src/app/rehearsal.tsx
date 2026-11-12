@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { MeterCapture } from '@/components/capture/MeterCapture';
 import { Button, Card, ErrorState, Loading, Row, Screen, SimulatedNote } from '@/components/ui';
+import { MOCK } from '@/lib/config';
 import { formatKw } from '@/lib/format';
-import { useMe } from '@/lib/queries';
+import { mockSkipRehearsal } from '@/lib/mock';
+import { useMe, useRefreshAll } from '@/lib/queries';
 import { colors, text } from '@/theme';
 
 /**
@@ -16,10 +18,25 @@ import { colors, text } from '@/theme';
  */
 export default function RehearsalScreen() {
   const me = useMe();
-  const [capturing, setCapturing] = useState(false);
+  const refreshAll = useRefreshAll();
+  const [step, setStep] = useState<'intro' | 'first' | 'second' | 'done'>('intro');
 
   if (me.isPending) return <Loading />;
   if (me.isError) return <ErrorState onRetry={() => void me.refetch()} />;
+
+  // Demo only: lets testers past the practice photos. The baseline it sets lives in the mock
+  // household, so it shows only while the account is mocked (MOCK.account).
+  const skip = MOCK.account ? (
+    <Button
+      label="Skip practice (demo)"
+      variant="secondary"
+      onPress={() => {
+        mockSkipRehearsal();
+        void refreshAll();
+        router.replace('/');
+      }}
+    />
+  ) : null;
 
   if (me.data.meterType === 'ami') {
     return (
@@ -80,8 +97,12 @@ export default function RehearsalScreen() {
           <Text style={styles.body}>
             {`Use your appliances as usual, then take the second photo at least ${REHEARSAL_MIN_MINUTES} minutes after the first. The two readings measure your usual usage.`}
           </Text>
-          <Button label="Take photo 2" onPress={() => setCapturing(true)} />
-          <Button label="Go to home" variant="secondary" onPress={() => router.replace('/')} />
+          <Text style={styles.body}>
+            These two readings also measure your usual usage, which is how we know how much you cut
+            later.
+          </Text>
+          <Button label="Start" onPress={() => setStep('first')} />
+          {skip}
         </Card>
         <SimulatedNote>
           You can close the app in between. If it is too early, the app tells you how long to wait.
@@ -90,6 +111,27 @@ export default function RehearsalScreen() {
     );
   }
 
+  if (step === 'first' || step === 'second') {
+    return (
+      <Screen>
+        <MeterCapture
+          key={step}
+          kind="rehearsal"
+          title={step === 'first' ? 'Practice photo 1 of 2' : 'Practice photo 2 of 2'}
+          onDone={() => {
+            if (step === 'first') setStep('second');
+            else {
+              setStep('done');
+              void me.refetch();
+            }
+          }}
+        />
+        {skip}
+      </Screen>
+    );
+  }
+
+  const baseline = me.data.baselineKw;
   return (
     <Screen>
       <Card title="Practice with two photos">
