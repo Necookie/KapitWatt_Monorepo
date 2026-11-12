@@ -6,6 +6,7 @@ import {
 } from '@kapitwatt/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as endpoints from './endpoints';
+import { registerForPush } from './push';
 
 /** One place for query keys so invalidation always hits the right cache entries. */
 export const queryKeys = {
@@ -75,7 +76,10 @@ export function useRegister() {
   return useMutation({
     mutationFn: (input: RegisterHouseholdInput) => endpoints.register(input),
     // Reset, not just invalidate: cached 401s would otherwise send Home straight back to sign-up.
-    onSuccess: () => qc.resetQueries(),
+    onSuccess: () => {
+      void registerForPush();
+      return qc.resetQueries();
+    },
   });
 }
 
