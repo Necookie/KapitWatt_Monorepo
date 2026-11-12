@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "tsx scripts/e2e.ts",
-    "smoke:live": "tsx scripts/smoke-live.ts"
+    "smoke:live": "tsx scripts/smoke-live.ts",
+    "demo:accounts": "tsx scripts/demo-accounts.ts"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.9.1",
