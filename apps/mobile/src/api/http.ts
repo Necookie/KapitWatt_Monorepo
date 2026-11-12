@@ -5,7 +5,16 @@
 import * as SecureStore from 'expo-secure-store';
 import { MOCK } from '@/api/config';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8787';
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+// Without it every call goes to this computer's own address, which on a phone is the phone itself:
+// sign-up cannot load the barangays and Home never loads. Say so instead of failing quietly.
+if (!API_URL && __DEV__) {
+  console.warn(
+    'EXPO_PUBLIC_API_URL is not set, so the app calls http://localhost:8787. Start Expo through ' +
+      'Doppler: pnpm dev:mobile, or pnpm dev:mobile:tunnel for a phone on another network.',
+  );
+}
+const BASE_URL = API_URL ?? 'http://localhost:8787';
 
 export class ApiError extends Error {
   constructor(
