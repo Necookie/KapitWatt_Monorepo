@@ -1,19 +1,18 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
-import { colors } from '@/theme';
+import { Slot } from 'expo-router';
+import { AppShell } from '@/components/AppShell';
+import { SimParamsProvider } from '@/lib/sim-params';
 
 const queryClient = new QueryClient();
 
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.navy },
-          headerTintColor: '#FFFFFF',
-          headerTitle: 'KapitWatt | Laguna pilot (simulated)',
-        }}
-      />
+      <SimParamsProvider>
+        <AppShell>
+          <Slot />
+        </AppShell>
+      </SimParamsProvider>
     </QueryClientProvider>
   );
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { COMMIT_STEP_KW, MAX_COMMIT_KW } from '../constants';
-import { AlertLevel, MeterType, ReadingKind } from './enums';
+import { Barangay } from './entities';
+import { AlertLevel, AlertStatus, MeterType, ReadingKind } from './enums';
 
 /** Request and response bodies. The API validates with these; the apps type their calls with them. */
 
@@ -87,6 +88,13 @@ export const BarangayTotals = z.object({
   committedKw: z.number(),
   deliveredKw: z.number(),
   targetHit: z.boolean(),
+  /** Opted-in households in the barangay (the share the target was split by). */
+  households: z.number().int().optional(),
+  /** Households with a commitment for this alert. */
+  committedHouseholds: z.number().int().optional(),
+  /** Delivered kW by verification path. The two add up to deliveredKw. */
+  deliveredAmiKw: z.number().optional(),
+  deliveredPhotoKw: z.number().optional(),
 });
 export type BarangayTotals = z.infer<typeof BarangayTotals>;
 
@@ -97,5 +105,25 @@ export const AlertTotals = z.object({
   committedKw: z.number(),
   deliveredKw: z.number(),
   barangays: z.array(BarangayTotals),
+  /** Lets the dashboard drive its stage stepper from the one polled call. */
+  status: AlertStatus.optional(),
+  committedHouseholds: z.number().int().optional(),
+  deliveredAmiKw: z.number().optional(),
+  deliveredPhotoKw: z.number().optional(),
 });
 export type AlertTotals = z.infer<typeof AlertTotals>;
+
+/** GET /barangays row: the barangay plus its opted-in household count (alert form confirm step). */
+export const BarangayWithCount = Barangay.extend({
+  optedInHouseholds: z.number().int().nonnegative().optional(),
+});
+export type BarangayWithCount = z.infer<typeof BarangayWithCount>;
+
+/**
+ * Demo stage control. `window_start` opens the window now (commits close, before photos open);
+ * `window_end` ends it now and compresses the photo timers. Settlement is a separate call.
+ */
+export const FastForwardInput = z.object({
+  to: z.enum(['window_start', 'window_end']).default('window_end'),
+});
+export type FastForwardInput = z.infer<typeof FastForwardInput>;
