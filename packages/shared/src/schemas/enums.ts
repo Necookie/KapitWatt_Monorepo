@@ -28,7 +28,18 @@ export const ReadingKind = z.enum(['rehearsal', 'before', 'after']);
 export type ReadingKind = z.infer<typeof ReadingKind>;
 
 export const CheckStatus = z.enum(['pass', 'flagged', 'rejected']);
+
+/** Why a settled commitment earned nothing. Shown on the result card (NFR-U4). */
+export const ResultReason = z.enum([
+  'late_photo',
+  'missing_photo',
+  'failed_check',
+  'no_measured_cut',
+  'missing_ami_data',
+]);
 export type CheckStatus = z.infer<typeof CheckStatus>;
+
+export type ResultReason = z.infer<typeof ResultReason>;
 
 /** Why a reading failed a rule check. Flags go to the dashboard list for a person to review. */
 export const ReadingFlag = z.enum([

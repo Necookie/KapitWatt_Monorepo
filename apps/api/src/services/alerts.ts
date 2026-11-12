@@ -1,5 +1,6 @@
 import {
   existingBarangayIds,
+  fastForwardAlert,
   findAlertByIdempotencyKey,
   findOpenAlert,
   getAlert,
@@ -158,4 +159,24 @@ export async function updateTargets(
     throw new AppError(409, 'alert_closed', 'This alert can no longer be changed.');
   }
   return { targets: await listAlertTargets(db, alertId) };
+}
+
+/**
+ * Demo only: "Measure (fast-forward)". Moves the alert's clock forward to window start (commits
+ * close, before photos open) or window end (after photos open, simulated readings can be sent).
+ * Never moves backwards and is idempotent, so a double click does nothing extra. Settlement is a
+ * separate call.
+ */
+export async function fastForward(
+  db: Db,
+  alertId: string,
+  to: 'window_start' | 'window_end',
+  isDemo: boolean,
+): Promise<AlertView> {
+  const alert = await getAlert(db, alertId, isDemo);
+  if (!alert) throw notFound('Alert');
+  if (!(await fastForwardAlert(db, alertId, to))) {
+    throw new AppError(409, 'alert_closed', 'This alert is closed.');
+  }
+  return getAlertView(db, alertId, isDemo);
 }

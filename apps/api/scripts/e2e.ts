@@ -23,6 +23,10 @@ import {
   SimRunSummary,
   SimStatus,
   SubmitReadingResult,
+  LeaderboardResponse,
+  ResultCard,
+  RewardsSummary,
+  SettlementResult,
 } from '@kapitwatt/shared';
 
 const API = process.env.API_URL ?? 'http://localhost:8787';
@@ -79,6 +83,8 @@ async function call(
 }
 
 const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
+const fastForward = (alertId: string, to: 'window_start' | 'window_end') =>
+  call('POST', `/alerts/${alertId}/fast-forward`, { to }, OPERATOR);
 const errorCode = (json: unknown) => ApiErrorBody.parse(json).error.code;
 
 async function phase1Households() {
@@ -496,8 +502,11 @@ async function phase4Simulator(ctx: Awaited<ReturnType<typeof phase1Households>>
   );
   check(again.committed === c.committed, 'a second commit run adds nobody');
 
-  // Test fixture: Measure (fast-forward) arrives in phase 6; move the alert's demo clock directly.
-  await db`update alerts set clock_offset_sec = extract(epoch from (window_end - now()))::int + 60 where id = ${alert.id}`;
+  const ff = await fastForward(alert.id, 'window_end');
+  check(
+    ff.status === 200 && AlertView.parse(ff.json).status === 'settling',
+    'Measure (fast-forward) to window end',
+  );
   const closed = await call('POST', '/sim/run', { alertId: alert.id, phase: 'commit' }, SIM);
   check(
     closed.status === 409 && errorCode(closed.json) === 'window_closed',
@@ -568,7 +577,8 @@ try {
   const p2 = await phase2Alerts(ctx);
   await phase3Commitments(ctx, p2);
   await phase4Simulator(ctx);
-  await phase5Readings(ctx, p2);
+  const p5 = await phase5Readings(ctx, p2);
+  await phase6Settlement(ctx, p5);
   console.log(`\nall ${passed} checks passed`);
 } catch (err) {
   console.error(err instanceof Error ? err.message : err);
@@ -583,7 +593,7 @@ async function phase5Readings(
 ) {
   console.log('phase 5: readings');
   const home = { lat: ctx.signup.lat, lng: ctx.signup.lng };
-  // Test fixture until Measure (fast-forward) exists: move an alert's demo clock directly.
+  // Test fixture for times fast-forward cannot reach (e.g. 16 minutes into the window).
   const moveClock = (alertId: string, to: 'start' | 'end', plusSec: number) =>
     to === 'start'
       ? db`update alerts set clock_offset_sec = extract(epoch from (window_start - now()))::int + ${plusSec} where id = ${alertId}`
@@ -650,7 +660,10 @@ async function phase5Readings(
     early.status === 409 && errorCode(early.json) === 'not_open_yet',
     'before photo ahead of the window is 409',
   );
-  await moveClock(p2.alertId, 'start', 60);
+  check(
+    (await fastForward(p2.alertId, 'window_start')).status === 200,
+    'fast-forward to window start',
+  );
   const beforeBytes = fakeJpeg();
   const before = await event('before', 1204.3, beforeBytes);
   const beforeResult = SubmitReadingResult.parse(before.json);
@@ -678,7 +691,7 @@ async function phase5Readings(
     'after photo before window end is 409',
   );
 
-  await moveClock(p2.alertId, 'end', 300);
+  check((await fastForward(p2.alertId, 'window_end')).status === 200, 'fast-forward to window end');
   const far = await event('after', 1206.6, fakeJpeg(), { lat: home.lat + 0.02, lng: home.lng });
   const farResult = SubmitReadingResult.parse(far.json);
   check(
@@ -750,4 +763,221 @@ async function phase5Readings(
     headers: bearer(a),
   });
   check(asHousehold.status === 401, 'a household cannot view photos');
+  return { cToken: c, moveClock };
+}
+
+async function phase6Settlement(
+  ctx: Awaited<ReturnType<typeof phase1Households>>,
+  p5: Awaited<ReturnType<typeof phase5Readings>>,
+) {
+  console.log('phase 6: settlement (the demo loop)');
+  const home = { lat: ctx.signup.lat, lng: ctx.signup.lng };
+  const a = ctx.token; // baseline 1.9, bill 450: the plan's worked example household
+  const c = p5.cToken; // rehearsed household, will miss its after photo
+  const inMinutes = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
+
+  check((await call('POST', '/sim/seed', {}, SIM)).status === 201, 'seed the simulated households');
+  const alert = AlertView.parse(
+    (
+      await call(
+        'POST',
+        '/alerts',
+        {
+          level: 'red',
+          windowStart: inMinutes(3),
+          windowEnd: inMinutes(123),
+          targetKw: 600,
+          targetBarangayIds: ctx.quietIds,
+          message: `${RUN} e2e demo-loop alert (test, ignore)`,
+        },
+        OPERATOR,
+      )
+    ).json,
+  );
+  const id = alert.id;
+  check(
+    (await call('POST', '/commitments', { alertId: id, committedKw: 1 }, bearer(a))).status === 201,
+    'household A commits 1 kW',
+  );
+  check(
+    (await call('POST', '/commitments', { alertId: id, committedKw: 1.5 }, bearer(c))).status ===
+      201,
+    'household C commits 1.5 kW',
+  );
+  const run = SimRunSummary.parse(
+    (
+      await call(
+        'POST',
+        '/sim/run',
+        { alertId: id, phase: 'commit', params: { paceSeconds: 2 } },
+        SIM,
+      )
+    ).json,
+  );
+  check(run.committed > 600, `simulated households commit (${run.committed})`);
+
+  const start1 = AlertView.parse((await fastForward(id, 'window_start')).json);
+  const start2 = AlertView.parse((await fastForward(id, 'window_start')).json);
+  check(
+    start1.status === 'window_open' && start2.status === 'window_open',
+    'fast-forward to window start, twice, is idempotent',
+  );
+  const closedRun = await call('POST', '/sim/run', { alertId: id, phase: 'commit' }, SIM);
+  check(
+    closedRun.status === 409 && errorCode(closedRun.json) === 'window_closed',
+    'commits are closed once the window opens',
+  );
+
+  const photo = (token: string, kind: string, readingKwh: number) =>
+    upload(token, { kind, alertId: id, readingKwh, ...home });
+  // A's meter already read 1206.6 kWh in phase 5, so this event continues from there.
+  check((await photo(a, 'before', 1207)).status === 201, 'A takes the before photo');
+  check((await photo(c, 'before', 1001.5)).status === 201, 'C takes the before photo');
+
+  const tooEarly = await call('POST', `/alerts/${id}/settle`, {}, OPERATOR);
+  check(
+    tooEarly.status === 409 && errorCode(tooEarly.json) === 'window_open',
+    'settle before window end is 409',
+  );
+
+  check(
+    (await fastForward(id, 'window_end')).status === 200,
+    'Measure: fast-forward to window end',
+  );
+  check(
+    (await call('POST', '/sim/run', { alertId: id, phase: 'deliver' }, SIM)).status === 200,
+    'simulated meter readings arrive',
+  );
+  // 2.2 kWh over the 2-hour window = 1.1 kW, the worked example's measured load. (The plan's 2.3 kWh
+  // was over 2.1 h; fast-forwarded photos are ~2.0 h apart, where 2.3 kWh sits on a rounding edge.)
+  check((await photo(a, 'after', 1209.2)).status === 201, 'A takes the after photo (C does not)');
+  const live = AlertTotals.parse((await call('GET', `/alerts/${id}/totals`)).json);
+
+  const settled = await call('POST', `/alerts/${id}/settle`, {}, OPERATOR);
+  check(settled.status === 200, 'POST /alerts/:id/settle returns 200');
+  const result = SettlementResult.parse(settled.json);
+  check(
+    result.commitments === run.committed + 2,
+    `every commitment settled (${result.commitments})`,
+  );
+  check(
+    Math.abs(result.deliveredKw - live.deliveredKw) < 0.5,
+    `settled delivered kW matches the live total (${result.deliveredKw} vs ${live.deliveredKw})`,
+  );
+  const again = SettlementResult.parse(
+    (await call('POST', `/alerts/${id}/settle`, {}, OPERATOR)).json,
+  );
+  check(
+    again.settledAt === result.settledAt && again.verifiedCount === result.verifiedCount,
+    'settling twice returns the same result',
+  );
+  check(
+    AlertView.parse((await call('GET', `/alerts/${id}`)).json).status === 'settled',
+    'alert is settled',
+  );
+
+  const cardA = ResultCard.parse(
+    (await call('GET', `/rewards/by-alert/${id}`, undefined, bearer(a))).json,
+  );
+  const bonus = cardA.barangay.targetHit ? 1.61 : 0;
+  check(
+    cardA.status === 'verified' &&
+      cardA.verifiedKwh === 1.6 &&
+      cardA.creditPhp === 8.06 &&
+      cardA.points === 160 &&
+      cardA.bonusPhp === bonus,
+    `worked example on the real path: 1.6 kWh, PHP 8.06 + PHP ${bonus} bonus, 160 points` +
+      (cardA.verifiedKwh === 1.6 ? '' : ` (got ${JSON.stringify(cardA)})`),
+  );
+  check(cardA.cutKw === 0.8 && cardA.paidCutKw === 0.8, 'result card shows the 0.8 kW cut');
+  const cardC = ResultCard.parse(
+    (await call('GET', `/rewards/by-alert/${id}`, undefined, bearer(c))).json,
+  );
+  check(
+    cardC.status === 'unverified' &&
+      cardC.creditPhp === 0 &&
+      cardC.resultReason === 'missing_photo',
+    'a missing after photo earns nothing, with the reason',
+  );
+
+  const summary = RewardsSummary.parse(
+    (await call('GET', '/rewards/summary', undefined, bearer(a))).json,
+  );
+  check(summary.points >= 160 && summary.creditPhp >= 8.06, 'rewards summary includes the event');
+  const hist = HistoryResponse.parse(
+    (await call('GET', '/commitments/history', undefined, bearer(a))).json,
+  );
+  check(hist.history.find((h) => h.alertId === id)?.creditPhp === 8.06, 'history shows the credit');
+  const meA = HouseholdMe.parse((await call('GET', '/auth/me', undefined, bearer(a))).json);
+  check(meA.points >= 160, 'profile points include the reward');
+  const board = LeaderboardResponse.parse(
+    (await call('GET', '/barangays/leaderboard')).json,
+  ).leaderboard;
+  check(
+    board.length === 21 &&
+      board[0]!.verifiedKwh > 0 &&
+      board.every((r, i) => i === 0 || board[i - 1]!.verifiedKwh >= r.verifiedKwh),
+    'leaderboard ranks the 21 barangays by verified kWh',
+  );
+
+  const lateUpload = await photo(c, 'after', 1003);
+  check(
+    lateUpload.status === 409 && errorCode(lateUpload.json) === 'alert_closed',
+    'no photos after settlement',
+  );
+  const lateFf = await fastForward(id, 'window_end');
+  check(
+    lateFf.status === 409 && errorCode(lateFf.json) === 'alert_closed',
+    'no fast-forward after settlement',
+  );
+
+  // The cron settles on its own at window end + 30 min (+1 grace).
+  const cronAlert = AlertView.parse(
+    (
+      await call(
+        'POST',
+        '/alerts',
+        {
+          level: 'yellow',
+          windowStart: inMinutes(2),
+          windowEnd: inMinutes(62),
+          targetKw: 5,
+          targetBarangayIds: [ctx.barangayId],
+          message: `${RUN} e2e cron alert (test, ignore)`,
+        },
+        OPERATOR,
+      )
+    ).json,
+  );
+  check(
+    (await call('POST', '/commitments', { alertId: cronAlert.id, committedKw: 1 }, bearer(a)))
+      .status === 201,
+    'A commits to a second alert',
+  );
+  check(
+    (await call('POST', `/alerts/${cronAlert.id}/settle`, {}, OPERATOR)).status === 409,
+    'not settled before its window ends',
+  );
+  await p5.moveClock(cronAlert.id, 'end', 32 * 60); // test fixture: 32 minutes after window end
+  const cron = await fetch(`${API}/__scheduled?cron=*+*+*+*+*`);
+  check(cron.ok, 'cron triggered (wrangler dev --test-scheduled)');
+  let status = '';
+  for (let i = 0; i < 20 && status !== 'settled'; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    status = AlertView.parse((await call('GET', `/alerts/${cronAlert.id}`)).json).status;
+  }
+  check(status === 'settled', 'the cron settled the due alert');
+  const cronCard = ResultCard.parse(
+    (await call('GET', `/rewards/by-alert/${cronAlert.id}`, undefined, bearer(a))).json,
+  );
+  check(
+    cronCard.resultReason === 'missing_photo' && cronCard.creditPhp === 0,
+    'no photos, no payout',
+  );
+
+  check(
+    SimStatus.parse((await call('POST', '/sim/reset', undefined, SIM)).json).simulatedHouseholds ===
+      0,
+    'reset the simulation',
+  );
 }

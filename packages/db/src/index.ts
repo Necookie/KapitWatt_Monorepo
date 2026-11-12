@@ -29,3 +29,5 @@ export * from './queries/alerts';
 export * from './queries/commitments';
 export * from './queries/sim';
 export * from './queries/readings';
+export * from './queries/settlement';
+export * from './queries/rewards';

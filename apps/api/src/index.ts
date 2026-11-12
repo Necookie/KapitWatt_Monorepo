@@ -6,6 +6,7 @@ import { requestId } from 'hono/request-id';
 import { secureHeaders } from 'hono/secure-headers';
 import type { AppEnv, Bindings } from './env';
 import { isStrongKey } from './lib/crypto';
+import { logError, logInfo } from './lib/log';
 import { AppError, errorResponse, handleError } from './lib/errors';
 import { accessLog } from './middleware/log';
 import { clientIp, rateLimit } from './middleware/rate-limit';
@@ -16,6 +17,7 @@ import { commitments } from './routes/commitments';
 import { readings } from './routes/readings';
 import { rewards } from './routes/rewards';
 import { sim } from './routes/sim';
+import { settleDueAlerts } from './services/settlement';
 
 /** JSON bodies are small; only the photo upload (POST /readings) gets a larger limit, set on that route. */
 const JSON_BODY_LIMIT = 16 * 1024;
@@ -104,4 +106,18 @@ app.onError(handleError);
 
 export default {
   fetch: app.fetch,
+  /**
+   * Cron (every minute, wrangler.jsonc): settles alerts at window end + 30 min (+1 min grace).
+   * Uses the handler's own ctx: there is no Hono context in a cron run.
+   */
+  scheduled(_controller, env, ctx) {
+    if (!env.DATABASE_URL) return;
+    ctx.waitUntil(
+      settleDueAlerts(createDb(env.DATABASE_URL), env.APP_ENV === 'demo')
+        .then((settled) => {
+          if (settled > 0) logInfo('cron_settled', { settled });
+        })
+        .catch((err) => logError('cron_failed', err)),
+    );
+  },
 } satisfies ExportedHandler<Bindings>;
