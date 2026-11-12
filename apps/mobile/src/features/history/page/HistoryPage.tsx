@@ -1,7 +1,7 @@
-import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
-import { ErrorState, Loading, Screen } from '@/components/ui';
+import { ErrorState, Loading } from '@/components/ui';
+import { TabScreen } from '@/layout/components/TabScreen';
 import { formatKwh } from '@/utils/format';
 import { space } from '@/styles/theme';
 import { HistoryCard } from '../components/HistoryCard';
@@ -12,27 +12,30 @@ import { useEventHistory } from '../hooks/useEventHistory';
 export default function HistoryPage() {
   const { history, refreshAll, items, totals, openItem } = useEventHistory();
 
-  if (history.isPending) return <Loading />;
-  if (history.isError) return <ErrorState onRetry={() => void history.refetch()} />;
-
   return (
-    <Screen roomy noHeader onRefresh={refreshAll}>
-      <Text variant="headlineSmall">History</Text>
+    <TabScreen title="History" overline="Your grid events" onRefresh={refreshAll}>
+      {history.isPending ? (
+        <Loading />
+      ) : history.isError ? (
+        <ErrorState onRetry={() => void history.refetch()} />
+      ) : (
+        <>
+          <View style={styles.tiles}>
+            <Tile label="Verified cuts" value={String(totals.verified)} accent />
+            <Tile label="Events" value={String(items.length)} />
+            <Tile label="Saved" value={formatKwh(totals.kwh)} />
+          </View>
 
-      <View style={styles.tiles}>
-        <Tile label="Verified cuts" value={String(totals.verified)} accent />
-        <Tile label="Events" value={String(items.length)} />
-        <Tile label="Saved" value={formatKwh(totals.kwh)} />
-      </View>
+          {items.length === 0 ? (
+            <MascotHeader label="No events yet" line="Your past grid events will show up here." />
+          ) : null}
 
-      {items.length === 0 ? (
-        <MascotHeader label="No events yet" line="Your past grid events will show up here." />
-      ) : null}
-
-      {items.map((item) => (
-        <HistoryCard key={item.alert.id} item={item} onOpen={() => openItem(item)} />
-      ))}
-    </Screen>
+          {items.map((item) => (
+            <HistoryCard key={item.alert.id} item={item} onOpen={() => openItem(item)} />
+          ))}
+        </>
+      )}
+    </TabScreen>
   );
 }
 

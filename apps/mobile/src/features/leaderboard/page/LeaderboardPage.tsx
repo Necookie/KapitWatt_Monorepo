@@ -1,7 +1,8 @@
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { ErrorState, Loading, Screen } from '@/components/ui';
+import { ErrorState, Loading } from '@/components/ui';
+import { TabScreen } from '@/layout/components/TabScreen';
 import { radius, space } from '@/styles/theme';
 import { MineCard } from '../components/MineCard';
 import { RankRow } from '../components/RankRow';
@@ -13,40 +14,37 @@ const c = themes.light.color;
 export default function LeaderboardPage() {
   const { board, refreshAll, mineId, mine } = useBarangayRanking();
 
-  if (board.isPending) return <Loading />;
-  if (board.isError) return <ErrorState onRetry={() => void board.refetch()} />;
-
   return (
-    <Screen roomy noHeader onRefresh={refreshAll}>
-      <View style={styles.heading}>
-        <Text variant="headlineSmall">Leaderboard</Text>
-        <Text variant="bodyMedium" color="onSurfaceVariant">
-          Barangays, by energy saved
-        </Text>
-      </View>
+    <TabScreen title="Leaderboard" overline="Barangays, by energy saved" onRefresh={refreshAll}>
+      {board.isPending ? (
+        <Loading />
+      ) : board.isError ? (
+        <ErrorState onRetry={() => void board.refetch()} />
+      ) : (
+        <>
+          {mine ? <MineCard row={mine} /> : null}
 
-      {mine ? <MineCard row={mine} /> : null}
+          <View style={styles.list}>
+            {board.data.map((row, i) => (
+              <RankRow
+                key={row.barangayId}
+                row={row}
+                isMine={row.barangayId === mineId}
+                divider={i < board.data.length - 1}
+              />
+            ))}
+          </View>
 
-      <View style={styles.list}>
-        {board.data.map((row, i) => (
-          <RankRow
-            key={row.barangayId}
-            row={row}
-            isMine={row.barangayId === mineId}
-            divider={i < board.data.length - 1}
-          />
-        ))}
-      </View>
-
-      <Text variant="bodySmall" color="onSurfaceVariant" align="center">
-        Totals include simulated pilot households.
-      </Text>
-    </Screen>
+          <Text variant="bodySmall" color="onSurfaceVariant" align="center">
+            Totals include simulated pilot households.
+          </Text>
+        </>
+      )}
+    </TabScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  heading: { gap: 2 },
   list: {
     borderRadius: radius.lg,
     backgroundColor: c.surfaceContainerLow,
