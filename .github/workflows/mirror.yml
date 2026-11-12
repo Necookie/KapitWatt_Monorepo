@@ -5,7 +5,7 @@ name: Mirror main to Meralco
 on:
   push:
     branches: [main]
-    tags: ['*']
+    tags: ['**']
   workflow_dispatch:
 
 concurrency:
