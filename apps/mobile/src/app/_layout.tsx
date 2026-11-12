@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useAlertWatcher } from '@/lib/alertWatcher';
 import { ApiError } from '@/lib/api';
 import { colors } from '@/theme';
 
@@ -14,10 +15,17 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Watches for new alerts and shows a local notification (in-app stand-in for push). */
+function AlertWatcher() {
+  useAlertWatcher();
+  return null;
+}
+
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <StatusBar style="light" />
+      <AlertWatcher />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.navy },
