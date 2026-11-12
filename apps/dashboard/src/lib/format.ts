@@ -11,7 +11,13 @@ export function kw(value: number): string {
   });
 }
 
-export const count = (value: number): string => value.toLocaleString(LOCALE);
+/** A load in the unit an operator would say it in: kW below 1 MW, MW from there up. */
+export function power(valueKw: number): string {
+  if (Math.abs(valueKw) < 1000) return `${kw(valueKw)} kW`;
+  return `${(valueKw / 1000).toLocaleString(LOCALE, { maximumFractionDigits: 2 })} MW`;
+}
+
+export const count =(value: number): string => value.toLocaleString(LOCALE);
 
 export function percent(part: number, whole: number): string {
   return whole > 0 ? `${Math.round((part / whole) * 100)}%` : '0%';
