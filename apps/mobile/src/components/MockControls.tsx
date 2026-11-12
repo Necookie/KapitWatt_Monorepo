@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui';
-import { USE_MOCKS } from '@/lib/config';
+import { MOCK } from '@/lib/config';
 import { mockFastForward, mockPhase, mockResetAll, mockSendAlert } from '@/lib/mock';
 import { useRefreshAll } from '@/lib/queries';
 import { useServerNow } from '@/lib/serverTime';
@@ -17,12 +17,12 @@ const NEXT_STEP: Record<ReturnType<typeof mockPhase>, string> = {
 
 /**
  * Stand-ins for the operator's dashboard while the app runs on mock data. Kept in one clearly
- * separate box so they never look like part of the household app. Hidden once USE_MOCKS is off.
+ * separate box so they never look like part of the household app. Hidden once MOCK.events is off.
  */
 export function MockControls() {
   const refreshAll = useRefreshAll();
   useServerNow(); // re-render every second so the label follows the mock clock
-  if (!USE_MOCKS) return null;
+  if (!MOCK.events) return null;
 
   const run = (fn: () => void) => {
     fn();
