@@ -3,9 +3,17 @@
     "name": "KapitWatt",
     "slug": "kapitwatt",
     "scheme": "kapitwatt",
-    "version": "0.1.0",
+    "version": "0.2.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f8ba0025-2fb3-4fa2-bcb4-a4f74b1e35dd",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "../../packages/assets/logo/png/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false
@@ -13,10 +21,10 @@
     "android": {
       "package": "com.codebearers.kapitwatt",
       "adaptiveIcon": {
-        "backgroundColor": "#0F2A43",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#171C8F",
+        "foregroundImage": "../../packages/assets/logo/png/android-icon-foreground.png",
+        "backgroundImage": "../../packages/assets/logo/png/android-icon-background.png",
+        "monochromeImage": "../../packages/assets/logo/png/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [

@@ -23,6 +23,7 @@ apps/
   mobile/      Expo + React Native household app (Android APK via EAS)     @kapitwatt/mobile
   dashboard/   Expo web utility dashboard for the Meralco operator          @kapitwatt/dashboard
   api/         Hono on Cloudflare Workers                                   @kapitwatt/api
+  landing/     get.kapitwatt.dhekode.com: the APK download page (static)   @kapitwatt/landing
 packages/
   shared/      Zod schemas, types, constants, baseline + payout + check math   @kapitwatt/shared
   db/          Postgres schema, migrations, query helpers                   @kapitwatt/db
@@ -87,6 +88,9 @@ pnpm demo:accounts           # just the ten demo accounts (demo:reset includes t
 pnpm --filter @kapitwatt/dashboard build   # expo export -> apps/dashboard/dist
 pnpm deploy:api              # preflight, then wrangler deploy with its secrets (from main)
 pnpm deploy:dashboard        # build with the Doppler env, then deploy to kapitwatt.dhekode.com
+pnpm deploy:landing          # build the download page, then deploy to get.kapitwatt.dhekode.com
+pnpm release:mobile          # from main: EAS build (APK) + GitHub Release vX.Y.Z with KapitWatt.apk
+pnpm update:mobile -- "msg"  # from main: JS/UI fix to installed phones via EAS Update (no reinstall)
 pnpm --filter @kapitwatt/api smoke:live   # read-only checks of the deployed API
 ```
 
@@ -348,7 +352,18 @@ Live API: https://kapitwatt-api.dheyn-main.workers.dev (use as `EXPO_PUBLIC_API_
   Doppler env and deploys it as static assets on Cloudflare Workers (`apps/dashboard/wrangler.jsonc`).
   The API must list that origin in `ALLOWED_ORIGINS` (`apps/api/wrangler.jsonc`), so redeploy the API
   when the origin changes; otherwise the browser blocks every call (CORS).
-- Mobile: EAS build, Android APK. Expo Go during development. Push needs real phones; test it by hour 8 to 12.
+- Mobile: Android APK, downloaded from https://get.kapitwatt.dhekode.com (`apps/landing`, deployed with
+  `pnpm deploy:landing`). The button links to `releases/latest/download/KapitWatt.apk` on this repo's
+  GitHub Releases, so a new release needs no page change.
+  - **Native change or new version** (permission, native package, icon, `expo.version`): bump
+    `expo.version` in `apps/mobile/app.json`, merge to `main`, then `pnpm release:mobile` (EAS profile
+    `release`: APK, channel `release`, Android versionCode auto-incremented on EAS).
+  - **JS/UI change:** merge to `main`, then `pnpm update:mobile -- "what changed"` (EAS Update, channel
+    `release`). It reaches APKs with the same `expo.version` (runtimeVersion policy `appVersion`); phones
+    download it on launch and use it the launch after.
+  - No Firebase yet, so no remote push in the APK: the app checks for alerts while it is open. Adding
+    FCM later is a native change (new APK).
+  - Expo Go during development.
 
 ## Conventions
 
