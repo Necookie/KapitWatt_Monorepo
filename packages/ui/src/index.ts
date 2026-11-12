@@ -19,3 +19,4 @@ export { AlertBanner } from './components/AlertBanner';
 export type { AlertBannerProps } from './components/AlertBanner';
 export { Logo } from './components/Logo';
 export type { LogoProps } from './components/Logo';
+export { Skeleton, SkeletonText } from './components/Skeleton';

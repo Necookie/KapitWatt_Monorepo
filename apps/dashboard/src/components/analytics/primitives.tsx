@@ -1,7 +1,7 @@
 import { useTheme } from '@kapitwatt/hooks';
 import { Icon, type IconName } from '@kapitwatt/icons';
 import { fontFamily, withAlpha } from '@kapitwatt/tokens';
-import { Card, Divider, ProgressBar, Stack, Text } from '@kapitwatt/ui';
+import { Card, Divider, ProgressBar, Skeleton, SkeletonText, Stack, Text } from '@kapitwatt/ui';
 import type { CSSProperties, ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
 
@@ -59,13 +59,19 @@ export function Panel({
   aside,
   children,
   style,
+  loading = false,
+  skeleton,
 }: {
   title: string;
   icon?: IconName;
   note?: string;
   aside?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
   style?: ViewStyle;
+  /** Skeleton in place of the body while its data loads; the header stays. */
+  loading?: boolean;
+  /** Shaped like the body; a plot by default. */
+  skeleton?: ReactNode;
 }) {
   return (
     <Card variant="outlined" padding={0} style={style}>
@@ -84,7 +90,9 @@ export function Panel({
         {aside}
       </Stack>
       <Divider />
-      <View style={{ padding: 16 }}>{children}</View>
+      <View style={{ padding: 16 }} accessibilityLabel={loading ? `${title}: loading` : undefined}>
+        {loading ? (skeleton ?? <PlotSkeleton />) : children}
+      </View>
     </Card>
   );
 }
@@ -97,14 +105,32 @@ export function KpiCard({
   unit,
   caption,
   progress,
+  loading = false,
 }: {
   label: string;
   icon: IconName;
-  value: string;
+  value?: string;
   unit?: string;
   caption?: string;
   progress?: { share: number; tone: 'primary' | 'relief' | 'tertiary'; label: string };
+  loading?: boolean;
 }) {
+  if (loading) {
+    return (
+      <Card variant="outlined" padding={4} style={{ flexGrow: 1, flexBasis: 160, minWidth: 150 }}>
+        <Stack gap={2} accessibilityLabel={`${label}: loading`}>
+          <Stack direction="row" align="center" gap={2}>
+            <Icon name={icon} size="sm" color="onSurfaceVariant" />
+            <Text variant="labelMedium" color="onSurfaceVariant">
+              {label}
+            </Text>
+          </Stack>
+          <Skeleton width={104} height={34} radius="sm" style={{ marginVertical: 2 }} />
+          <SkeletonText lines={2} lineHeight={9} gap={6} />
+        </Stack>
+      </Card>
+    );
+  }
   return (
     <Card variant="outlined" padding={4} style={{ flexGrow: 1, flexBasis: 160, minWidth: 150 }}>
       <Stack gap={2}>
@@ -252,6 +278,50 @@ export function ShareScale() {
       <Text variant="labelSmall" color="onSurfaceVariant">
         100%+ of target
       </Text>
+    </Stack>
+  );
+}
+
+/** Plot-shaped skeleton: a legend line, then columns of varied height on a baseline. */
+export function PlotSkeleton({ height = 200 }: { height?: number }) {
+  const t = useTheme();
+  const bars = [0.4, 0.62, 0.5, 0.78, 0.58, 0.9, 0.48, 0.7, 0.6, 0.84, 0.66, 0.74];
+  return (
+    <Stack gap={3}>
+      <Skeleton width={200} height={10} />
+      <View
+        style={{
+          height,
+          flexDirection: 'row',
+          alignItems: 'flex-end',
+          gap: 10,
+          borderBottomWidth: 1,
+          borderBottomColor: t.color.outlineVariant,
+        }}
+      >
+        {bars.map((h, i) => (
+          <View key={i} style={{ flex: 1, height: `${h * 100}%` }}>
+            <Skeleton height="100%" radius="xs" />
+          </View>
+        ))}
+      </View>
+    </Stack>
+  );
+}
+
+/** Skeleton for a list of label-and-value rows (rankings, comparisons, tables). */
+export function RowsSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <Stack gap={3}>
+      {Array.from({ length: rows }, (_, i) => (
+        <Stack key={i} direction="row" align="center" gap={3}>
+          <Skeleton width={[140, 110, 160, 120, 130][i % 5]} height={10} />
+          <View style={{ flex: 1 }}>
+            <Skeleton height={6} radius="full" />
+          </View>
+          <Skeleton width={40} height={10} />
+        </Stack>
+      ))}
     </Stack>
   );
 }
