@@ -6,7 +6,7 @@ import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as endpoints from './endpoints';
 import { formatClock } from './format';
-import { pushRegistered, registerForPush } from './push';
+import { ALERT_CHANNEL_ID, ensureAlertChannel, pushRegistered, registerForPush } from './push';
 import { queryKeys } from './queries';
 
 /**
@@ -16,8 +16,6 @@ import { queryKeys } from './queries';
  * POLL_INTERVAL_MS and shows a LOCAL notification the first time it sees a new one. It does not
  * wake a closed app; real Expo Push (API side, rule 4) needs an installed build.
  */
-
-const CHANNEL_ID = 'grid-alerts';
 
 // Show the banner and play the sound even while the app is in the foreground.
 Notifications.setNotificationHandler({
@@ -30,13 +28,7 @@ Notifications.setNotificationHandler({
 });
 
 async function setUpNotifications(): Promise<boolean> {
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: 'Grid alerts',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 400, 200, 400],
-    });
-  }
+  await ensureAlertChannel();
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
   return (await Notifications.requestPermissionsAsync()).granted;
@@ -51,7 +43,7 @@ async function notify(view: MockAlertView) {
       data: { alertId: alert.id },
       sound: 'default',
     },
-    trigger: Platform.OS === 'android' ? { channelId: CHANNEL_ID } : null,
+    trigger: Platform.OS === 'android' ? { channelId: ALERT_CHANNEL_ID } : null,
   });
 }
 
