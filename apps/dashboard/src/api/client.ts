@@ -76,22 +76,46 @@ export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8787
 
 // --- live API ----------------------------------------------------------------
 
-const ALERT_KEY = 'kapitwatt.dashboard.alertId';
+/**
+ * How long a finished event's results stay on Live load once nothing is open. By when the alert was
+ * sent: the replayed past events (`pnpm demo:reset`) are days old, so after a reset the page is calm.
+ */
+const RECENT_RESULTS_MS = 12 * 3_600_000;
 
-function recallAlertId(): string | null {
+/**
+ * The newest event in the log, asked at most this often while nothing is open: the log counts
+ * against the operator rate limit, which every open dashboard shares, and the page polls every ~2 s.
+ */
+const LATEST_EVENT_TTL_MS = 30_000;
+let latestEvent: { at: number; alert: AlertView | undefined } | null = null;
+/** An open alert was on screen at the last poll: when it settles, its results are asked for at once. */
+let sawOpenAlert = false;
+
+async function newestEvent(): Promise<AlertView | undefined> {
+  if (!latestEvent || sawOpenAlert || Date.now() - latestEvent.at > LATEST_EVENT_TTL_MS) {
+    const [alert] = AlertLogResponse.parse(await api('/alerts?limit=1')).alerts;
+    latestEvent = { at: Date.now(), alert };
+    sawOpenAlert = false;
+  }
+  return latestEvent.alert;
+}
+
+/** The finished event this browser chose to stop showing (the simulator's reset). Never an open one. */
+const DISMISSED_KEY = 'kapitwatt.dashboard.dismissedAlertId';
+
+function dismissedAlertId(): string | null {
   try {
-    return globalThis.localStorage?.getItem(ALERT_KEY) ?? null;
+    return globalThis.localStorage?.getItem(DISMISSED_KEY) ?? null;
   } catch {
     return null;
   }
 }
 
-function rememberAlertId(id: string | null): void {
+function dismissAlert(id: string): void {
   try {
-    if (id) globalThis.localStorage?.setItem(ALERT_KEY, id);
-    else globalThis.localStorage?.removeItem(ALERT_KEY);
+    globalThis.localStorage?.setItem(DISMISSED_KEY, id);
   } catch {
-    // Private window or blocked storage: the active-alert lookup still works.
+    // Private window or blocked storage: the old results simply stay until the next alert.
   }
 }
 
@@ -107,37 +131,38 @@ const liveClient: DashboardClient = {
     return (await api<{ barangays: BarangayWithCount[] }>('/barangays')).barangays;
   },
   async getCurrentAlert() {
-    // A settled alert is no longer "active" for households, but the operator still
-    // wants its results, so the last alert seen here is looked up by id first.
-    const remembered = recallAlertId();
-    if (remembered) {
-      try {
-        const alert = AlertView.parse(await api(`/alerts/${remembered}`));
-        if (alert.status !== 'cancelled') return withoutClock(alert);
-        rememberAlertId(null);
-      } catch (error) {
-        if (!(error instanceof ApiError) || error.status !== 404) throw error;
-        rememberAlertId(null);
-      }
-    }
+    // 1. The open alert (scheduled, commits open, window open, measuring), from the same query the
+    //    phones use, so the dashboard and every phone always agree on what is going on. Asked first,
+    //    on every poll: an alert sent from another browser or device shows up here at once.
     const { alert } = ActiveAlertResponse.parse(await api('/alerts/active'));
-    if (alert) rememberAlertId(alert.id);
-    return alert ? withoutClock(alert) : null;
+    if (alert) {
+      sawOpenAlert = true;
+      return withoutClock(alert);
+    }
+    // 2. Nothing open: the newest event's results, if it settled and was sent recently, so the
+    //    operator can read them on any device. A cancelled event shows nothing.
+    const latest = await newestEvent();
+    if (
+      latest &&
+      latest.status === 'settled' &&
+      Date.now() - Date.parse(latest.createdAt) < RECENT_RESULTS_MS &&
+      latest.id !== dismissedAlertId()
+    ) {
+      return withoutClock(latest);
+    }
+    return null;
   },
   async createAlert(input) {
     // One key per confirm: a repeated request returns the same alert and sends no second push.
-    const alert = AlertView.parse(
+    return AlertView.parse(
       await api('/alerts', {
         ...json(input),
         headers: { 'idempotency-key': globalThis.crypto.randomUUID() },
       }),
     );
-    rememberAlertId(alert.id);
-    return alert;
   },
   async cancelAlert(alertId) {
     await api(`/alerts/${alertId}/cancel`, json({}));
-    if (recallAlertId() === alertId) rememberAlertId(null);
   },
   async listAlerts() {
     return AlertLogResponse.parse(await api(`/alerts?limit=${ALERT_LOG_LIMIT}`)).alerts;
@@ -184,8 +209,10 @@ const liveClient: DashboardClient = {
     api<SimRunSummary>('/sim/run', json({ alertId, params, phase })),
   async simReset() {
     await api('/sim/reset', json({}));
-    // Start clean: do not keep showing the results of an event whose data was just deleted.
-    rememberAlertId(null);
+    // Start clean: stop showing the results of a finished event whose data was just deleted.
+    latestEvent = null;
+    const latest = await newestEvent();
+    if (latest && latest.status === 'settled') dismissAlert(latest.id);
   },
 };
 
