@@ -3,7 +3,7 @@ import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { useState, type ComponentRef, type Ref } from 'react';
 import { Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space } from '@/styles/theme';
 
 const t = themes.light;
 const c = t.color;

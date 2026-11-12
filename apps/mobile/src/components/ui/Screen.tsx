@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, space } from '@/theme';
+import { colors, space } from '@/styles/theme';
 
 /**
  * Every screen's outer frame: scrolls, pads, and optionally supports pull to refresh.

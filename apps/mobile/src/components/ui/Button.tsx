@@ -1,7 +1,7 @@
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { radius } from '@/theme';
+import { radius } from '@/styles/theme';
 
 /**
  * The household app's button, built on the shared tokens but shaped for phones: every control in

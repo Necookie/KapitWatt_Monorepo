@@ -1,5 +1,5 @@
 import { mascotXml, type MascotPose } from '@kapitwatt/ui';
-import { ARMS, type Shape } from './personality';
+import { ARMS, type Shape } from '@/components/mascot/personality';
 
 /**
  * The traced Alitaptap poses split into layers that move on their own:
