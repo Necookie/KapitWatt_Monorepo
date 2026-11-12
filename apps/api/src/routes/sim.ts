@@ -1,31 +1,39 @@
-import { validate } from '../lib/validate';
 import { SimParams, SimRunInput } from '@kapitwatt/shared';
 import { Hono } from 'hono';
 import type { AppEnv } from '../env';
-import { notImplemented } from '../lib/todo';
+import { validate } from '../lib/validate';
 import { simAuth } from '../middleware/auth';
+import { rateLimit } from '../middleware/rate-limit';
+import * as simService from '../services/sim';
 
 /**
- * Simulator routes. Demo only: off unless APP_ENV is "demo", and the simulator
- * key is always required. The simulator goes through the same service functions
- * as real households and only ever touches rows flagged is_simulated.
+ * Simulator routes. Demo only: they do not exist unless APP_ENV is "demo", and the simulator key is
+ * always required. The simulator goes through the same service functions as real households and
+ * only ever touches rows flagged is_simulated.
  */
 export const sim = new Hono<AppEnv>();
 
-sim.use('*', simAuth);
+sim.use(
+  '*',
+  simAuth,
+  rateLimit('RL_OPERATOR', () => 'sim'),
+);
 
-// Create the Laguna towns, barangays, ~1,200 households and appliances.
+// About 1,200 simulated households across the 21 pilot barangays. 409 already_seeded: reset first.
 sim.post(
   '/seed',
   validate('json', SimParams.pick({ amiShare: true, seed: true }).prefault({})),
-  (c) => notImplemented(c, 'sim seed'),
+  async (c) => c.json(await simService.seedSimulation(c.var.db, c.req.valid('json')), 201),
 );
 
-// Run an event for an alert: paced commits, then simulated readings.
-sim.post('/run', validate('json', SimRunInput), (c) => notImplemented(c, 'sim run'));
+// One phase of an event for an alert: `commit` (paced, before window start) or `deliver`
+// (meter readings, after window end). The commit phase holds the request for about paceSeconds.
+sim.post('/run', validate('json', SimRunInput), async (c) =>
+  c.json(await simService.runSimulation(c.var.db, c.req.valid('json'), c.env.APP_ENV === 'demo')),
+);
 
-// Delete simulated data only.
-sim.post('/reset', (c) => notImplemented(c, 'sim reset'));
+// Delete simulated data only. Real households and alerts stay.
+sim.post('/reset', async (c) => c.json(await simService.resetSimulation(c.var.db)));
 
-// Counts, last run and current settings.
-sim.get('/status', (c) => notImplemented(c, 'sim status'));
+// Counts and default parameters.
+sim.get('/status', async (c) => c.json(await simService.simStatus(c.var.db)));

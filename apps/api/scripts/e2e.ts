@@ -20,11 +20,14 @@ import {
   ApiErrorBody,
   HouseholdMe,
   RegisterResult,
+  SimRunSummary,
+  SimStatus,
 } from '@kapitwatt/shared';
 
 const API = process.env.API_URL ?? 'http://localhost:8787';
 /** Must match the Worker's OPERATOR_KEY (both come from the environment). */
 const OPERATOR = { 'x-operator-key': process.env.OPERATOR_KEY ?? '' };
+const SIM = { 'x-sim-key': process.env.SIM_KEY ?? '' };
 const db = createDb(process.env.DATABASE_URL ?? '');
 const RUN = `E2E-${Date.now()}`;
 
@@ -395,7 +398,128 @@ async function phase3Commitments(
   );
 }
 
+async function phase4Simulator(ctx: Awaited<ReturnType<typeof phase1Households>>) {
+  console.log('phase 4: simulator');
+  check(SIM['x-sim-key'].length >= 32, 'SIM_KEY is set for the test');
+  const status = async () =>
+    SimStatus.parse((await call('GET', '/sim/status', undefined, SIM)).json);
+
+  const seeded = await call('POST', '/sim/seed', { amiShare: 0.15, seed: 2026 }, SIM);
+  check(seeded.status === 201, 'POST /sim/seed returns 201');
+  const s = SimStatus.parse(seeded.json);
+  check(s.simulatedHouseholds === 1200, 'seeded 1,200 simulated households');
+  check(
+    s.amiHouseholds > 120 && s.amiHouseholds < 240,
+    `about 15% smart meter (${s.amiHouseholds})`,
+  );
+  const twice = await call('POST', '/sim/seed', {}, SIM);
+  check(twice.status === 409 && errorCode(twice.json) === 'already_seeded', 'seeding twice is 409');
+
+  // Target only barangays without real phones, so the alert's push reaches nobody.
+  const inMinutes = (m: number) => new Date(Date.now() + m * 60_000).toISOString();
+  const alert = AlertView.parse(
+    (
+      await call(
+        'POST',
+        '/alerts',
+        {
+          level: 'red',
+          windowStart: inMinutes(3),
+          windowEnd: inMinutes(123),
+          targetKw: 600,
+          targetBarangayIds: ctx.quietIds,
+          message: `${RUN} e2e simulator alert (test, ignore)`,
+        },
+        OPERATOR,
+      )
+    ).json,
+  );
+
+  const early = await call('POST', '/sim/run', { alertId: alert.id, phase: 'deliver' }, SIM);
+  check(
+    early.status === 409 && errorCode(early.json) === 'window_open',
+    'deliver before window end is 409',
+  );
+
+  const started = Date.now();
+  const commits = await call(
+    'POST',
+    '/sim/run',
+    { alertId: alert.id, phase: 'commit', params: { paceSeconds: 3 } },
+    SIM,
+  );
+  check(commits.status === 200, 'POST /sim/run commit returns 200');
+  const c = SimRunSummary.parse(commits.json);
+  const share = c.committed / c.households;
+  check(share > 0.5 && share < 0.7, `about 60% committed (${c.committed} of ${c.households})`);
+  check(Date.now() - started >= 2000, 'commits were paced over time');
+  let totals = AlertTotals.parse((await call('GET', `/alerts/${alert.id}/totals`)).json);
+  check(totals.committedKw === c.committedKw, `live total shows ${c.committedKw} kW committed`);
+
+  const again = SimRunSummary.parse(
+    (
+      await call(
+        'POST',
+        '/sim/run',
+        { alertId: alert.id, phase: 'commit', params: { paceSeconds: 0 } },
+        SIM,
+      )
+    ).json,
+  );
+  check(again.committed === c.committed, 'a second commit run adds nobody');
+
+  // Test fixture: Measure (fast-forward) arrives in phase 6; move the alert's demo clock directly.
+  await db`update alerts set clock_offset_sec = extract(epoch from (window_end - now()))::int + 60 where id = ${alert.id}`;
+  const closed = await call('POST', '/sim/run', { alertId: alert.id, phase: 'commit' }, SIM);
+  check(
+    closed.status === 409 && errorCode(closed.json) === 'window_closed',
+    'commit run after window start is 409',
+  );
+
+  const delivered = await call('POST', '/sim/run', { alertId: alert.id, phase: 'deliver' }, SIM);
+  check(delivered.status === 200, 'POST /sim/run deliver returns 200');
+  const d = SimRunSummary.parse(delivered.json);
+  check(
+    d.householdsWithReadings > c.committed * 0.85,
+    `readings for most committed households (${d.householdsWithReadings})`,
+  );
+
+  totals = AlertTotals.parse((await call('GET', `/alerts/${alert.id}/totals`)).json);
+  const ratio = totals.deliveredKw / totals.committedKw;
+  check(
+    ratio > 0.6 && ratio < 0.85,
+    `delivered ${totals.deliveredKw} of ${totals.committedKw} kW (${Math.round(ratio * 100)}%)`,
+  );
+  check(
+    (totals.deliveredAmiKw ?? 0) > 0 && (totals.deliveredPhotoKw ?? 0) > 0,
+    'both paths delivered',
+  );
+  const [flags] = await db`select count(*) filter (where check_status = 'flagged')::int as flagged,
+    count(*)::int as total from meter_readings m join commitments c on c.id = m.commitment_id where c.alert_id = ${alert.id}`;
+  check(
+    Number(flags?.total) > 0 && Number(flags?.flagged) === 0,
+    'simulated photo readings passed the checks',
+  );
+
+  await call('POST', '/sim/run', { alertId: alert.id, phase: 'deliver' }, SIM);
+  const redo = AlertTotals.parse((await call('GET', `/alerts/${alert.id}/totals`)).json);
+  check(redo.deliveredKw === totals.deliveredKw, 'delivering twice changes nothing');
+
+  const reset = await call('POST', '/sim/reset', undefined, SIM);
+  check(
+    reset.status === 200 && SimStatus.parse(reset.json).simulatedHouseholds === 0,
+    'reset removes simulated households',
+  );
+  const [real] =
+    await db`select count(*)::int as n from households where meter_serial like ${`${RUN}%`}`;
+  check(Number(real?.n) === 2, 'reset keeps the real (test) households');
+  check((await status()).simulatedHouseholds === 0, 'status shows 0 after reset');
+}
+
 async function cleanup() {
+  const sim = await db`delete from households where is_simulated returning id`;
+  if (sim.length)
+    console.log(`cleanup: removed ${sim.length} simulated household(s) left by a failed run`);
   const alerts = await db`delete from alerts where message like ${`${RUN}%`} returning id`;
   console.log(`cleanup: removed ${alerts.length} test alert(s)`);
   const removed =
@@ -404,9 +528,18 @@ async function cleanup() {
 }
 
 try {
+  const [pre] = await db`select count(*)::int as n from households where is_simulated`;
+  if (Number(pre?.n) > 0) {
+    // Never wipe simulated data someone else may be using: stop and say so.
+    console.error(
+      `${pre?.n} simulated households already exist; reset them (POST /sim/reset) first`,
+    );
+    process.exit(1);
+  }
   const ctx = await phase1Households();
   const p2 = await phase2Alerts(ctx);
   await phase3Commitments(ctx, p2);
+  await phase4Simulator(ctx);
   console.log(`\nall ${passed} checks passed`);
 } catch (err) {
   console.error(err instanceof Error ? err.message : err);
