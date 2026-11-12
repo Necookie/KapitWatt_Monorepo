@@ -1,7 +1,8 @@
 # KapitWatt docs
 
-Product and engineering documents for KapitWatt, derived from `KapitWatt_Full_Plan.pdf` (updated
-November 12, 2026). The plan is the source of truth. If a document here disagrees with it, the plan wins
+Product and engineering documents for KapitWatt, derived from
+[`KapitWatt_Full_Plan.pdf`](./KapitWatt_Full_Plan.pdf) (updated November 12, 2026), which is kept in this
+folder. The plan is the source of truth. If a document here disagrees with it, the plan wins
 and the document should be fixed.
 
 | Document            | Answers                                               | Read it when                          |
@@ -12,10 +13,11 @@ and the document should be fixed.
 
 ```
 docs/
-  README.md      this index
-  prd/PRD.md     Product Requirements Document
-  srs/SRS.md     Software Requirements Specification
-  mvp/MVP.md     MVP scope, acceptance criteria and demo plan
+  README.md                 this index
+  KapitWatt_Full_Plan.pdf   the full plan, source of truth
+  prd/PRD.md                Product Requirements Document
+  srs/SRS.md                Software Requirements Specification
+  mvp/MVP.md                MVP scope, acceptance criteria and demo plan
 ```
 
 ## Conventions used in all three

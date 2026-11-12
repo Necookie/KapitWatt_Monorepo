@@ -1,7 +1,8 @@
 # KapitWatt
 
 Residential demand response for Meralco. Team CodeBearers, IDOL Hackathon 2026, 24-hour build.
-Source of truth: `KapitWatt_Full_Plan.pdf` (updated November 12, 2026). This file is its working summary.
+Source of truth: `docs/KapitWatt_Full_Plan.pdf` (updated November 12, 2026). This file is its working
+summary; `docs/` also holds the PRD, SRS and MVP derived from it.
 
 When NGCP raises a yellow or red alert, Meralco's operator alerts opted-in households. Each household
 commits to cutting a number of kW during the peak window and is paid for the kWh Meralco can verify it
@@ -27,6 +28,7 @@ packages/
   db/          Postgres schema, migrations, query helpers                   @kapitwatt/db
   sim/         Laguna seed data + event runner (demo only)                  @kapitwatt/sim
   config/      Shared tsconfig base                                         @kapitwatt/config
+docs/          The full plan (PDF, source of truth), PRD, SRS, MVP
 ```
 
 Inside each app:

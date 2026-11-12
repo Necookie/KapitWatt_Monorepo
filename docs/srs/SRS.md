@@ -1,11 +1,11 @@
 # KapitWatt: Software Requirements Specification (SRS)
 
-|              |                                                                   |
-| ------------ | ----------------------------------------------------------------- |
-| Product      | KapitWatt, residential demand response for Meralco                |
-| Team         | CodeBearers, IDOL Hackathon 2026 (24-hour build)                  |
-| Source       | `KapitWatt_Full_Plan.pdf`, updated November 12, 2026              |
-| Related docs | [PRD](../prd/PRD.md), [MVP](../mvp/MVP.md), [index](../README.md) |
+|              |                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------- |
+| Product      | KapitWatt, residential demand response for Meralco                                 |
+| Team         | CodeBearers, IDOL Hackathon 2026 (24-hour build)                                   |
+| Source       | [`KapitWatt_Full_Plan.pdf`](../KapitWatt_Full_Plan.pdf), updated November 12, 2026 |
+| Related docs | [PRD](../prd/PRD.md), [MVP](../mvp/MVP.md), [index](../README.md)                  |
 
 > **Scope: Laguna pilot, simulated.** The software is real. The households, NGCP alerts and reward rates
 > are simulated or placeholders.
