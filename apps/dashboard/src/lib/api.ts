@@ -27,6 +27,13 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!res.ok) throw new ApiError(res.status, body);
   return body as T;
 }
+/** A binary response (a meter photo), fetched with the same keys. */
+export async function apiBlob(path: string): Promise<Blob> {
+  const res = await fetch(`${BASE_URL}${path}`, { headers: authHeaders() });
+  if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
+  return res.blob();
+}
+
 /** Demo-only keys. The operator key guards alert routes; the simulator key guards /sim/*. */
 function authHeaders(): Record<string, string> {
   return {

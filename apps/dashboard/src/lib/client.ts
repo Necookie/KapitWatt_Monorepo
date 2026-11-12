@@ -17,7 +17,7 @@ import type {
   UpdateTargetsInput,
 } from '@kapitwatt/shared';
 import { MemoryBackend, MemoryBackendError } from '@kapitwatt/sim';
-import { ApiError, api } from './api';
+import { ApiError, api, apiBlob } from './api';
 
 /**
  * Everything the dashboard asks of the backend, behind one interface with two
@@ -44,6 +44,11 @@ export interface DashboardClient {
   /** Readings that failed a rule check and wait for a person (FR-DASH-11). */
   listFlagged(): Promise<FlaggedReading[]>;
   reviewReading(readingId: string, decision: ReviewReadingInput['decision']): Promise<void>;
+  /**
+   * The photo of a reading, from the private bucket. There is no public link: the bytes
+   * are fetched with the operator key and shown from a blob URL the caller must revoke.
+   */
+  readingPhoto(readingId: string): Promise<string>;
   simStatus(): Promise<SimStatus>;
   simSeed(params: Pick<SimParams, 'amiShare' | 'seed'>): Promise<void>;
   simRun(alertId: string, params: SimParams, phase: 'commit' | 'deliver'): Promise<SimRunSummary>;
@@ -142,6 +147,9 @@ const liveClient: DashboardClient = {
   async reviewReading(readingId, decision) {
     await api(`/readings/${readingId}/review`, json({ decision } satisfies ReviewReadingInput));
   },
+  async readingPhoto(readingId) {
+    return URL.createObjectURL(await apiBlob(`/readings/${readingId}/photo`));
+  },
   simStatus: () => api<SimStatus>('/sim/status'),
   async simSeed(params) {
     await api('/sim/seed', json(params));
@@ -210,6 +218,10 @@ const fixtureClient: DashboardClient = {
   reviewReading: (readingId, decision) =>
     viaFixture((b) => {
       b.review(readingId, decision);
+    }),
+  readingPhoto: () =>
+    viaFixture(() => {
+      throw new MemoryBackendError(404, 'the fixture has no photos');
     }),
   simStatus: () => viaFixture((b) => b.status()),
   simSeed: (params) =>
