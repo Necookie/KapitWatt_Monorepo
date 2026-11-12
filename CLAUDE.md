@@ -81,6 +81,9 @@ pnpm build                   # typecheck all + bundle API (dry run) + export das
 pnpm db:migrate              # apply packages/db/migrations/*.sql (direct connection)
 pnpm db:seed                 # load the 21 pilot barangays (reference data, safe to re-run)
 pnpm db:smoke                # insert, read back, delete one row through the app's driver
+pnpm demo:reset -- --yes     # demo only, deletes data: clean slate + seed + demo accounts + past events
+pnpm demo:seed-search        # read-only: pick the live event's simulator seed (see "Demo reset")
+pnpm demo:accounts           # just the ten demo accounts (demo:reset includes this)
 pnpm --filter @kapitwatt/dashboard build   # expo export -> apps/dashboard/dist
 pnpm deploy:api              # preflight, then wrangler deploy with its secrets (from main)
 pnpm deploy:dashboard        # build with the Doppler env, then deploy to kapitwatt.dhekode.com
@@ -101,7 +104,10 @@ Adding dependencies:
 1. **Apps never import each other.** They talk through the API and `@kapitwatt/shared`.
 2. **The simulator never inserts rows.** It calls the same service functions real households hit, through
    the `SimPort` interface in `packages/sim/src/runner.ts`, so the demo exercises real code paths. It acts
-   as a service account for simulated rows only.
+   as a service account for simulated rows only. One written exception: the ten demo accounts
+   (`households.is_demo`). `pnpm demo:reset` commits and sends readings for them in replayed past events,
+   and the fake smart-meter feed covers a demo account a tester committed on the phone. In a live event
+   the simulator never commits for them.
 3. **Only `apps/api` and `packages/db` touch Postgres.** The driver is imported in `packages/db` only.
    Routes get a handle as `c.var.db` and pass it to query helpers in `packages/db/src/queries/`.
 4. **Push is sent only from the API**, through Expo Push, to opted-in tokens in targeted barangays.
@@ -252,6 +258,29 @@ and 441 kW by photo households = about 527 kW, 88% of the 600 kW target. The sho
 point (every missed photo is verified kW lost).
 
 Simulated households are flagged `is_simulated`; reset deletes those rows only.
+
+### Demo reset (before every demo)
+
+`pnpm demo:reset -- --yes` (`apps/api/scripts/demo-reset.ts`) rebuilds the demo world in about 20 s:
+
+1. The 21 barangays, then the ten demo accounts (`demo01..10@kapitwatt.test`): created if missing,
+   `is_demo`, all in the presenter's barangay, **Bagumbayan, Santa Cruz**. 01 to 07 photo, 08 and 09
+   smart meter, 10 has no baseline (practice-run demo). First, so a failure deletes nothing.
+2. Clean slate: every alert (with its commitments, readings and rewards), every simulated household,
+   orphan sign-ups (no email and no login token), and the demo accounts' leftover readings. Real
+   households with a login keep their accounts.
+3. 1,200 simulated households (household seed 2026).
+4. Six past events over four weeks (`PAST_EVENTS` in `apps/api/src/services/demo.ts`), each run through
+   the real services with no push, then moved back to its date. Each demo account follows a script
+   (mostly paid; one late photo, one missed photo, one skip, one flagged typo left for review).
+5. A forecast of the live event.
+
+The live event: alert to all pilot areas, 600 kW, 2 h; simulator seed **`LIVE_EVENT.seed`** in
+`apps/api/scripts/demo/live.ts` (type it in Simulator > Realism > Random seed; do not re-seed on stage).
+With that seed Bagumbayan reaches its target from simulated households alone; testers' commits only
+add to it. If the reset's data changes, run `pnpm demo:seed-search` and update the seed. The reset
+prints each demo account's last meter reading: a tester must type a higher one. Run the reset before
+phones are handed out (each replayed alert is open for a few seconds).
 
 ### Guardrails
 
