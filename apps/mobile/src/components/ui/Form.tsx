@@ -14,9 +14,25 @@ const c = t.color;
  * message when `error` is set. Password fields (`secureTextEntry`) get a show/hide eye.
  */
 export function TextField(
-  props: Omit<TextInputProps, 'style'> & { label: string; hint?: string; error?: string },
+  props: Omit<TextInputProps, 'style'> & {
+    label: string;
+    hint?: string;
+    error?: string;
+    /** Unit shown inside the field on the right, e.g. "kWh". */
+    suffix?: string;
+  },
 ) {
-  const { label, hint, error, secureTextEntry, onFocus, onBlur, editable = true, ...input } = props;
+  const {
+    label,
+    hint,
+    error,
+    suffix,
+    secureTextEntry,
+    onFocus,
+    onBlur,
+    editable = true,
+    ...input
+  } = props;
   const [focused, setFocused] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const strong = focused || !!error;
@@ -54,6 +70,11 @@ export function TextField(
           }}
           style={styles.input}
         />
+        {suffix ? (
+          <Text color="onSurfaceVariant" style={styles.suffix}>
+            {suffix}
+          </Text>
+        ) : null}
         {secureTextEntry ? (
           <Pressable
             accessibilityRole="button"
@@ -152,6 +173,7 @@ const styles = StyleSheet.create({
     color: c.onSurface,
     paddingVertical: 0,
   },
+  suffix: { paddingHorizontal: 12 },
   eye: {
     width: t.size.touchTarget,
     height: t.size.touchTarget,
