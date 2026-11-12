@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kapitwatt-api",
+  // Cloudflare account the API deploys to. An identifier, not a secret.
+  "account_id": "668f78c5a9581c5051bd60a4985d6166",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
