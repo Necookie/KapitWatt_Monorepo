@@ -1,4 +1,4 @@
--- KapitWatt 0006: barangays at risk of a brownout.
+-- KapitWatt 0007: barangays at risk of a brownout.
 --
 -- The operator can mark some of an alert's target barangays as on the rotational brownout schedule
 -- (simulated in the pilot: KapitWatt has no feeder or outage data). The app names those towns so

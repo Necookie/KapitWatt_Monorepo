@@ -75,19 +75,34 @@ function fakeJpeg(): Uint8Array {
   return new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...body]);
 }
 
+/**
+ * A request that ran into a rate limit (one household's writes, 20 a minute) waits for the window and
+ * goes again, as a real client would. The test makes more requests per household in a minute than a
+ * phone ever does; checks that expect a 429 call `fetch` themselves.
+ */
+async function withRateLimitRetry(send: () => Promise<Response>): Promise<Response> {
+  const res = await send();
+  if (res.status !== 429) return res;
+  console.log('  ..  rate limited; waiting for the next minute');
+  await new Promise((r) => setTimeout(r, 61_000));
+  return send();
+}
+
 /** POST /readings as the app sends it: multipart fields plus the photo. */
 async function upload(
   token: string,
   fields: Record<string, string | number>,
   photo: Uint8Array | null = fakeJpeg(),
 ) {
-  const form = new FormData();
-  for (const [k, v] of Object.entries(fields)) form.append(k, String(v));
-  if (photo) form.append('photo', new Blob([photo], { type: 'image/jpeg' }), 'meter.jpg');
-  const res = await fetch(`${API}/readings`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${token}` },
-    body: form,
+  const res = await withRateLimitRetry(() => {
+    const form = new FormData();
+    for (const [k, v] of Object.entries(fields)) form.append(k, String(v));
+    if (photo) form.append('photo', new Blob([photo], { type: 'image/jpeg' }), 'meter.jpg');
+    return fetch(`${API}/readings`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}` },
+      body: form,
+    });
   });
   const text = await res.text();
   return { status: res.status, json: text ? JSON.parse(text) : null };
@@ -99,11 +114,13 @@ async function call(
   body?: unknown,
   headers: Record<string, string> = {},
 ) {
-  const res = await fetch(`${API}${path}`, {
-    method,
-    headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...headers },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  const res = await withRateLimitRetry(() =>
+    fetch(`${API}${path}`, {
+      method,
+      headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...headers },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }),
+  );
   const text = await res.text();
   return { status: res.status, headers: res.headers, json: text ? JSON.parse(text) : null };
 }
