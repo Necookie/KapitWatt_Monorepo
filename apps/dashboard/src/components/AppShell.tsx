@@ -38,6 +38,7 @@ const SECTIONS: { title: string; items: Destination[] }[] = [
   {
     title: 'Review',
     items: [
+      { href: '/analytics', label: 'Analytics', short: 'Analytics', icon: 'chartBar' },
       {
         href: '/flagged',
         label: 'Flagged readings',

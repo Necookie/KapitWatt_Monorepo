@@ -4,6 +4,9 @@ import {
   AlertView,
   ApiErrorBody,
   FlaggedReading,
+  AlertAnalytics,
+  AlertHistoryResponse,
+  type AlertHistoryItem,
 } from '@kapitwatt/shared';
 import type {
   AlertTotals,
@@ -53,6 +56,10 @@ export interface DashboardClient {
   simSeed(params: Pick<SimParams, 'amiShare' | 'seed'>): Promise<void>;
   simRun(alertId: string, params: SimParams, phase: 'commit' | 'deliver'): Promise<SimRunSummary>;
   simReset(): Promise<void>;
+  /** Operator analytics for one alert: funnel, outcomes, payouts, commit timeline. Live API only. */
+  getAnalytics(alertId: string): Promise<AlertAnalytics>;
+  /** Recent alerts with committed, delivered and paid totals. Live API only. */
+  getAlertHistory(): Promise<AlertHistoryItem[]>;
 }
 
 export const USE_FIXTURES = process.env.EXPO_PUBLIC_FIXTURES === '1';
@@ -83,6 +90,8 @@ const json = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.strin
 
 /** The most the API returns in one call (LimitQuery). */
 const ALERT_LOG_LIMIT = 100;
+/** Alerts shown in the analytics history chart. */
+const HISTORY_LIMIT = 12;
 
 const liveClient: DashboardClient = {
   async listBarangays() {
@@ -152,6 +161,13 @@ const liveClient: DashboardClient = {
     return URL.createObjectURL(await apiBlob(`/readings/${readingId}/photo`));
   },
   simStatus: () => api<SimStatus>('/sim/status'),
+  async getAnalytics(alertId) {
+    return AlertAnalytics.parse(await api(`/analytics/alerts/${alertId}`));
+  },
+  async getAlertHistory() {
+    return AlertHistoryResponse.parse(await api(`/analytics/history?limit=${HISTORY_LIMIT}`))
+      .alerts;
+  },
   async simSeed(params) {
     await api('/sim/seed', json(params));
   },
@@ -233,6 +249,14 @@ const fixtureClient: DashboardClient = {
   simReset: () =>
     viaFixture((b) => {
       b.reset();
+    }),
+  getAnalytics: () =>
+    viaFixture(() => {
+      throw new MemoryBackendError(404, 'analytics need the live API');
+    }),
+  getAlertHistory: () =>
+    viaFixture(() => {
+      throw new MemoryBackendError(404, 'analytics need the live API');
     }),
 };
 

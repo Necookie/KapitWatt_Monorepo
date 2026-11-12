@@ -24,6 +24,11 @@ export function reading(valueKwh: number): string {
 
 export const count = (value: number): string => value.toLocaleString(LOCALE);
 
+/** Pesos to the centavo, as the plan rounds money. */
+export function php(value: number): string {
+  return `PHP ${value.toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function percent(part: number, whole: number): string {
   return whole > 0 ? `${Math.round((part / whole) * 100)}%` : '0%';
 }
