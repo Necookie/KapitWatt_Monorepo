@@ -37,12 +37,14 @@ export function buildLagunaSeed(params: Pick<SimParams, 'amiShare' | 'seed'>): L
 
     for (let i = 0; i < TOWN_HOUSEHOLDS[town]; i++) {
       const barangay = townBarangays[i % townBarangays.length]!;
-      // Assumed residential spread: 200 to 600 kWh a month, evening baseline 1.2 to 2.6 kW.
+      // Assumed residential spread: 360 to 650 kWh a month, evening baseline 1.2 to 2.6 kW.
+      // The floor is 360 because the bill cap (peak factor 2 x bill / 720) must allow the
+      // default 1 kW cut; a lower bill would have its commitment refused or its cut clipped.
       households.push({
         barangay,
         meterType: rng() < params.amiShare ? 'ami' : 'standard',
         meterSerial: `SIM-${town.slice(0, 3).toUpperCase()}-${String(i + 1).padStart(4, '0')}`,
-        billAvgKwhMonth: Math.round(200 + rng() * 400),
+        billAvgKwhMonth: Math.round(360 + rng() * 290),
         baselineKw: Math.round((1.2 + rng() * 1.4) * 10) / 10,
         isSimulated: true,
       });
