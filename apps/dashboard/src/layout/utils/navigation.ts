@@ -45,3 +45,17 @@ export const SECTIONS: { title: string; items: Destination[] }[] = [
   },
 ];
 export const DESTINATIONS = SECTIONS.flatMap((s) => s.items);
+
+export type Crumb = { label: string; href?: string };
+
+/**
+ * The trail for a path: its destination, then the page beneath it when the path goes deeper (a town
+ * under Live load). The destination links back only when it is not the current page.
+ */
+export function crumbsFor(pathname: string): Crumb[] {
+  const page = DESTINATIONS.find((d) => (d.match ? d.match(pathname) : pathname === d.href));
+  if (!page) return [{ label: 'KapitWatt' }];
+  if (pathname === page.href) return [{ label: page.label }];
+  const last = pathname.split('/').filter(Boolean).pop() ?? '';
+  return [{ label: page.label, href: page.href }, { label: decodeURIComponent(last) }];
+}

@@ -155,7 +155,7 @@ describe('forecastLiveEvent', () => {
   });
 
   it('applies the trust cap as the database does: a 1 kW commit above it is refused', async () => {
-    // Trust 0 halves the cap: min(1.8, 1.25) x 0.5 = 0.6 kW, under the default 1 kW cut.
+    // Score 0 leaves 75% of the cap: min(1.8, 1.25) x 0.75 = 0.9 kW, under the default 1 kW cut.
     const f = await forecastLiveEvent(households(0), targets, params, window);
     expect(f.committedKw).toBe(0);
     expect(f.deliveredKw).toBe(0);

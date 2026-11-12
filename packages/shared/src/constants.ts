@@ -35,22 +35,81 @@ export const SETTLEMENT_GRACE_MIN = 1;
 export const REMINDER_BEFORE_WINDOW_MIN = 15;
 
 /**
- * Trust score (P1). ALL PLACEHOLDERS. Starts neutral; settlement moves it; it narrows the commit cap
- * only below neutral: cap multiplier = min(1, capFloor + score / 100), so 50 keeps the full cap and
- * 0 halves it.
+ * Contribution Score, shown to households under that name and stored as `households.trust_score`.
+ * ALL PLACEHOLDERS. A new account starts at `start`; settlement moves it; it unlocks the perks in
+ * CONTRIBUTION_BANDS. It narrows the commit cap only below the start:
+ * cap multiplier = min(1, capFloor + score / 100), so 25 keeps the full cap and 0 leaves 75% of it.
  */
 export const TRUST = {
-  start: 50,
+  start: 25,
   min: 0,
   max: 100,
   /** A settled event with a verified cut and clean readings. */
-  cleanEvent: 5,
+  cleanEvent: 10,
   /** A flagged or rejected reading. */
   flaggedReading: -10,
   /** A missing or late photo. */
   missedEvent: -5,
-  capFloor: 0.5,
+  capFloor: 0.75,
 } as const;
+
+/**
+ * What a Contribution Score unlocks, lowest band first. ALL PLACEHOLDERS: proposed perks, none of
+ * them agreed with Meralco or a partner. A new account starts in the second band; the first is
+ * reached only by penalties, and pauses the perks.
+ */
+export const CONTRIBUTION_BANDS = [
+  {
+    minScore: 0,
+    name: 'Paused',
+    /** Extra days to pay a bill with no late fee, on top of Meralco's own period. */
+    extraPayDays: 0,
+    /** Months of on-time payment before the bill deposit is refunded. */
+    depositRefundMonths: 36,
+    /** Share taken off reconnection and service fees. */
+    feeDiscount: 0,
+    /** Share taken off appliances at partner stores. */
+    partnerDiscount: 0,
+    /** Entries in the monthly raffle. */
+    raffleEntries: 0,
+  },
+  {
+    minScore: 25,
+    name: 'Kislap',
+    extraPayDays: 3,
+    depositRefundMonths: 30,
+    feeDiscount: 0.25,
+    partnerDiscount: 0.05,
+    raffleEntries: 1,
+  },
+  {
+    minScore: 50,
+    name: 'Ningas',
+    extraPayDays: 7,
+    depositRefundMonths: 24,
+    feeDiscount: 0.5,
+    partnerDiscount: 0.1,
+    raffleEntries: 3,
+  },
+  {
+    minScore: 75,
+    name: 'Liwanag',
+    extraPayDays: 10,
+    depositRefundMonths: 18,
+    feeDiscount: 0.75,
+    partnerDiscount: 0.15,
+    raffleEntries: 5,
+  },
+  {
+    minScore: 90,
+    name: 'Tala',
+    extraPayDays: 14,
+    depositRefundMonths: 12,
+    feeDiscount: 1,
+    partnerDiscount: 0.2,
+    raffleEntries: 10,
+  },
+] as const;
 
 /** A Meralco Customer Account Number (CAN) is this many digits. */
 export const ACCOUNT_NUMBER_DIGITS = 10;

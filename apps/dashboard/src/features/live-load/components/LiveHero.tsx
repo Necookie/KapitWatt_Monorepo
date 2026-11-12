@@ -1,6 +1,5 @@
 import type { AlertStatus } from '@kapitwatt/shared';
 import { useTheme, useWindowClass } from '@kapitwatt/hooks';
-import { Icon } from '@kapitwatt/icons';
 import { color as roles, withAlpha } from '@kapitwatt/tokens';
 import { Text } from '@kapitwatt/ui';
 import { memo, useState } from 'react';
@@ -13,8 +12,8 @@ import { useAction } from '@/api/queries';
 import { countdownFor } from '../utils/countdown';
 import { ON, ON_SOFT } from '@/styles/on-brand';
 import { Countdown } from './Countdown';
-import { Gauge } from './Gauge';
-import { LiveDot } from './LiveDot';
+import { AlertLevelPill } from '@/components/AlertLevelPill';
+import { Gauge } from '@/components/Gauge';
 import { HeroButton } from './HeroButton';
 import { StageTracker } from './StageTracker';
 
@@ -45,7 +44,6 @@ export const LiveHero = memo(function LiveHero({
   const wide = useWindowClass() !== 'compact';
   const measured = status === 'settling' || status === 'settled';
   const settled = status === 'settled';
-  const red = alert.level === 'red';
   const countdown = countdownFor(alert, status);
   const value = measured ? delivered : committed;
 
@@ -53,12 +51,6 @@ export const LiveHero = memo(function LiveHero({
   const cancellable = status === 'scheduled' || status === 'active' || status === 'window_open';
   const [confirmCancel, setConfirmCancel] = useState(false);
   const cancel = useAction(() => client.cancelAlert(alert.id));
-
-  const [pillBg, pillFg] = settled
-    ? [roles.light.reliefContainer, roles.light.onReliefContainer]
-    : red
-      ? [roles.light.alertRed, roles.light.onAlertRed]
-      : [roles.light.alertYellow, roles.light.onAlertYellow];
 
   return (
     <View
@@ -80,30 +72,8 @@ export const LiveHero = memo(function LiveHero({
               gap: t.space[3],
             }}
           >
-            <View
-              accessibilityRole={settled ? undefined : 'alert'}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: t.space[1],
-                paddingHorizontal: t.space[3],
-                height: 30,
-                borderRadius: t.radius.full,
-                backgroundColor: pillBg,
-              }}
-            >
-              <Icon name={settled ? 'verified' : 'alert'} weight="fill" size="sm" color={pillFg} />
-              <Text
-                variant="labelLarge"
-                style={{ color: pillFg, textTransform: 'uppercase', letterSpacing: 0.6 }}
-              >
-                {settled
-                  ? `${red ? 'Red' : 'Yellow'} alert · settled`
-                  : `${red ? 'Red' : 'Yellow'} alert`}
-              </Text>
-              {/* Live while commitments can still come in. */}
-              {cancellable ? <LiveDot color={pillFg} /> : null}
-            </View>
+            {/* Live while commitments can still come in. */}
+            <AlertLevelPill level={alert.level} settled={settled} live={cancellable} />
             <Text variant="titleMedium" style={{ color: ON }}>
               Peak window {clock(alert.windowStart)} to {clock(alert.windowEnd)}
             </Text>

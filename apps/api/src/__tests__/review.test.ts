@@ -8,10 +8,10 @@ describe('trust score', () => {
   it('only narrows the cap below neutral', () => {
     expect(trustMultiplier(TRUST.start)).toBe(1);
     expect(trustMultiplier(100)).toBe(1);
-    expect(trustMultiplier(0)).toBe(0.5);
-    expect(commitCapKw(1.9, 450, 50)).toBe(1.2);
-    expect(commitCapKw(1.9, 450, 20)).toBe(0.8); // 1.25 x 0.7 = 0.875
-    expect(commitCapKw(1.9, 450, 0)).toBe(0.6);
+    expect(trustMultiplier(0)).toBe(0.75);
+    expect(commitCapKw(1.9, 450, 25)).toBe(1.2);
+    expect(commitCapKw(1.9, 450, 10)).toBe(1); // 1.25 x 0.85 = 1.0625
+    expect(commitCapKw(1.9, 450, 0)).toBe(0.9); // 1.25 x 0.75 = 0.9375
   });
 
   it('rises with a clean event and falls with a flagged reading or a missed photo', () => {

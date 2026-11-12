@@ -1,4 +1,4 @@
-import type { MeterType } from '@kapitwatt/shared';
+import { TRUST, type MeterType } from '@kapitwatt/shared';
 import type { Db } from '../index';
 
 /**
@@ -63,7 +63,7 @@ export async function setDemoHousehold(
     update households
     set is_demo = true, barangay_id = ${fields.barangayId}, service_address = ${fields.serviceAddress},
         baseline_kw = ${fields.baselineKw}, lat = ${fields.lat}, lng = ${fields.lng},
-        trust_score = 50, opted_in = true
+        trust_score = ${TRUST.start}, opted_in = true
     where email = ${email} and meter_serial like 'DEMO-%' and not is_simulated
     returning id`;
   return r ? (r.id as string) : null;

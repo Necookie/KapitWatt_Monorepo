@@ -1,17 +1,18 @@
-import { REWARD, SETTLEMENT_DELAY_MIN, type ZeroPayoutReason } from '@kapitwatt/shared';
+import { contributionDelta, SETTLEMENT_DELAY_MIN, type ZeroPayoutReason } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { MascotHeader } from '@/components/mascot/MascotHeader';
 import { Button, ErrorState, Loading, Screen } from '@/components/ui';
-import { formatKw, formatKwh, formatPhp } from '@/lib/format';
+import { formatKw, formatKwh } from '@/lib/format';
+import { formatScoreChange } from '@/lib/perks';
 import { useResult } from '@/lib/queries';
 import { fonts, radius, space } from '@/theme';
 
 const c = themes.light.color;
 
-/** Why a settled event paid nothing, in the mascot's words (NFR-U4). */
+/** Why a settled event verified nothing, in the mascot's words (NFR-U4). */
 const ZERO_REASON: Record<ZeroPayoutReason, string> = {
   late_photo: 'A meter photo came in after its deadline.',
   missing_photo: 'A meter photo was missing, so we could not verify your cut.',
@@ -20,7 +21,7 @@ const ZERO_REASON: Record<ZeroPayoutReason, string> = {
   missing_ami_data: 'Smart-meter data for the window was missing.',
 };
 
-/** Result card after settlement (FR-APP-15; mockup "Result"). A zero payout always says why. */
+/** Result card after settlement (FR-APP-15; mockup "Result"). A cut that was not verified always says why. */
 export default function ResultScreen() {
   const { alertId } = useLocalSearchParams<{ alertId: string }>();
   const result = useResult(alertId);
@@ -41,8 +42,9 @@ export default function ResultScreen() {
     );
   }
 
-  const total = r.creditPhp + r.bonusPhp;
   const paid = r.zeroReason === null;
+  // The same rule settlement applies to the stored score.
+  const change = contributionDelta(paid, r.zeroReason);
 
   return (
     <Screen roomy onRefresh={result.refetch}>
@@ -59,13 +61,13 @@ export default function ResultScreen() {
 
       <View style={styles.total}>
         <Text variant="bodyMedium" color="onSurfaceVariant">
-          You earned
+          Your Contribution Score
         </Text>
-        <Text style={styles.figure}>{formatPhp(total)}</Text>
-        {r.points > 0 ? (
+        <Text style={styles.figure}>{formatScoreChange(change)}</Text>
+        {r.barangayTargetHit ? (
           <View style={styles.chip}>
             <Text variant="titleSmall" style={{ color: c.onBrandAccent }}>
-              {`+${r.points} points`}
+              Your barangay reached its target
             </Text>
           </View>
         ) : null}
@@ -77,17 +79,16 @@ export default function ResultScreen() {
           label="Verified cut"
           value={`${formatKw(r.paidCutKw)} · ${formatKwh(r.verifiedKwh)}`}
         />
-        <Line label="Bill credit" value={formatPhp(r.creditPhp)} />
         <Line
-          label="Barangay bonus"
-          note={r.barangayTargetHit ? 'Your barangay reached its target' : undefined}
-          value={formatPhp(r.bonusPhp)}
+          label="Barangay target"
+          value={r.barangayTargetHit ? 'Reached' : 'Not reached'}
           last
         />
       </View>
 
       <Text variant="bodySmall" color="onSurfaceVariant" align="center">
-        {`Placeholder rate: ${formatPhp(REWARD.ratePhpPerKwh)} per verified kWh, ${REWARD.pathMultiplier.photo}× for photo readings. The real rate would be set by Meralco and the ERC.`}
+        Your score unlocks the perks on Home. The score steps and the perks are placeholders for the
+        pilot, not yet agreed with Meralco.
       </Text>
 
       <View style={styles.bottom}>

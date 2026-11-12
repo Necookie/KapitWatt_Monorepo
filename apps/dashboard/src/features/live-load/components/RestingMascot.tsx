@@ -3,7 +3,7 @@ import { Mascot } from '@kapitwatt/ui';
 import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { ON } from '@/styles/on-brand';
-import { svgHidden } from '../utils/svg';
+import { svgHidden } from '@/utils/svg';
 import { motion } from '@/styles/motion';
 
 /** The mascot resting in rings that echo the alert gauge: the same place, nothing to measure yet. */

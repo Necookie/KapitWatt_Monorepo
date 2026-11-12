@@ -213,8 +213,15 @@ points       = 100 x verified_kwh
 - **Barangay bonus:** at 100% at settlement, every household there with a verified cut gets 20% on top of
   its own credit. No verified cut, no bonus. An approved photo cut counts at full weight toward the total.
 - **Settlement** runs at window end plus 30 min. "Measure (fast-forward)" compresses that for the demo.
-- **Trust score (P1):** starts neutral, rises with clean settled events, falls with flagged readings; sets
-  the largest cut a household can commit.
+- **Contribution Score** (added after the plan; it is the plan's trust score, stored as
+  `households.trust_score`): 0 to 100, a new account starts at 25. A verified cut adds 10, a missed or
+  late photo takes 5, a flagged reading takes 10; ignoring an alert costs nothing. It unlocks the perks
+  in `CONTRIBUTION_BANDS` (`packages/shared/src/constants.ts`; math in `src/math/contribution.ts`),
+  shown on the mobile Home card, and below 25 it narrows the largest cut a household can commit. The
+  perks are proposals, not agreed with Meralco: say so in the UI.
+- **The household app shows no pesos and no points.** The score and its perks are the reward a
+  household sees. The payout math above still runs in settlement and the API still returns
+  `creditPhp`, `bonusPhp` and `points`; the mobile app does not display them.
 - All reward constants are placeholders (PHP 8.40/kWh, 0.6, 20%, 100 points/kWh, peak factor 2). The real
   rate would be set by Meralco and the ERC.
 

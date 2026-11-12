@@ -1,5 +1,5 @@
 import { Icon } from '@kapitwatt/icons';
-import { COMMIT_PRESETS_KW, REWARD, roundKw } from '@kapitwatt/shared';
+import { COMMIT_PRESETS_KW, roundKw, TRUST } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -14,7 +14,6 @@ import { fonts, radius, space } from '@/theme';
 
 const c = themes.light.color;
 const STEP_KW = 0.1;
-const HOUR_MS = 3_600_000;
 
 /**
  * Commit a cut in kW, never a list of appliances (FR-APP-07, 08; mockup "Commit a cut").
@@ -43,9 +42,6 @@ export default function CommitScreen() {
   const selected = kw ?? Math.min(1, cap);
   const set = (next: number) => setKw(roundKw(Math.min(cap, Math.max(STEP_KW, next))));
   const { windowStart, windowEnd } = alert.data.alert;
-  const hours = (new Date(windowEnd).getTime() - new Date(windowStart).getTime()) / HOUR_MS;
-  // Points if the whole commitment is verified (placeholder rate from shared constants).
-  const maxPoints = Math.round(selected * hours * REWARD.pointsPerKwh);
 
   return (
     <Screen roomy>
@@ -118,10 +114,10 @@ export default function CommitScreen() {
         </View>
         <View style={styles.panelRow}>
           <Text variant="bodyMedium" color="onSurfaceVariant">
-            If you cut it all
+            If your cut is verified
           </Text>
           <Text variant="titleSmall" color="tertiary">
-            {`up to ${maxPoints} points`}
+            {`+${TRUST.cleanEvent} Contribution Score`}
           </Text>
         </View>
         <Text variant="bodySmall" color="onSurfaceVariant">

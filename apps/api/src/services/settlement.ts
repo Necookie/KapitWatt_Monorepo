@@ -17,10 +17,10 @@ import {
   AMI_MIN_COVERAGE,
   barangayTargetHit,
   computeReward,
+  contributionDelta,
   roundKw,
   SETTLEMENT_DELAY_MIN,
   SETTLEMENT_GRACE_MIN,
-  TRUST,
   verifyCut,
   type ResultReason,
   type SettlementResult,
@@ -93,16 +93,7 @@ export function measureCommitment(c: SettlementCommitmentRow, windowHours: numbe
  * data and a zero cut are not the household's doing and leave it alone.
  */
 export function trustDelta(m: Pick<Measured, 'status' | 'resultReason'>): number {
-  if (m.status === 'verified') return TRUST.cleanEvent;
-  switch (m.resultReason) {
-    case 'failed_check':
-      return TRUST.flaggedReading;
-    case 'missing_photo':
-    case 'late_photo':
-      return TRUST.missedEvent;
-    default:
-      return 0;
-  }
+  return contributionDelta(m.status === 'verified', m.resultReason);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { Icon, type IconName } from '@kapitwatt/icons';
-import { UpdateProfileInput } from '@kapitwatt/shared';
+import { contributionStanding, UpdateProfileInput } from '@kapitwatt/shared';
 import { themes } from '@kapitwatt/styles';
 import { Text } from '@kapitwatt/ui';
 import { Redirect, router } from 'expo-router';
@@ -93,11 +93,11 @@ export default function ProfileScreen() {
           </View>
         </View>
         <View style={styles.stats}>
-          <Stat label="Points" value={String(h.points)} />
+          <Stat label="Score" value={String(Math.round(h.trustScore))} />
+          <View style={styles.statDivider} />
+          <Stat label="Level" value={contributionStanding(h.trustScore).band.name} />
           <View style={styles.statDivider} />
           <Stat label="Saved" value={formatKwh(savedKwh)} />
-          <View style={styles.statDivider} />
-          <Stat label="Trust" value={String(Math.round(h.trustScore))} />
         </View>
       </View>
 
@@ -200,7 +200,7 @@ export default function ProfileScreen() {
               </Text>
               <Text variant="bodyMedium" color="onSurfaceVariant">
                 This erases your profile, your Meralco account details, your meter photos and
-                readings, and your points and credits. Barangay totals from past events stay, with
+                readings, and your Contribution Score. Barangay totals from past events stay, with
                 nothing that identifies you. This cannot be undone.
               </Text>
               <PasswordField
