@@ -11,9 +11,8 @@ import { Text } from '@kapitwatt/ui';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocationPrompt } from '@/components/LocationPrompt';
-import type { MascotPose } from '@/components/mascot/poses';
+import type { MascotPose } from '@kapitwatt/ui';
 import {
   ALERTS_CONSENT_LABEL,
   DATA_CONSENT_LABEL,
@@ -22,11 +21,13 @@ import {
 import { Button, Checkbox, Select, TextField } from '@/components/ui';
 import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
 import { radius, space } from '@/theme';
-import { fieldOk, STEP_TITLE, STEPS, type StepId, type StepProps } from './draft';
+import { DigitSlots } from './DigitSlots';
+import { fieldOk, STEP_TITLE, type StepId, type StepProps } from './draft';
+import { SerialPlate } from './SerialPlate';
 
 /**
- * The onboarding steps, laid out as in the mockups (sign-up, mascot option A): the mascot talks in
- * the header, each step keeps only the fields and the few hints people need.
+ * The onboarding steps on the lantern-path sign-up: Alitaptap talks at the top of the white sheet,
+ * each step keeps only the fields and the few hints people need.
  * The sign-up screen decides which step shows and when to move on.
  */
 
@@ -49,43 +50,6 @@ export { STEP_TITLE };
 
 const METER_LABEL: Record<MeterType, string> = { standard: 'Regular', ami: 'Smart' };
 
-/** Back arrow, "3 of 6" and a segmented progress bar. Replaces the stack header on sign-up. */
-export function SignUpTopBar(props: { step: StepId; onBack: () => void; disabled?: boolean }) {
-  const insets = useSafeAreaInsets();
-  const index = STEPS.indexOf(props.step);
-  return (
-    <View style={[styles.topBar, { paddingTop: insets.top }]}>
-      <View style={styles.topRow}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={index === 0 ? 'Cancel sign-up' : 'Back to the previous step'}
-          disabled={props.disabled}
-          onPress={props.onBack}
-          style={styles.iconButton}
-        >
-          <Icon name="back" />
-        </Pressable>
-        <Text variant="labelLarge" color="onSurfaceVariant">
-          {index + 1} of {STEPS.length}
-        </Text>
-      </View>
-      <View
-        style={styles.segments}
-        accessibilityRole="progressbar"
-        accessibilityLabel={`Step ${index + 1} of ${STEPS.length}`}
-        accessibilityValue={{ min: 1, max: STEPS.length, now: index + 1 }}
-      >
-        {STEPS.map((s, i) => (
-          <View
-            key={s}
-            style={[styles.segment, { backgroundColor: i <= index ? c.primary : c.outlineVariant }]}
-          />
-        ))}
-      </View>
-    </View>
-  );
-}
-
 /** A rule shown as it is met: grey circle while not yet, green tick once it holds. */
 function LiveCheck(props: { ok: boolean; children: string }) {
   return (
@@ -103,7 +67,12 @@ function LiveCheck(props: { ok: boolean; children: string }) {
   );
 }
 
-export function AccountStep({ draft, set }: StepProps) {
+/** `onPasswordFocus`: Alitaptap shuts its eyes while the password is typed. */
+export function AccountStep({
+  draft,
+  set,
+  onPasswordFocus,
+}: StepProps & { onPasswordFocus: (focused: boolean) => void }) {
   const emailWrong = draft.email.length > 0 && !fieldOk('email', draft.email);
   return (
     <View style={styles.fields}>
@@ -126,6 +95,8 @@ export function AccountStep({ draft, set }: StepProps) {
           autoCorrect={false}
           autoComplete="new-password"
           textContentType="newPassword"
+          onFocus={() => onPasswordFocus(true)}
+          onBlur={() => onPasswordFocus(false)}
           value={draft.password}
           onChangeText={(password) => set({ password })}
         />
@@ -176,15 +147,14 @@ export function MeralcoStep({ draft, set }: StepProps) {
     draft.accountNumber.length > 0 && !fieldOk('accountNumber', draft.accountNumber);
   return (
     <View style={styles.fields}>
-      <TextField
+      <DigitSlots
         label="Account number (CAN)"
         hint="On your bill"
         error={numberWrong ? `The account number has ${ACCOUNT_NUMBER_DIGITS} digits.` : undefined}
-        keyboardType="number-pad"
-        maxLength={ACCOUNT_NUMBER_DIGITS}
-        suffix={`${draft.accountNumber.length}/${ACCOUNT_NUMBER_DIGITS}`}
+        length={ACCOUNT_NUMBER_DIGITS}
+        ok={fieldOk('accountNumber', draft.accountNumber)}
         value={draft.accountNumber}
-        onChangeText={(value) => set({ accountNumber: value.replace(/\D/g, '') })}
+        onChange={(accountNumber) => set({ accountNumber })}
       />
       <TextField
         label="Account holder"
@@ -282,6 +252,7 @@ export function HomeStep({ draft, set, barangays }: StepProps & { barangays: Bar
 }
 
 function MeterCard(props: {
+  icon: 'meterPhoto' | 'smartMeter';
   title: string;
   detail: string;
   selected: boolean;
@@ -295,6 +266,9 @@ function MeterCard(props: {
       onPress={props.onPress}
       style={[styles.meterCard, props.selected ? styles.meterCardOn : styles.meterCardOff]}
     >
+      <View style={[styles.meterPicture, props.selected && styles.meterPictureOn]}>
+        <Icon name={props.icon} size="lg" color={props.selected ? 'onPrimary' : 'primary'} />
+      </View>
       <Text
         variant="titleMedium"
         style={{ color: props.selected ? c.onPrimaryContainer : c.onSurface }}
@@ -320,12 +294,14 @@ export function MeterStep({ draft, set }: StepProps) {
         </Text>
         <View style={styles.meterRow} accessibilityRole="radiogroup">
           <MeterCard
+            icon="meterPhoto"
             title="Regular"
             detail="2 photos per event"
             selected={draft.meterType === 'standard'}
             onPress={() => set({ meterType: 'standard' })}
           />
           <MeterCard
+            icon="smartMeter"
             title="Smart"
             detail="No photos"
             selected={draft.meterType === 'ami'}
@@ -333,13 +309,11 @@ export function MeterStep({ draft, set }: StepProps) {
           />
         </View>
       </View>
-      <TextField
+      <SerialPlate
         label="Serial number"
-        hint="Printed on the meter"
-        autoCapitalize="characters"
-        autoCorrect={false}
+        hint="Printed on the meter, under the dials"
         value={draft.meterSerial}
-        onChangeText={(meterSerial) => set({ meterSerial })}
+        onChange={(meterSerial) => set({ meterSerial })}
       />
       <TextField
         label="Monthly use"
@@ -442,24 +416,6 @@ export function ReviewStep(
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  topBar: { backgroundColor: c.surface, paddingBottom: space.sm, gap: space.xs },
-  topRow: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingLeft: space.xs,
-    paddingRight: 20,
-  },
-  iconButton: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  segments: { flexDirection: 'row', gap: space.xs, paddingHorizontal: space.xl },
-  segment: { flex: 1, height: 4, borderRadius: 2 },
   fields: { gap: 20 },
   fieldWithCheck: { gap: 6 },
   check: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -490,6 +446,16 @@ const styles = StyleSheet.create({
   },
   meterRow: { flexDirection: 'row', gap: space.md },
   meterCard: { flex: 1, borderRadius: radius.md, padding: 14, gap: space.xs },
+  meterPicture: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginBottom: space.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.primaryContainer,
+  },
+  meterPictureOn: { backgroundColor: c.primary },
   meterCardOn: { borderWidth: 2, borderColor: c.primary, backgroundColor: c.primaryContainer },
   meterCardOff: {
     borderWidth: 1,

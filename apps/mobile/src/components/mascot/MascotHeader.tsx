@@ -1,9 +1,7 @@
 import { themes } from '@kapitwatt/styles';
-import { Text } from '@kapitwatt/ui';
+import { Mascot, Text, type MascotPose } from '@kapitwatt/ui';
 import { StyleSheet, View } from 'react-native';
-import { SvgXml } from 'react-native-svg';
 import { fonts } from '@/theme';
-import { MASCOT_POSES, type MascotPose } from './poses';
 
 const c = themes.light.color;
 
@@ -35,12 +33,9 @@ export function MascotHeader(props: {
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
-        <SvgXml
-          xml={MASCOT_POSES[props.pose ?? 'neutral']}
-          width={70}
-          height={81}
-          style={styles.mascot}
-        />
+        <View style={styles.mascot}>
+          <Mascot pose={props.pose ?? 'neutral'} height={88} />
+        </View>
       </View>
       <View style={[styles.bubble, { backgroundColor: tone.bubble }]}>
         <View style={[styles.tail, { backgroundColor: tone.bubble }]} />
@@ -70,7 +65,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },
-  mascot: { marginBottom: -6 },
+  mascot: { marginBottom: -10 },
   bubble: { flex: 1, borderRadius: 20, paddingVertical: 14, paddingHorizontal: 16 },
   tail: {
     position: 'absolute',

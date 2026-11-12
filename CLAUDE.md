@@ -74,6 +74,7 @@ pnpm install                 # once, from the repo root
 doppler setup                # once, after `doppler login`; doppler.yaml names project kapitwatt, config dev
 pnpm dev:api                 # doppler run -- wrangler dev on http://localhost:8787
 pnpm dev:mobile              # expo start (Expo Go / dev build)
+pnpm dev:mobile:web          # the household app in a browser on :19006 (an origin the API allows)
 pnpm dev:dashboard           # expo start --web
 pnpm typecheck               # tsc --noEmit in every package
 pnpm test                    # vitest in shared and sim

@@ -19,6 +19,9 @@ const hidden: Record<string, unknown> =
     ? { 'aria-hidden': true }
     : { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' };
 
+/** Every pose is traced in the same box (packages/assets/source/mascot.py): width over height. */
+const ASPECT = 304 / 498;
+
 export function Mascot({ pose = 'neutral', height = 120 }: MascotProps) {
-  return <SvgXml xml={mascotXml[pose]} height={height} width={(height * 200) / 232} {...hidden} />;
+  return <SvgXml xml={mascotXml[pose]} height={height} width={height * ASPECT} {...hidden} />;
 }

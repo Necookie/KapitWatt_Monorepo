@@ -10,6 +10,7 @@
   "scripts": {
     "dev:api": "doppler run -- pnpm --filter @kapitwatt/api dev",
     "dev:mobile": "doppler run -- pnpm --filter @kapitwatt/mobile start",
+    "dev:mobile:web": "doppler run -- pnpm --filter @kapitwatt/mobile exec expo start --web --port 19006",
     "dev:dashboard": "doppler run -- pnpm --filter @kapitwatt/dashboard web",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
