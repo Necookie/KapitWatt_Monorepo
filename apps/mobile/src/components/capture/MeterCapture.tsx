@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, TextField } from '@/components/ui';
-import { ApiError, errorCode } from '@/lib/api';
+import { describeError } from '@/lib/api';
 import { LocationPrompt } from '@/components/LocationPrompt';
 import { currentPosition, LocationError, type LocationProblem } from '@/lib/location';
 import { useSubmitReading } from '@/lib/queries';
@@ -157,14 +157,20 @@ function Submitted(props: { reading: MeterReading; onDone: () => void }) {
   );
 }
 
+const SUBMIT_REFUSALS: Record<string, string> = {
+  deadline_passed: 'The deadline for this photo has passed.',
+  not_open_yet: 'It is too early for this photo. Wait for the time shown on the event screen.',
+  already_submitted: 'You already sent this photo.',
+  already_rehearsed: 'Your practice run is already complete.',
+  no_commitment: 'Commit a cut before sending photos.',
+  duplicate_photo: 'This photo was already used. Take a new one.',
+  invalid_photo: 'That photo could not be read. Take it again with the in-app camera.',
+  photo_too_large: 'The photo is too large. Take it again.',
+};
+
+/** Other refusals (for example the wait between practice photos) show the server's own sentence. */
 function submitError(e: Error): string {
-  if (e instanceof ApiError) {
-    const code = errorCode(e);
-    if (code === 'deadline_passed') return 'The deadline for this photo has passed.';
-    if (code === 'already_submitted') return 'You already sent this photo.';
-    if (code === 'no_commitment') return 'Commit a cut before sending photos.';
-  }
-  return 'Could not send the reading. Check your connection and try again.';
+  return describeError(e, SUBMIT_REFUSALS, 'Could not send the reading. Try again.');
 }
 
 const styles = StyleSheet.create({

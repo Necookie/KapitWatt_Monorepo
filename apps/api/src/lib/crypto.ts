@@ -58,3 +58,44 @@ export async function uuidFromName(name: string): Promise<string> {
   const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
+
+/**
+ * Password hashing: PBKDF2-HMAC-SHA256 with a random 16-byte salt, stored as
+ * `pbkdf2$<iterations>$<salt>$<hash>` (base64url). Web Crypto only, so it runs on Workers, whose
+ * PBKDF2 accepts at most 100,000 iterations.
+ */
+const PBKDF2_ITERATIONS = 100_000;
+
+function fromBase64url(text: string): Uint8Array {
+  const bin = atob(text.replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+}
+
+async function pbkdf2(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, [
+    'deriveBits',
+  ]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: salt as BufferSource, iterations },
+    key,
+    256,
+  );
+  return new Uint8Array(bits);
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const hash = await pbkdf2(password, salt, PBKDF2_ITERATIONS);
+  return `pbkdf2$${PBKDF2_ITERATIONS}$${base64url(salt)}$${base64url(hash)}`;
+}
+
+/** False for a wrong password and for a stored value that is not one of our hashes. */
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const [scheme, iterations, salt, hash] = stored.split('$');
+  const rounds = Number(iterations);
+  if (scheme !== 'pbkdf2' || !salt || !hash || !Number.isInteger(rounds) || rounds < 1)
+    return false;
+  if (rounds > PBKDF2_ITERATIONS) return false;
+  const actual = await pbkdf2(password, fromBase64url(salt), rounds);
+  return safeEqual(base64url(actual), hash);
+}

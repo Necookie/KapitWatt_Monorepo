@@ -52,6 +52,11 @@ export const TRUST = {
   capFloor: 0.5,
 } as const;
 
+/** A Meralco Customer Account Number (CAN) is this many digits. */
+export const ACCOUNT_NUMBER_DIGITS = 10;
+/** Shortest password the household login accepts. */
+export const PASSWORD_MIN_LENGTH = 8;
+
 export const COMMIT_PRESETS_KW = [0.5, 1, 1.5, 2] as const;
 /** The stepper moves in 0.1 kW, the precision kW is kept to. */
 export const COMMIT_STEP_KW = 0.1;
@@ -102,4 +107,19 @@ export const PILOT_BARANGAYS: Record<PilotTown, readonly [string, string, string
   Liliw: ['Bayate', 'Laguan', 'Rizal'],
   Majayjay: ['Botocan', 'Olla', 'Origuel'],
   Magdalena: ['Buenavista', 'Poblacion', 'Sabang'],
+};
+
+/**
+ * Approximate town-centre (poblacion) coordinates, for the dashboard map only. They come from
+ * public maps and are good to about a kilometre. We hold no surveyed barangay locations, so the
+ * map lays each town's sampled barangays out around its centre and says so.
+ */
+export const PILOT_TOWN_CENTERS: Record<PilotTown, { lat: number; lng: number }> = {
+  'Santa Cruz': { lat: 14.2786, lng: 121.4153 },
+  Pila: { lat: 14.2339, lng: 121.3647 },
+  Victoria: { lat: 14.2253, lng: 121.3294 },
+  Nagcarlan: { lat: 14.1364, lng: 121.4164 },
+  Liliw: { lat: 14.1306, lng: 121.4361 },
+  Majayjay: { lat: 14.1461, lng: 121.4728 },
+  Magdalena: { lat: 14.1997, lng: 121.4297 },
 };

@@ -4,7 +4,9 @@
  *   terminal 1:  pnpm dev:api
  *   terminal 2:  pnpm --filter @kapitwatt/api e2e     (run under `doppler run --` for DATABASE_URL)
  *
- * API_URL defaults to http://localhost:8787. Every household it creates has a meter serial starting
+ * E2E_API_URL defaults to http://localhost:8787. It is NOT read from API_URL: `doppler run` overrides
+ * the environment with Doppler's values, and Doppler's API_URL is the live Worker. The test writes to
+ * the database and refuses to run against the live API unless E2E_ALLOW_LIVE=1 is set on purpose. Every household it creates has a meter serial starting
  * with E2E- and is deleted at the end, pass or fail. Grows with each API phase.
  */
 import { createHash } from 'node:crypto';
@@ -29,14 +31,36 @@ import {
   SettlementResult,
   FlaggedReadingsResponse,
   ReviewResult,
+  AlertAnalytics,
+  AlertHistoryResponse,
 } from '@kapitwatt/shared';
 
-const API = process.env.API_URL ?? 'http://localhost:8787';
+const API = process.env.E2E_API_URL ?? 'http://localhost:8787';
+if (/workers\.dev|kapitwatt-api\./.test(API) && process.env.E2E_ALLOW_LIVE !== '1') {
+  console.error(
+    `e2e: refusing to run against the live API (${API}). Point E2E_API_URL at a local server.`,
+  );
+  process.exit(1);
+}
 /** Must match the Worker's OPERATOR_KEY (both come from the environment). */
 const OPERATOR = { 'x-operator-key': process.env.OPERATOR_KEY ?? '' };
 const SIM = { 'x-sim-key': process.env.SIM_KEY ?? '' };
 const db = createDb(process.env.DATABASE_URL ?? '');
 const RUN = `E2E-${Date.now()}`;
+
+/** A login and Meralco account for one test household: unique per run and per household. */
+let accounts = 0;
+function account() {
+  const n = accounts++;
+  return {
+    email: `${RUN.toLowerCase()}-${n}@example.com`,
+    password: 'e2e test password',
+    accountNumber: `${String(Date.now()).slice(-8)}${String(n).padStart(2, '0')}`,
+    accountName: 'E2E Test Household',
+    serviceAddress: '1 Test Street',
+    alertsConsent: true,
+  };
+}
 
 let passed = 0;
 function check(cond: unknown, what: string): asserts cond {
@@ -115,6 +139,7 @@ async function phase1Households() {
   check(barangay, 'a barangay with no real phones exists');
 
   const signup = {
+    ...account(),
     barangayId: barangay.id,
     meterType: 'standard',
     meterSerial: `${RUN}-A`,
@@ -173,6 +198,7 @@ async function phase1Households() {
   // A second household on the same phone takes over the push token; the first loses it.
   const second = await call('POST', '/auth/register', {
     ...signup,
+    ...account(),
     meterType: 'ami',
     meterSerial: `${RUN}-B`,
     pushToken: `ExponentPushToken[${RUN}-2]`,
@@ -555,6 +581,159 @@ async function phase4Simulator(ctx: Awaited<ReturnType<typeof phase1Households>>
   check((await status()).simulatedHouseholds === 0, 'status shows 0 after reset');
 }
 
+/** Login, logout, profile edits and account deletion (Data Privacy Act controls). */
+async function phase8Accounts(ctx: Awaited<ReturnType<typeof phase1Households>>) {
+  console.log('phase 8: accounts');
+  const acct = account();
+  const signup = { ...ctx.signup, ...acct, meterSerial: `${RUN}-ACCT`, pushToken: undefined };
+  const reg = await call('POST', '/auth/register', signup);
+  check(reg.status === 201, 'sign-up with email, password and Meralco account returns 201');
+  const first = RegisterResult.parse(reg.json);
+  check(
+    first.household.email === acct.email &&
+      first.household.accountName === acct.accountName &&
+      first.household.serviceAddress === acct.serviceAddress &&
+      first.household.consentAt !== null,
+    'profile carries email, holder name, address and consent time',
+  );
+  check(
+    first.household.accountNumberMasked === `••••••${acct.accountNumber.slice(-4)}` &&
+      !JSON.stringify(reg.json).includes(acct.accountNumber),
+    'the account number comes back masked only',
+  );
+  const [stored] =
+    await db`select password_hash, account_number from households where id = ${first.household.id}`;
+  check(
+    String(stored?.password_hash).startsWith('pbkdf2$') &&
+      !String(stored?.password_hash).includes(acct.password),
+    'database stores a password hash, not the password',
+  );
+  check(stored?.account_number === acct.accountNumber, 'account number stored');
+
+  const sameEmail = await call('POST', '/auth/register', {
+    ...signup,
+    ...account(),
+    email: acct.email.toUpperCase(),
+    meterSerial: `${RUN}-ACCT2`,
+  });
+  check(
+    sameEmail.status === 409 && errorCode(sameEmail.json) === 'email_taken',
+    'a second sign-up with the same email (any case) is 409 email_taken',
+  );
+  const sameAccount = await call('POST', '/auth/register', {
+    ...signup,
+    ...account(),
+    accountNumber: acct.accountNumber,
+    meterSerial: `${RUN}-ACCT3`,
+  });
+  check(
+    sameAccount.status === 409 && errorCode(sameAccount.json) === 'account_taken',
+    'a second household on the same account number is 409 account_taken',
+  );
+  const noAlerts = await call('POST', '/auth/register', {
+    ...signup,
+    ...account(),
+    alertsConsent: false,
+  });
+  check(noAlerts.status === 400, 'sign-up without the alerts consent is 400');
+  const badCan = await call('POST', '/auth/register', {
+    ...signup,
+    ...account(),
+    accountNumber: '12345',
+  });
+  check(badCan.status === 400, 'an account number that is not 10 digits is 400');
+
+  const wrong = await call('POST', '/auth/login', { email: acct.email, password: 'not it at all' });
+  check(
+    wrong.status === 401 && errorCode(wrong.json) === 'invalid_credentials',
+    'wrong password is 401 invalid_credentials',
+  );
+  const unknown = await call('POST', '/auth/login', {
+    email: `nobody-${RUN.toLowerCase()}@example.com`,
+    password: acct.password,
+  });
+  check(
+    unknown.status === 401 && errorCode(unknown.json) === 'invalid_credentials',
+    'unknown email gets the same 401',
+  );
+  const login = await call('POST', '/auth/login', {
+    email: ` ${acct.email.toUpperCase()} `,
+    password: acct.password,
+  });
+  check(login.status === 200, 'login with email and password returns 200');
+  const second = RegisterResult.parse(login.json);
+  check(
+    second.household.id === first.household.id && second.token !== first.token,
+    'login returns the same household with a new token',
+  );
+  check(
+    (await call('GET', '/auth/me', undefined, bearer(first.token))).status === 401,
+    'the previous token stops working after a new login',
+  );
+  check(
+    (await call('GET', '/auth/me', undefined, bearer(second.token))).status === 200,
+    'the new token works',
+  );
+
+  const edited = await call(
+    'PATCH',
+    '/auth/me',
+    { accountName: 'Edited Name', serviceAddress: '2 Edited Street' },
+    bearer(second.token),
+  );
+  const editedMe = HouseholdMe.parse(edited.json);
+  check(
+    edited.status === 200 &&
+      editedMe.accountName === 'Edited Name' &&
+      editedMe.serviceAddress === '2 Edited Street' &&
+      editedMe.optedIn === true,
+    'PATCH /auth/me corrects the name and address only',
+  );
+  const off = await call('PATCH', '/auth/me', { optedIn: false }, bearer(second.token));
+  check(
+    off.status === 200 && HouseholdMe.parse(off.json).optedIn === false,
+    'grid alerts can be turned off (opt out)',
+  );
+  check(
+    HouseholdMe.parse(off.json).accountName === 'Edited Name',
+    'opting out leaves the other details alone',
+  );
+  check(
+    (await call('PATCH', '/auth/me', {}, bearer(second.token))).status === 400,
+    'an empty profile change is 400',
+  );
+
+  check(
+    (await call('POST', '/auth/logout', undefined, bearer(second.token))).status === 204,
+    'POST /auth/logout returns 204',
+  );
+  check(
+    (await call('GET', '/auth/me', undefined, bearer(second.token))).status === 401,
+    'the token stops working after logout',
+  );
+
+  const third = RegisterResult.parse(
+    (await call('POST', '/auth/login', { email: acct.email, password: acct.password })).json,
+  );
+  const wrongDelete = await call(
+    'DELETE',
+    '/auth/me',
+    { password: 'not it at all' },
+    bearer(third.token),
+  );
+  check(wrongDelete.status === 401, 'deleting the account needs the right password');
+  const gone = await call('DELETE', '/auth/me', { password: acct.password }, bearer(third.token));
+  check(gone.status === 204, 'DELETE /auth/me returns 204');
+  const [left] =
+    await db`select count(*)::int as n from households where id = ${first.household.id}`;
+  check(Number(left?.n) === 0, 'the household row is erased');
+  check(
+    (await call('POST', '/auth/login', { email: acct.email, password: acct.password })).status ===
+      401,
+    'a deleted account cannot log in',
+  );
+}
+
 async function cleanup() {
   const sim = await db`delete from households where is_simulated returning id`;
   if (sim.length)
@@ -582,6 +761,7 @@ try {
   const p5 = await phase5Readings(ctx, p2);
   await phase6Settlement(ctx, p5);
   await phase7Review(ctx, p5);
+  await phase8Accounts(ctx);
   console.log(`\nall ${passed} checks passed`);
 } catch (err) {
   console.error(err instanceof Error ? err.message : err);
@@ -607,6 +787,7 @@ async function phase5Readings(
     (
       await call('POST', '/auth/register', {
         ...ctx.signup,
+        ...account(),
         meterSerial: `${RUN}-C`,
         billAvgKwhMonth: 900,
         pushToken: undefined,
@@ -878,6 +1059,65 @@ async function phase6Settlement(
     AlertView.parse((await call('GET', `/alerts/${id}`)).json).status === 'settled',
     'alert is settled',
   );
+
+  // Analytics agree with the settlement.
+  const analyticsRes = await call('GET', `/analytics/alerts/${id}`, undefined, OPERATOR);
+  check(
+    analyticsRes.status === 200,
+    `GET /analytics/alerts/:id returns 200 (got ${analyticsRes.status} ${JSON.stringify(analyticsRes.json).slice(0, 200)})`,
+  );
+  const analytics = AlertAnalytics.parse(analyticsRes.json);
+  const committedStage = analytics.funnel.find((f) => f.stage === 'committed')!;
+  const verifiedStage = analytics.funnel.find((f) => f.stage === 'verified')!;
+  check(
+    committedStage.ami + committedStage.photo === result.commitments,
+    'analytics: funnel starts at every commitment',
+  );
+  check(
+    verifiedStage.ami + verifiedStage.photo === result.verifiedCount,
+    'analytics: funnel ends at the verified count',
+  );
+  check(
+    analytics.outcomes.reduce((sum, o) => sum + o.households, 0) === result.commitments &&
+      analytics.outcomes.find((o) => o.outcome === 'verified')?.households === result.verifiedCount,
+    'analytics: outcomes add up to the commitments',
+  );
+  check(
+    analytics.payouts.creditPhp > 0 && (analytics.payouts.costPerKwhPhp ?? 0) > 0,
+    'analytics: payouts and cost per kWh',
+  );
+  check(
+    analytics.timeline.length > 1 &&
+      analytics.timeline.at(-1)!.committedKw === analytics.committedKw,
+    'analytics: commit timeline ends at the committed total',
+  );
+  check(
+    analytics.paths.length === 2 &&
+      analytics.paths.reduce((n, p) => n + p.committedHouseholds, 0) === result.commitments &&
+      analytics.paths.reduce((n, p) => n + p.verifiedHouseholds, 0) === result.verifiedCount,
+    'analytics: per-path totals add up to the commitments and verified count',
+  );
+  check(
+    Math.abs(
+      analytics.paths.reduce((n, p) => n + p.paidPhp, 0) -
+        (analytics.payouts.creditPhp + analytics.payouts.bonusPhp),
+    ) < 0.05,
+    'analytics: per-path paid adds up to credit plus bonus',
+  );
+  const historyList = AlertHistoryResponse.parse(
+    (await call('GET', '/analytics/history', undefined, OPERATOR)).json,
+  ).alerts;
+  check(
+    historyList.find((h) => h.alertId === id)?.deliveredKw === result.deliveredKw,
+    'analytics: history shows the settled delivered kW',
+  );
+  check(
+    Math.abs(
+      (historyList.find((h) => h.alertId === id)?.verifiedKwh ?? 0) - analytics.verifiedKwh,
+    ) < 0.01,
+    'analytics: history carries the verified kWh',
+  );
+  check((await call('GET', '/analytics/history')).status === 401, 'analytics are operator-only');
 
   const cardA = ResultCard.parse(
     (await call('GET', `/rewards/by-alert/${id}`, undefined, bearer(a))).json,

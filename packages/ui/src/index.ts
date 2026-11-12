@@ -17,3 +17,5 @@ export { ProgressBar } from './components/ProgressBar';
 export type { ProgressBarProps } from './components/ProgressBar';
 export { AlertBanner } from './components/AlertBanner';
 export type { AlertBannerProps } from './components/AlertBanner';
+export { Logo } from './components/Logo';
+export type { LogoProps } from './components/Logo';

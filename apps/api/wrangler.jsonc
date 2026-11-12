@@ -10,8 +10,8 @@
     // "demo" enables the /sim/* routes and Measure (fast-forward). Anything else turns them off.
     "APP_ENV": "demo",
     // Browser origins allowed by CORS (the dashboard), comma-separated. Native apps send no Origin.
-    // Add the Cloudflare Pages URL here once the dashboard is deployed.
-    "ALLOWED_ORIGINS": "http://localhost:8081,http://localhost:19006",
+    // The deployed dashboard (apps/dashboard/wrangler.jsonc) plus local development.
+    "ALLOWED_ORIGINS": "https://kapitwatt.dhekode.com,http://localhost:8081,http://localhost:19006",
   },
   // Workers Rate Limiting (period must be 10 or 60 seconds). Placeholders, sized for a demo where every
   // phone shares one hotspot IP. Not inherited by named environments: repeat them in each env.

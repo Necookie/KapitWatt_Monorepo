@@ -36,7 +36,13 @@ export const Household = z.object({
   lat: z.number().nullable(),
   lng: z.number().nullable(),
   isSimulated: z.boolean(),
-  // auth_token_hash and token_created_at stay server-side only and are deliberately not mirrored.
+  /** Login email and the Meralco account (0004). Absent for simulated and older households. */
+  email: z.string().nullable().optional(),
+  accountNumber: z.string().nullable().optional(),
+  accountName: z.string().nullable().optional(),
+  serviceAddress: z.string().nullable().optional(),
+  // auth_token_hash, token_created_at and password_hash stay server-side only and are deliberately
+  // not mirrored.
 });
 export type Household = z.infer<typeof Household>;
 

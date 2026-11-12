@@ -1,4 +1,10 @@
-import { RegisterHouseholdInput, UpdatePushTokenInput } from '@kapitwatt/shared';
+import {
+  DeleteAccountInput,
+  LoginInput,
+  RegisterHouseholdInput,
+  UpdateProfileInput,
+  UpdatePushTokenInput,
+} from '@kapitwatt/shared';
 import { Hono } from 'hono';
 import type { AppEnv } from '../env';
 import { validate } from '../lib/validate';
@@ -19,6 +25,20 @@ auth.post(
   async (c) => c.json(await households.register(c.var.db, c.req.valid('json')), 201),
 );
 
+// Log in with email and password. Rate-limited per IP, which also slows password guessing.
+auth.post(
+  '/login',
+  rateLimit('RL_REGISTER', (c) => `login:${clientIp(c)}`),
+  validate('json', LoginInput),
+  async (c) => c.json(await households.login(c.var.db, c.req.valid('json'))),
+);
+
+// Log out: the token stops working.
+auth.post('/logout', householdAuth, async (c) => {
+  await households.logout(c.var.db, c.var.householdId);
+  return c.body(null, 204);
+});
+
 // Store or refresh the Expo push token.
 auth.put(
   '/push-token',
@@ -35,3 +55,19 @@ auth.put(
 auth.get('/me', householdAuth, async (c) =>
   c.json(await households.me(c.var.db, c.var.householdId)),
 );
+
+// Correct the account holder name or service address, or turn grid alerts off and on.
+auth.patch('/me', householdAuth, perHousehold, validate('json', UpdateProfileInput), async (c) =>
+  c.json(await households.updateProfile(c.var.db, c.var.householdId, c.req.valid('json'))),
+);
+
+// Withdraw consent and erase the household, its readings and its meter photos.
+auth.delete('/me', householdAuth, perHousehold, validate('json', DeleteAccountInput), async (c) => {
+  await households.deleteAccount(
+    c.var.db,
+    c.env.PHOTOS,
+    c.var.householdId,
+    c.req.valid('json').password,
+  );
+  return c.body(null, 204);
+});

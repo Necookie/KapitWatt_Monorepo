@@ -50,10 +50,18 @@ export const HouseholdMe = z.object({
   optedIn: z.boolean(),
   points: z.number().int(),
   creditPhp: z.number(),
+  /** Login and Meralco account details. Null for households that signed up before they existed. */
+  email: z.string().nullable(),
+  accountName: z.string().nullable(),
+  /** Only the last four digits are ever sent back, e.g. "••••••1234". */
+  accountNumberMasked: z.string().nullable(),
+  serviceAddress: z.string().nullable(),
+  /** When the household consented under the Data Privacy Act 2012. */
+  consentAt: z.iso.datetime().nullable(),
 });
 export type HouseholdMe = z.infer<typeof HouseholdMe>;
 
-/** Returned once by POST /auth/register. Store the token in secure storage; it is never shown again. */
+/** Returned by POST /auth/register and POST /auth/login. Store the token in secure storage; it is never shown again. */
 export const RegisterResult = z.object({
   token: z.string(),
   household: HouseholdMe,
@@ -278,3 +286,96 @@ export const SimStatus = z.object({
   defaults: SimParams,
 });
 export type SimStatus = z.infer<typeof SimStatus>;
+
+// ---- Analytics (operator) ---------------------------------------------------------------------
+
+/**
+ * Verification funnel stages, per verification path:
+ *   committed          households that committed
+ *   evidence_started   photo: sent the before photo; smart meter: any interval data
+ *   evidence_complete  photo: both photos passed (or were approved); smart meter: enough intervals
+ *   verified           settled with a verified cut (0 until settlement)
+ */
+export const FunnelStage = z.enum([
+  'committed',
+  'evidence_started',
+  'evidence_complete',
+  'verified',
+]);
+export type FunnelStage = z.infer<typeof FunnelStage>;
+
+/** What became of each commitment. `awaiting_settlement` until the alert settles. */
+export const AnalyticsOutcome = z.enum([
+  'verified',
+  'awaiting_settlement',
+  'pending_review',
+  'missing_photo',
+  'late_photo',
+  'failed_check',
+  'no_measured_cut',
+  'missing_ami_data',
+]);
+export type AnalyticsOutcome = z.infer<typeof AnalyticsOutcome>;
+
+/** GET /analytics/alerts/:id: one alert's analytics. Aggregates only, never household rows. */
+export const AlertAnalytics = z.object({
+  alertId: z.uuid(),
+  status: AlertStatus,
+  targetKw: z.number(),
+  /** Opted-in households in the targeted barangays. */
+  optedInHouseholds: z.number().int(),
+  committedHouseholds: z.number().int(),
+  committedKw: z.number(),
+  /** Live delivered kW, or the settled figure once settled. */
+  deliveredKw: z.number(),
+  verifiedKwh: z.number(),
+  barangays: z.number().int(),
+  barangaysAtTarget: z.number().int(),
+  funnel: z.array(z.object({ stage: FunnelStage, ami: z.number().int(), photo: z.number().int() })),
+  outcomes: z.array(z.object({ outcome: AnalyticsOutcome, households: z.number().int() })),
+  /** Smart meter vs photo, side by side: what each path committed, verified and was paid. */
+  paths: z.array(
+    z.object({
+      path: VerificationPath,
+      committedHouseholds: z.number().int(),
+      committedKw: z.number(),
+      verifiedHouseholds: z.number().int(),
+      verifiedKwh: z.number(),
+      paidPhp: z.number(),
+    }),
+  ),
+  payouts: z.object({
+    creditPhp: z.number(),
+    bonusPhp: z.number(),
+    points: z.number().int(),
+    /** (credit + bonus) / verified kWh; null before anything is verified. */
+    costPerKwhPhp: z.number().nullable(),
+  }),
+  /** Committed kW over time, cumulative, from the commitments' own timestamps (at most 60 points). */
+  timeline: z.array(
+    z.object({ at: z.iso.datetime(), committedKw: z.number(), households: z.number().int() }),
+  ),
+});
+export type AlertAnalytics = z.infer<typeof AlertAnalytics>;
+
+export const AlertHistoryItem = z.object({
+  alertId: z.uuid(),
+  level: AlertLevel,
+  status: AlertStatus,
+  createdAt: z.iso.datetime(),
+  windowStart: z.iso.datetime(),
+  targetKw: z.number(),
+  committedHouseholds: z.number().int(),
+  committedKw: z.number(),
+  /** Settled delivered kW; null until the alert settles. */
+  deliveredKw: z.number().nullable(),
+  verifiedCount: z.number().int().nullable(),
+  /** Verified kWh (0 until settled). With paidPhp it gives the cost per verified kWh. */
+  verifiedKwh: z.number(),
+  paidPhp: z.number(),
+});
+export type AlertHistoryItem = z.infer<typeof AlertHistoryItem>;
+
+/** GET /analytics/history: recent alerts, newest first. */
+export const AlertHistoryResponse = z.object({ alerts: z.array(AlertHistoryItem) });
+export type AlertHistoryResponse = z.infer<typeof AlertHistoryResponse>;
