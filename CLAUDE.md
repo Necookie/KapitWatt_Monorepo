@@ -118,7 +118,8 @@ field), make it small and say so, since everyone imports it.
 
 P0 must work in the demo. P1 if time allows. P2 is a slide or stub only; do not build it.
 
-**Household app, P0:** sign-up and opt-in (town, barangay, consent, meter type and serial); commit a cut
+**Household app, P0:** onboarding and opt-in (email and password, privacy notice and consent, Meralco
+account, town, barangay, meter type and serial; see "Accounts and privacy"); commit a cut
 (presets 0.5, 1, 1.5, 2 kW or stepper, max from baseline and trust score); rehearsal event (photo
 households); meter photo capture; grid alert push (SMS mocked); event screen (countdown, commitment,
 photo deadlines, barangay progress bar, live reduction for smart-meter households); result card; points,
@@ -130,7 +131,7 @@ live committed load vs target; delivered load by town and barangay with target-h
 Measure (fast-forward); simulation controls. **P1:** flagged readings list; schedule, reminder, cancel,
 alert log; load curve and relief forecast. **P2:** feeder-level check.
 
-**API, P0:** token auth and opt-in; alert and commitment endpoints with live totals; meter reading
+**API, P0:** email and password login, token auth and opt-in; alert and commitment endpoints with live totals; meter reading
 endpoints with rule checks; push dispatch; baseline and kWh avoided; settlement; simulator routes.
 **P1:** AMI feed adapter (simulated in the demo).
 
@@ -196,6 +197,25 @@ points       = 100 x verified_kwh
 - All reward constants are placeholders (PHP 8.40/kWh, 0.6, 20%, 100 points/kWh, peak factor 2). The real
   rate would be set by Meralco and the ERC.
 
+### Accounts and privacy
+
+Added after the plan (it is not in the PDF): a household has a login and names its Meralco account.
+
+- **Login:** email and password. `POST /auth/register` and `POST /auth/login` return a bearer token;
+  only its hash is stored, and a new login replaces it (one phone at a time). Passwords are stored as
+  PBKDF2 hashes. `POST /auth/logout` ends the session. Password reset is a stub screen (no email
+  service in the pilot).
+- **Meralco account:** the 10-digit Customer Account Number (CAN), the registered account holder's
+  name and the service address. Format checks only; nothing is verified against Meralco. One
+  household per CAN. The CAN is only ever sent back masked (last four digits).
+- **Onboarding order (mobile):** account, privacy notice and consent, Meralco account, home, meter,
+  review. Consent comes before any personal data beyond the email, with two separate required
+  ticks (data use, grid alerts). Nothing is sent to the API until "Join the pilot".
+- **Privacy controls (Profile screen):** see and correct name and address (`PATCH /auth/me`), turn
+  alerts off (`optedIn: false`), re-read the notice, and withdraw consent by deleting the account
+  (`DELETE /auth/me`), which erases the household, its commitments, readings, rewards and photos.
+- The notice text lives in one place, `apps/mobile/src/components/privacy/PrivacyNotice.tsx`.
+
 ### Data model
 
 `barangays`, `households`, `appliances` (optional), `alerts`, `commitments`, `meter_readings`, `rewards`.
@@ -221,7 +241,7 @@ Simulated households are flagged `is_simulated`; reset deletes those rows only.
 ### Guardrails
 
 - Only opted-in households get alerts. Every alert is logged with sender and time.
-- Privacy (Data Privacy Act 2012): opt-in consent on the sign-up screen, results reported per barangay,
+- Privacy (Data Privacy Act 2012): privacy notice and opt-in consent during onboarding, results reported per barangay,
   meter photos and readings are personal data, so private bucket and limited retention.
 - Live updates are short polling, about every 2 seconds. SSE or realtime only if time allows.
 
