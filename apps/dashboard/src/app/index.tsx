@@ -125,7 +125,8 @@ export default function OverviewScreen() {
 
       {alert.data ? (
         <>
-          <AlertSummary alert={alert.data} totals={totals.data} />
+          {/* Keyed by alert: a half-confirmed cancel must never carry over to the next alert. */}
+          <AlertSummary key={alert.data.id} alert={alert.data} totals={totals.data} />
           <Card title="By town" padded={false}>
             <DataTable
               columns={columns}

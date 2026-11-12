@@ -1,21 +1,36 @@
 import type { AlertStatus } from '@kapitwatt/shared';
 import { StyleSheet, View } from 'react-native';
 import { client, errorMessage, type DashboardAlert } from '@/lib/client';
-import { STAGES, stageIndex, useAction, useCommitRunInProgress, useSimStatus } from '@/lib/queries';
+import {
+  STAGES,
+  stageIndex,
+  useAction,
+  useCommitRunInProgress,
+  useDemoControls,
+  useSimStatus,
+} from '@/lib/queries';
 import { useSimParams } from '@/lib/sim-params';
 import { colors, space } from '@/theme';
 import { Button, Notice, Txt } from './ui';
 
 /**
- * The operator walks an event through four stages on cue instead of waiting on a
- * real clock. These are demo controls: they call the fast-forward and settle routes.
+ * The operator moves an event through its four stages on cue instead of waiting on a
+ * real clock. Demo controls only (FR-DASH-07): outside the demo environment the stepper
+ * still shows where the event stands, with no buttons.
  *
- *   Sent ── Open window ──► Window open ── End window and measure ──► Measuring ── Settle ──► Settled
+ *   Sent ── Open window ──► Window open ── End window ──► Measuring ── Settle ──► Settled
+ *     └─────────────── Measure (fast-forward): all of it in one click ───────────────┘
+ *
+ * The single steps stay because real phones need the gaps: a before photo while the
+ * window is open, an after photo once it has ended.
  */
 export function StageControl({ alert, status }: { alert: DashboardAlert; status: AlertStatus }) {
   const { params } = useSimParams();
   const sim = useSimStatus();
   const hasSimulated = (sim.data?.simulatedHouseholds ?? 0) > 0;
+  // Ending the window before the count is known would skip the simulated readings, and a
+  // settled alert cannot be reopened. If the simulator cannot be reached there are none to wait for.
+  const simKnown = sim.data !== undefined || sim.isError;
 
   const open = useAction(() => client.fastForward(alert.id, 'window_start'));
   // The fake meter feed reports once the window has ended. Real phones send their own photos.
@@ -25,10 +40,21 @@ export function StageControl({ alert, status }: { alert: DashboardAlert; status:
     if (hasSimulated) await deliver.mutateAsync(undefined);
   });
   const settle = useAction(() => client.settle(alert.id));
+  // One click: end the window (which compresses the photo timers), take the simulated
+  // readings, settle. If a step fails the event stays where it got to and the single
+  // steps finish it.
+  const measure = useAction(async () => {
+    await client.fastForward(alert.id, 'window_end');
+    if (hasSimulated) await client.simRun(alert.id, params, 'deliver');
+    await client.settle(alert.id);
+  });
   const committing = useCommitRunInProgress();
+  const demo = useDemoControls();
 
   const current = stageIndex(status);
-  const failed = open.error ?? end.error ?? deliver.error ?? settle.error;
+  const failed = open.error ?? end.error ?? deliver.error ?? settle.error ?? measure.error;
+  const beforeEnd = status === 'scheduled' || status === 'active' || status === 'window_open';
+  const working = measure.isPending || open.isPending || end.isPending || settle.isPending;
 
   return (
     <View style={{ gap: space.md }}>
@@ -61,51 +87,65 @@ export function StageControl({ alert, status }: { alert: DashboardAlert; status:
           })}
         </View>
 
-        <View style={styles.actions}>
-          {status === 'active' || status === 'scheduled' ? (
-            <Button
-              kind="primary"
-              label="Open window"
-              busy={open.isPending}
-              // Opening the window closes commits, which would cut a paced run short.
-              disabled={committing}
-              onPress={() => open.mutate(undefined)}
-            />
-          ) : null}
-          {status === 'window_open' ? (
-            <Button
-              kind="primary"
-              label="End window and measure"
-              busy={end.isPending}
-              onPress={() => end.mutate(undefined)}
-            />
-          ) : null}
-          {status === 'settling' && hasSimulated && deliver.isError ? (
-            // The window ended but the simulated readings did not arrive. Sending them
-            // again is safe: a household keeps one reading per kind.
-            <Button
-              label="Resend simulated readings"
-              busy={deliver.isPending}
-              onPress={() => deliver.mutate(undefined)}
-            />
-          ) : null}
-          {status === 'settling' ? (
-            <Button
-              kind="primary"
-              label="Settle results"
-              busy={settle.isPending}
-              disabled={deliver.isPending}
-              onPress={() => settle.mutate(undefined)}
-            />
-          ) : null}
-        </View>
+        {demo ? (
+          <View style={styles.actions}>
+            {status === 'active' || status === 'scheduled' ? (
+              <Button
+                label="Open window"
+                busy={open.isPending}
+                // Opening the window closes commits, which would cut a paced run short.
+                disabled={committing || working}
+                onPress={() => open.mutate(undefined)}
+              />
+            ) : null}
+            {status === 'window_open' ? (
+              <Button
+                label="End window"
+                busy={end.isPending}
+                disabled={working || !simKnown}
+                onPress={() => end.mutate(undefined)}
+              />
+            ) : null}
+            {beforeEnd ? (
+              <Button
+                kind="primary"
+                label="Measure (fast-forward)"
+                busy={measure.isPending}
+                disabled={committing || working || !simKnown}
+                onPress={() => measure.mutate(undefined)}
+              />
+            ) : null}
+            {status === 'settling' && hasSimulated && (deliver.isError || measure.isError) ? (
+              // The window ended but the simulated readings did not arrive. Sending them
+              // again is safe: a household keeps one reading per kind.
+              <Button
+                label="Resend simulated readings"
+                busy={deliver.isPending}
+                onPress={() => deliver.mutate(undefined)}
+              />
+            ) : null}
+            {status === 'settling' ? (
+              <Button
+                kind="primary"
+                label="Settle results"
+                busy={settle.isPending}
+                disabled={deliver.isPending || measure.isPending}
+                onPress={() => settle.mutate(undefined)}
+              />
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       <Txt size="xs" tone="muted">
         {committing && current === 0
           ? 'Simulated households are still committing; the window can open when they finish.'
           : hint(status)}{' '}
-        Demo control: the window is moved to now, its scheduled length is kept.
+        {!demo
+          ? 'The event follows the real clock: stage controls exist in the demo environment only.'
+          : beforeEnd
+            ? 'Measure (fast-forward) ends the window, takes the readings and settles in one step. The single steps leave time for real phones to take their photos. Demo control: the window is moved to now, its scheduled length is kept.'
+            : 'Demo control: the window is moved to now, its scheduled length is kept.'}
       </Txt>
       {failed ? <Notice tone="critical">{errorMessage(failed)}</Notice> : null}
     </View>
@@ -150,5 +190,5 @@ const styles = StyleSheet.create({
   },
   dotDone: { backgroundColor: colors.brand },
   dotNow: { backgroundColor: colors.brandStrong },
-  actions: { flexDirection: 'row', gap: space.sm },
+  actions: { flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' },
 });

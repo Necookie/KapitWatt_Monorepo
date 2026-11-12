@@ -6,7 +6,14 @@ import { Field, Segmented, Slider, TextField } from '@/components/form';
 import { Button, Card, Label, Notice, PageHeader, Tag, Txt } from '@/components/ui';
 import { client, errorMessage } from '@/lib/client';
 import { count, fraction, kw, percent } from '@/lib/format';
-import { SIM_COMMIT_RUN, useAction, useCurrentAlert, useSimStatus, useTotals } from '@/lib/queries';
+import {
+  SIM_COMMIT_RUN,
+  useAction,
+  useCurrentAlert,
+  useDemoControls,
+  useSimStatus,
+  useTotals,
+} from '@/lib/queries';
 import { useSimParams } from '@/lib/sim-params';
 import { colors, space } from '@/theme';
 
@@ -38,16 +45,17 @@ export default function SimulatorScreen() {
       (name) => PRESETS[name].participation === params.participation,
     ) ?? null;
 
+  const demo = useDemoControls();
   const households = status.data?.simulatedHouseholds ?? 0;
   const alertStatus = totals.data?.status ?? alert.data?.status;
-  const canRun = Boolean(alert.data) && alertStatus === 'active' && households > 0;
+  const canRun = demo && Boolean(alert.data) && alertStatus === 'active' && households > 0;
   const targetKw = alert.data?.targetKw;
   // An alert may target only some barangays; the run only reaches households there.
   const targeted = totals.data?.barangays.some((b) => b.households !== undefined)
     ? totals.data.barangays.reduce((sum, b) => sum + (b.households ?? 0), 0)
     : households;
   const expected = expectedOutcome(alert.data ? targeted : households, params);
-  const failed = status.error ?? seed.error ?? run.error ?? reset.error;
+  const failed = demo ? (status.error ?? seed.error ?? run.error ?? reset.error) : null;
   const lastRun = run.data ?? null;
 
   return (
@@ -59,6 +67,12 @@ export default function SimulatorScreen() {
       />
 
       {failed ? <Notice tone="critical">{errorMessage(failed)}</Notice> : null}
+      {demo ? null : (
+        <Notice tone="warning">
+          The simulator is off: this API is not running in the demo environment, so seed, run and
+          reset are not available.
+        </Notice>
+      )}
 
       <View style={styles.columns}>
         <View style={styles.left}>
@@ -98,14 +112,31 @@ export default function SimulatorScreen() {
                 </View>
                 <View style={styles.gridItem}>
                   <Slider
-                    label="Follow-through"
-                    hint="Share of the committed cut actually delivered."
+                    label="Follow-through, smart meter"
+                    hint="Share of the committed cut smart-meter households deliver."
                     value={params.followThrough}
                     min={0}
                     max={1}
                     step={0.05}
                     format={pct}
+                    // Until the photo slider is moved, both paths follow this one.
                     onChange={(followThrough) => set({ followThrough })}
+                  />
+                </View>
+                <View style={styles.gridItem}>
+                  <Slider
+                    label="Follow-through, meter photo"
+                    hint={
+                      params.photoFollowThrough === undefined
+                        ? 'Same as smart meter until you move it.'
+                        : 'Share of the committed cut photo households deliver.'
+                    }
+                    value={params.photoFollowThrough ?? params.followThrough}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    format={pct}
+                    onChange={(photoFollowThrough) => set({ photoFollowThrough })}
                   />
                 </View>
                 <View style={styles.gridItem}>
@@ -210,6 +241,7 @@ export default function SimulatorScreen() {
                   label={households > 0 ? 'Re-seed' : 'Seed'}
                   kind={households > 0 ? 'secondary' : 'primary'}
                   busy={seed.isPending}
+                  disabled={!demo}
                   onPress={() => seed.mutate(undefined)}
                 />
               </View>
@@ -263,7 +295,7 @@ export default function SimulatorScreen() {
                     />
                   </View>
                 ) : (
-                  <Button label="Reset" onPress={() => setConfirmReset(true)} />
+                  <Button label="Reset" disabled={!demo} onPress={() => setConfirmReset(true)} />
                 )}
               </View>
             </View>
@@ -321,8 +353,8 @@ export default function SimulatorScreen() {
               <Txt size="xs" tone="muted">
                 Arithmetic only, for {count(alert.data ? targeted : households)} households
                 {alert.data ? ' in the targeted barangays' : ''}: households × participation × cut,
-                then follow-through and photo completion. A real run lands near these figures, not
-                on them.
+                then follow-through per path and photo completion. A real run lands near these
+                figures, not on them.
                 {targetKw === undefined ? ' Send an alert to compare against its target.' : ''}
               </Txt>
             </View>

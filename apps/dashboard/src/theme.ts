@@ -42,9 +42,6 @@ export const colors = {
     neutral: '#5F574E',
     neutralSoft: '#EEEAE4',
   },
-
-  /** Kept for the Placeholder component. */
-  amber: '#E8650F',
 } as const;
 
 export const font = {

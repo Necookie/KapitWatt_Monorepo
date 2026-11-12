@@ -18,12 +18,19 @@ import {
 } from '@/components/form';
 import { Button, Card, Label, Notice, PageHeader, Tag, Txt } from '@/components/ui';
 import { client, errorMessage } from '@/lib/client';
-import { about, clock, dayAndClock, kw } from '@/lib/format';
+import { about, clock, dayAndClock, power } from '@/lib/format';
 import { useAction, useBarangays, useCurrentAlert } from '@/lib/queries';
 import { colors, radius, space } from '@/theme';
 
 /** Form defaults only: a red alert asks for a bigger cut than a yellow one (FR-DASH-01). */
 const DEFAULT_TARGET_KW: Record<AlertLevel, number> = { yellow: 300, red: 600 };
+/** The operator can type the target in either unit (PRD: "kW or MW of relief wanted"). */
+type TargetUnit = 'kW' | 'MW';
+const KW_PER: Record<TargetUnit, number> = { kW: 1, MW: 1000 };
+const UNITS = (Object.keys(KW_PER) as TargetUnit[]).map((unit) => ({ value: unit, label: unit }));
+/** Keeps 0.6 MW at 600 kW rather than 600.0000000001. */
+const toKw = (value: number, unit: TargetUnit) => Math.round(value * KW_PER[unit] * 100) / 100;
+
 const DURATIONS = [1, DEFAULT_WINDOW_HOURS, 3].map((h) => ({ value: h, label: `${h} h` }));
 
 function tonightAt(hour: number): Date {
@@ -55,6 +62,7 @@ export default function NewAlertScreen() {
   const [start, setStart] = useState(() => toLocalInput(tonightAt(18)));
   const [hours, setHours] = useState<number>(DEFAULT_WINDOW_HOURS);
   const [target, setTarget] = useState<string | null>(null);
+  const [unit, setUnit] = useState<TargetUnit>('kW');
   const [message, setMessage] = useState<string | null>(null);
   /** Null means all pilot areas. */
   const [picked, setPicked] = useState<Set<string> | null>(null);
@@ -67,7 +75,14 @@ export default function NewAlertScreen() {
   const startDate = new Date(start);
   const validStart = !Number.isNaN(startDate.getTime());
   const endDate = new Date((validStart ? startDate.getTime() : Date.now()) + hours * 3_600_000);
-  const targetText = target ?? String(DEFAULT_TARGET_KW[level]);
+  const targetText = target ?? String(DEFAULT_TARGET_KW[level] / KW_PER[unit]);
+  const changeUnit = (next: TargetUnit) => {
+    // Keep the amount, change how it is written: 600 kW becomes 0.6 MW.
+    if (target !== null && target !== '') {
+      setTarget(String(toKw(Number(target), unit) / KW_PER[next]));
+    }
+    setUnit(next);
+  };
   const messageText =
     message ?? defaultMessage(level, validStart ? startDate : new Date(), endDate);
 
@@ -91,7 +106,7 @@ export default function NewAlertScreen() {
     level,
     windowStart: validStart ? startDate.toISOString() : '',
     windowEnd: endDate.toISOString(),
-    targetKw: Number(targetText),
+    targetKw: toKw(Number(targetText), unit),
     // An empty list is the API's way of saying "all pilot areas".
     targetBarangayIds: everything ? [] : chosen.map((b) => b.id),
     message: messageText.trim(),
@@ -102,7 +117,7 @@ export default function NewAlertScreen() {
     : chosen.length === 0
       ? 'Pick at least one barangay.'
       : !(input.targetKw > 0)
-        ? 'Enter a target above 0 kW.'
+        ? `Enter a target above 0 ${unit}.`
         : input.message.length === 0
           ? 'The message cannot be empty.'
           : parsed.success
@@ -199,13 +214,18 @@ export default function NewAlertScreen() {
               >
                 <View style={styles.inline}>
                   <TextField
-                    label="Target in kW"
+                    label={`Target in ${unit}`}
                     numeric
                     width={96}
                     value={targetText}
                     onChangeText={(text) => setTarget(text.replace(/[^0-9.]/g, ''))}
                   />
-                  <Txt tone="muted">kW</Txt>
+                  <Segmented
+                    label="Target unit"
+                    value={unit}
+                    onChange={changeUnit}
+                    options={UNITS}
+                  />
                 </View>
               </Field>
 
@@ -331,7 +351,7 @@ export default function NewAlertScreen() {
               </SummaryRow>
               <SummaryRow label="Target">
                 <Txt tone="ink" numeric>
-                  {input.targetKw > 0 ? `${kw(input.targetKw)} kW` : '—'}
+                  {input.targetKw > 0 ? power(input.targetKw) : '—'}
                 </Txt>
               </SummaryRow>
               {problem ? <Notice tone="warning">{problem}</Notice> : null}
@@ -358,7 +378,7 @@ export default function NewAlertScreen() {
             </Txt>
             <Txt size="sm" tone="muted" numeric>
               Peak window {validStart ? dayAndClock(startDate.toISOString()) : ''} to{' '}
-              {clock(endDate.toISOString())}. Target {kw(input.targetKw || 0)} kW. Opted-in phones
+              {clock(endDate.toISOString())}. Target {power(input.targetKw || 0)}. Opted-in phones
               in these barangays are notified straight away.
             </Txt>
             {send.error ? <Notice tone="critical">{errorMessage(send.error)}</Notice> : null}
