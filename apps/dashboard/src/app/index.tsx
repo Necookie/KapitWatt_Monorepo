@@ -1,4 +1,5 @@
 import { POLL_INTERVAL_MS } from '@kapitwatt/shared';
+import { Skeleton } from '@kapitwatt/ui';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { AlertSummary } from '@/components/AlertSummary';
@@ -126,7 +127,12 @@ export default function OverviewScreen() {
       {alert.data ? (
         <>
           {/* Keyed by alert: a half-confirmed cancel must never carry over to the next alert. */}
-          <AlertSummary key={alert.data.id} alert={alert.data} totals={totals.data} />
+          <AlertSummary
+            key={alert.data.id}
+            alert={alert.data}
+            totals={totals.data}
+            loading={!totals.data && totals.isLoading}
+          />
           <Card title="By town" padded={false}>
             <DataTable
               columns={columns}
@@ -136,6 +142,8 @@ export default function OverviewScreen() {
                 router.push({ pathname: '/towns/[town]', params: { town: t.town } })
               }
               empty="Waiting for the first totals."
+              loading={totals.isLoading}
+              skeletonRows={7}
             />
           </Card>
           <Txt size="xs" tone="muted">
@@ -145,13 +153,21 @@ export default function OverviewScreen() {
       ) : (
         <Card padded={false}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-            <Stat label="Committed" value="0" unit="kW" note="No alert in force" />
             <Stat
+              loading={alert.isLoading}
+              label="Committed"
+              value="0"
+              unit="kW"
+              note="No alert in force"
+            />
+            <Stat
+              loading={barangays.isLoading}
               label="Opted-in households"
               value={householdsKnown ? about(pilotHouseholds).replace('about ', '≈ ') : '—'}
               note={householdsKnown ? 'Simulated, plus team phones' : 'Not reported by the API yet'}
             />
             <Stat
+              loading={barangays.isLoading}
               label="Coverage"
               value={String(new Set((barangays.data ?? []).map((b) => b.municipality)).size)}
               unit="towns"
@@ -159,11 +175,13 @@ export default function OverviewScreen() {
             />
           </View>
           <View style={{ padding: 16, paddingTop: 0 }}>
-            <Txt size="sm" tone="muted">
-              {alert.isLoading
-                ? 'Loading the current alert.'
-                : 'No alert has been sent. Send one to start an event.'}
-            </Txt>
+            {alert.isLoading ? (
+              <Skeleton width="40%" height={10} />
+            ) : (
+              <Txt size="sm" tone="muted">
+                No alert has been sent. Send one to start an event.
+              </Txt>
+            )}
           </View>
         </Card>
       )}

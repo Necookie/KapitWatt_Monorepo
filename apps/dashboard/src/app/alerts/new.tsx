@@ -16,6 +16,7 @@ import {
   TextField,
   toLocalInput,
 } from '@/components/form';
+import { Skeleton } from '@kapitwatt/ui';
 import { Button, Card, Label, Notice, PageHeader, Tag, Txt } from '@/components/ui';
 import { client, errorMessage } from '@/lib/client';
 import { about, clock, dayAndClock, power } from '@/lib/format';
@@ -297,9 +298,28 @@ export default function NewAlertScreen() {
                   );
                 })}
               </View>
-              {all.length === 0 ? (
+              {all.length === 0 && barangays.isLoading ? (
+                // One group per pilot town, three barangay checkboxes each, while the list loads.
+                <View accessibilityLabel="Loading barangays" style={{ gap: space.lg }}>
+                  {[0, 1, 2].map((g) => (
+                    <View key={g} style={{ gap: space.sm }}>
+                      <Skeleton width={110} height={12} />
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
+                        {[0, 1, 2].map((i) => (
+                          <Skeleton
+                            key={i}
+                            width={[120, 96, 140][(g + i) % 3]}
+                            height={20}
+                            radius="sm"
+                          />
+                        ))}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : all.length === 0 ? (
                 <Txt size="sm" tone="muted">
-                  {barangays.isLoading ? 'Loading barangays.' : 'No barangays returned by the API.'}
+                  No barangays returned by the API.
                 </Txt>
               ) : null}
             </View>

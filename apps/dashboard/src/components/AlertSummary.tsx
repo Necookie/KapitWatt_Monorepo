@@ -10,15 +10,18 @@ import { colors, space } from '@/theme';
 import { LoadBars } from './charts';
 import { LoadCurve } from './LoadCurve';
 import { StageControl } from './StageControl';
-import { Button, Card, LegendItem, Notice, Stat, Tag, Txt } from './ui';
+import { Button, Card, ChartSkeleton, LegendItem, Notice, Stat, Tag, Txt } from './ui';
 
 /** The alert in force: what was sent, where it stands, and the headline load figures. */
 export function AlertSummary({
   alert,
   totals,
+  loading = false,
 }: {
   alert: DashboardAlert;
   totals: AlertTotals | undefined;
+  /** The first totals are still loading: skeletons in place of the figures and charts. */
+  loading?: boolean;
 }) {
   const status: AlertStatus = totals?.status ?? alert.status;
   const target = totals?.targetKw ?? alert.targetKw;
@@ -99,6 +102,7 @@ export function AlertSummary({
           <Stat label="Target" value={kw(target)} unit="kW" note="Relief asked for" />
           <View style={styles.divider} />
           <Stat
+            loading={loading}
             label="Committed"
             value={kw(committed)}
             unit="kW"
@@ -110,6 +114,7 @@ export function AlertSummary({
           />
           <View style={styles.divider} />
           <Stat
+            loading={loading}
             label="Relief forecast"
             value={kw(Math.round(forecast))}
             unit="kW"
@@ -117,6 +122,7 @@ export function AlertSummary({
           />
           <View style={styles.divider} />
           <Stat
+            loading={loading}
             label="Delivered, verified"
             value={measured ? kw(delivered) : '—'}
             unit={measured ? 'kW' : undefined}
@@ -128,6 +134,7 @@ export function AlertSummary({
           />
           <View style={styles.divider} />
           <Stat
+            loading={loading}
             label="Barangays on target"
             value={measured ? String(hit) : '—'}
             unit={measured ? `of ${barangays.length}` : undefined}
@@ -137,6 +144,8 @@ export function AlertSummary({
       </Card>
 
       <Card
+        loading={loading}
+        skeleton={<ChartSkeleton height={120} />}
         title="Committed and delivered load against target"
         aside={
           <View style={styles.legend}>
@@ -155,7 +164,7 @@ export function AlertSummary({
         />
       </Card>
 
-      <Card title="Load curve and relief forecast">
+      <Card title="Load curve and relief forecast" loading={loading} skeleton={<ChartSkeleton />}>
         <View style={{ gap: space.md }}>
           <LoadCurve
             windowStart={alert.windowStart}

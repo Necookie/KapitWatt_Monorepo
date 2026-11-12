@@ -3,6 +3,7 @@ import { DEFAULT_PARAMS, PRESETS, expectedOutcome, type PresetName } from '@kapi
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Field, Segmented, Slider, TextField } from '@/components/form';
+import { Skeleton } from '@kapitwatt/ui';
 import { Button, Card, Label, Notice, PageHeader, Tag, Txt } from '@/components/ui';
 import { client, errorMessage } from '@/lib/client';
 import { count, fraction, kw, percent } from '@/lib/format';
@@ -303,12 +304,18 @@ export default function SimulatorScreen() {
 
           <Card title="Simulated households">
             <View style={styles.figures}>
-              <Figure label="Households" value={status.data ? count(households) : '—'} />
               <Figure
+                loading={status.isLoading}
+                label="Households"
+                value={status.data ? count(households) : '—'}
+              />
+              <Figure
+                loading={status.isLoading}
                 label="Smart meter"
                 value={status.data ? count(status.data.amiHouseholds) : '—'}
               />
               <Figure
+                loading={status.isLoading}
                 label="Meter photo"
                 value={status.data ? count(status.data.photoHouseholds) : '—'}
               />
@@ -365,13 +372,17 @@ export default function SimulatorScreen() {
   );
 }
 
-function Figure({ label, value }: { label: string; value: string }) {
+function Figure({ label, value, loading }: { label: string; value: string; loading?: boolean }) {
   return (
     <View style={{ minWidth: 96, gap: 2 }}>
       <Label>{label}</Label>
-      <Txt size="xl" tone="ink" weight="600" numeric>
-        {value}
-      </Txt>
+      {loading ? (
+        <Skeleton width={72} height={22} radius="sm" style={{ marginVertical: 2 }} />
+      ) : (
+        <Txt size="xl" tone="ink" weight="600" numeric>
+          {value}
+        </Txt>
+      )}
     </View>
   );
 }

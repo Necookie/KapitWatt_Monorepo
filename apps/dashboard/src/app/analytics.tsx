@@ -1,6 +1,6 @@
 import { Icon } from '@kapitwatt/icons';
 import { POLL_INTERVAL_MS, REWARD, type AlertAnalytics, type AlertStatus } from '@kapitwatt/shared';
-import { Card, Chip, SegmentedButtons, Stack, Text, type ChipTone } from '@kapitwatt/ui';
+import { Card, Chip, SegmentedButtons, Skeleton, Stack, Text, type ChipTone } from '@kapitwatt/ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { BarangayMap } from '@/components/analytics/BarangayMap';
@@ -24,6 +24,7 @@ import {
   KpiCard,
   Panel,
   Row,
+  RowsSkeleton,
   grow,
   useChartColors,
 } from '@/components/analytics/primitives';
@@ -77,6 +78,10 @@ export default function AnalyticsScreen() {
   const a = analytics.data;
   const shown = history.data?.find((h) => h.alertId === alertId);
   const failed = analytics.error ?? history.error;
+  // Still finding out which alert to show, or loading it: skeletons, not a blank page.
+  const waiting =
+    !a && (analytics.isLoading || (!alertId && (current.isLoading || history.isLoading)));
+  const totalsLoading = !totals.data && totals.isLoading;
   const households = sim.data?.simulatedHouseholds || a?.optedInHouseholds || 0;
 
   return (
@@ -145,13 +150,16 @@ export default function AnalyticsScreen() {
         ) : view === 'barangays' ? (
           <Stack gap={4}>
             <Panel
+              loading={totalsLoading}
               title="Pilot map"
+              skeleton={<Skeleton height={440} radius="md" />}
               icon="location"
               note="Targeted barangays in the seven Laguna towns, shaded by delivered kW against their share of the target."
             >
               <BarangayMap barangays={totals.data?.barangays ?? []} />
             </Panel>
             <Panel
+              loading={totalsLoading}
               title="Share of target by town"
               icon="barangay"
               note="Each tile is a targeted barangay, grouped by town. Delivered kW against its share of the target."
@@ -160,6 +168,7 @@ export default function AnalyticsScreen() {
             </Panel>
             <Row>
               <Panel
+                loading={totalsLoading}
                 title="Committed vs delivered"
                 icon="chartLine"
                 note="Below the line is commitment that was not verified. Point size is households."
@@ -168,7 +177,9 @@ export default function AnalyticsScreen() {
                 <CommitDeliverScatter barangays={totals.data?.barangays ?? []} />
               </Panel>
               <Panel
+                loading={totalsLoading}
                 title="Ranking"
+                skeleton={<RowsSkeleton rows={10} />}
                 icon="leaderboard"
                 note="Share of target; the tick marks 100%."
                 style={grow(420, 2)}
@@ -176,18 +187,24 @@ export default function AnalyticsScreen() {
                 <BarangayRanking barangays={totals.data?.barangays ?? []} />
               </Panel>
             </Row>
-            <Panel title="By town" icon="town">
+            <Panel
+              title="By town"
+              icon="town"
+              loading={totalsLoading}
+              skeleton={<RowsSkeleton rows={7} />}
+            >
               <TownTable barangays={totals.data?.barangays ?? []} />
             </Panel>
           </Stack>
         ) : null
-      ) : analytics.isLoading ? (
-        <Empty>Loading analytics.</Empty>
+      ) : waiting ? (
+        <SkeletonView view={view} />
       ) : null}
 
       {view === 'trends' ? (
         <Stack gap={4}>
           <Panel
+            loading={history.isLoading}
             title="Recent alerts"
             icon="history"
             note="Select an alert to analyse it in the other views."
@@ -199,11 +216,17 @@ export default function AnalyticsScreen() {
             />
           </Panel>
           <Row>
-            <Panel title="Cost per verified kWh" icon="reward" style={grow(420)}>
+            <Panel
+              title="Cost per verified kWh"
+              icon="reward"
+              style={grow(420)}
+              loading={history.isLoading}
+            >
               <CostPerKwhTrend alerts={history.data ?? []} rate={REWARD.ratePhpPerKwh} />
             </Panel>
             <Panel
               title="What if more households had smart meters?"
+              loading={waiting || sim.isLoading}
               icon="smartMeter"
               style={grow(420)}
             >
@@ -400,4 +423,69 @@ function Notice({
       </Stack>
     </Card>
   );
+}
+
+/** The view's layout in skeletons, with the real panel titles, while the alert loads. */
+function SkeletonView({ view }: { view: Tab }) {
+  if (view === 'overview') {
+    return (
+      <Stack gap={4}>
+        <Row>
+          {(
+            [
+              ['Committed', 'commit'],
+              ['Delivered', 'energy'],
+              ['Participation', 'home'],
+              ['Barangays at target', 'barangay'],
+              ['Verified energy', 'verified'],
+              ['Paid out', 'reward'],
+            ] as const
+          ).map(([label, icon]) => (
+            <KpiCard key={label} label={label} icon={icon} loading />
+          ))}
+        </Row>
+        <Row>
+          <Panel title="Delivered against target" icon="chartBar" style={grow(300, 2)} loading />
+          <Panel title="Delivered by verification path" icon="meter" style={grow(380, 3)} loading />
+        </Row>
+        <Panel title="Commitments over time" icon="chartLine" loading />
+      </Stack>
+    );
+  }
+  if (view === 'verification') {
+    return (
+      <Stack gap={4}>
+        <Row>
+          <Panel
+            title="Verification funnel"
+            icon="verified"
+            style={grow(520, 3)}
+            loading
+            skeleton={<RowsSkeleton rows={4} />}
+          />
+          <Panel title="Outcomes" icon="flagged" style={grow(380, 2)} loading />
+        </Row>
+        <Panel
+          title="Smart meter vs photo"
+          icon="smartMeter"
+          loading
+          skeleton={<RowsSkeleton rows={3} />}
+        />
+      </Stack>
+    );
+  }
+  if (view === 'barangays') {
+    return (
+      <Stack gap={4}>
+        <Panel
+          title="Pilot map"
+          icon="location"
+          loading
+          skeleton={<Skeleton height={440} radius="md" />}
+        />
+        <Panel title="Share of target by town" icon="barangay" loading />
+      </Stack>
+    );
+  }
+  return null;
 }
